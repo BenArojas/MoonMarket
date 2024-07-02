@@ -4,7 +4,7 @@ import { useSpring, animated } from "@react-spring/web";
 
 const MARGIN = { top: 30, right: 30, bottom: 50, left: 50 };
 
-const LineChart = ({ width, height, data }) => {
+const LineChart = ({ width, height, data, dataType }) => {
   const axesRef = useRef(null);
   const boundsWidth = width - MARGIN.right - MARGIN.left;
   const boundsHeight = height - MARGIN.top - MARGIN.bottom;
@@ -19,6 +19,7 @@ const LineChart = ({ width, height, data }) => {
 
   const xScale = useMemo(() => {
     const extent = d3.extent(data, d => new Date(d.timestamp));
+    console.log("X-axis extent:", extent);
     return d3.scaleTime()
       .domain(extent)
       .range([0, boundsWidth]);
@@ -29,8 +30,14 @@ const LineChart = ({ width, height, data }) => {
     svgElement.selectAll("*").remove();
 
     const xAxisGenerator = d3.axisBottom(xScale)
-      .ticks(5)
-      .tickFormat(d3.timeFormat("%H:%M"));
+      .ticks(dataType === 'hourly' ? 5 : data.length)
+      .tickFormat(d => {
+        if (dataType === 'hourly') {
+          return d3.timeFormat("%H:%M")(d);
+        } else {
+          return d3.timeFormat("%b %d")(d);
+        }
+      });
     
     svgElement
       .append("g")
@@ -39,7 +46,7 @@ const LineChart = ({ width, height, data }) => {
 
     const yAxisGenerator = d3.axisLeft(yScale);
     svgElement.append("g").call(yAxisGenerator);
-  }, [xScale, yScale, boundsHeight]);
+  }, [xScale, yScale, boundsHeight, dataType, data.length]);
 
   const lineBuilder = d3.line()
     .x(d => xScale(new Date(d.timestamp)))
@@ -76,7 +83,6 @@ const LineItem = ({ path, color }) => {
   const springProps = useSpring({
     to: {
       path,
-      color,
     },
     config: {
       friction: 100,

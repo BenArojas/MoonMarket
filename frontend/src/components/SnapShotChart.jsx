@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import useSnapshotData from '@/hooks/useSnapshotData'; // Adjust the import path as needed
-import LineChart from '@/components/LineGraph'; // Adjust the import path as needed
+import React, { useState, useMemo } from 'react';
+import useSnapshotData from '@/hooks/useSnapshotData';
+import LineChart from '@/components/LineGraph';
 
 const BUTTONS_HEIGHT = 50;
 
@@ -22,7 +22,28 @@ export const SnapshotChart = ({ width, height }) => {
     setSelectedSnapshot(snapshotType);
   };
 
-  const chartData = selectedSnapshot === 'hourly' ? hourlySnapshots : dailySnapshots;
+  const chartData = useMemo(() => {
+    if (hourlySnapshots == null || dailySnapshots == null) {
+      return [];
+    }
+  
+    if (selectedSnapshot === "hourly") {
+      // Filter hourly snapshots for the current day
+      const today = new Date().setHours(0, 0, 0, 0);
+      return hourlySnapshots.filter(
+        (snapshot) => new Date(snapshot.timestamp) >= today
+      );
+    } else {
+      // Use the last 5 days of daily snapshots (or all if less than 5)
+      const sortedDailyData = dailySnapshots
+        .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+        .slice(-5);
+      
+      console.log("Sorted Daily Data:", sortedDailyData);
+      
+      return sortedDailyData;
+    }
+  }, [selectedSnapshot, hourlySnapshots, dailySnapshots]);
 
   return (
     <div>
@@ -40,10 +61,11 @@ export const SnapshotChart = ({ width, height }) => {
           Daily
         </button>
       </div>
-      {chartData === null ? (
-        <div>Loading...</div>
+      {chartData.length === 0 ? (
+        <div>No data available</div>
       ) : (
         <LineChart
+          key={selectedSnapshot} // Add this line
           width={width}
           height={height - BUTTONS_HEIGHT}
           data={chartData}
