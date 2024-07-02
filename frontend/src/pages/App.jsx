@@ -17,6 +17,7 @@ import NewUserNoHoldings from "@/components/NewUserNoHoldings";
 import { postSnapshot, getPortfolioSnapshots } from '@/api/portfolioSnapshot'
 import useSnapshotData from '@/hooks/useSnapshotData'
 import LineChart from "@/components/LineGraph";
+import { SnapshotChart } from "@/components/SnapShotChart";
 
 export const action = async ({ request }) => {
   const formData = await request.formData();
@@ -66,7 +67,6 @@ function App() {
   const { token } = useAuth();
   const fetcher = useFetcher();
   const data = useLoaderData();
-  const [hourlySnapShots, dailySnapShots] = useSnapshotData()
   //add that dailty data to the chart
   const [stockTickers, visualizationData, value, moneySpent, isDataProcessed] =
     useGraphData(data, selectedGraph);
@@ -74,9 +74,6 @@ function App() {
   const incrementalChange = value - moneySpent;
   const percentageChange = (incrementalChange / value) * 100;
 
-  // useEffect(() => {
-  //   console.log(hourlySnapShots);
-  // }, [data]);
 
 
   return (
@@ -140,7 +137,7 @@ function App() {
           </fetcher.Form>}
 
         </Box>
-        {hourlySnapShots === null ? null : <LineChart data={hourlySnapShots} width={400} height={300} />}
+        <SnapshotChart width={400} height={350}/>
       </Box>
       <Box
         className="graph"

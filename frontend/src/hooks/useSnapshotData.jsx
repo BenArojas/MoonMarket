@@ -21,13 +21,13 @@ function useSnapshotData() {
         fetchSnapshotsData()
     }, [])  // Only re-run if token changes
     
-    useEffect(() => {
-        console.log("Updated Hourly Snapshots:", hourlySnapshots);
-    }, [hourlySnapshots]);
+    // useEffect(() => {
+    //     console.log("Updated Hourly Snapshots:", hourlySnapshots);
+    // }, [hourlySnapshots]);
 
-    useEffect(() => {
-        console.log("Updated Daily Snapshots:", dailySnapshots);
-    }, [dailySnapshots]);
+    // useEffect(() => {
+    //     console.log("Updated Daily Snapshots:", dailySnapshots);
+    // }, [dailySnapshots]);
 
 
     return [hourlySnapshots, dailySnapshots]
