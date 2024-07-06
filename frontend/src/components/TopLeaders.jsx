@@ -1,14 +1,18 @@
 import LeaderboardCard from "@/components/LeaderboardCard";
 import { Box } from "@mui/material";
+import * as React from 'react';
+
 
 function TopLeaders({ leaderboardsData, category }) {
+
   const renderLeaderboardCard = (index, position) => {
     if (leaderboardsData.length > index) {
       const data = leaderboardsData[index];
       return (
         <LeaderboardCard
+          stock={data}
           Number={position}
-          ticker={data.ticker}
+          // ticker={data.ticker}
           changeCount={
             category === "percentage"
               ? data.priceChangePercentage + "%"
@@ -50,6 +54,7 @@ function TopLeaders({ leaderboardsData, category }) {
         {renderLeaderboardCard(0, 1)}
         {renderLeaderboardCard(2, 3)}
       </Box>
+      
     </Box>
   );
 }

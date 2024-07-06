@@ -39,7 +39,7 @@ export const SnapshotChart = ({ width, height }) => {
         .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
         .slice(-5);
       
-      console.log("Sorted Daily Data:", sortedDailyData);
+      
       
       return sortedDailyData;
     }
