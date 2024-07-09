@@ -41,6 +41,7 @@ export const ProtectedRoute = () => {
           sx={{
             display: "flex",
             flexDirection: "row",
+            height: "100%",
           }}
         >
           <Sidebar></Sidebar>

@@ -22,7 +22,6 @@ function InfoBox({ text, subtitle }) {
 }
 
 export default function AlertDialogSlide({ dialogOpen, setDialogOpen, stock }) {
-  console.log(stock);
   const infoBoxText = [
     {
       text: dayjs(stock.earnings).format("DD.MM.YYYY"),

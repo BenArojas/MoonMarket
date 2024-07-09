@@ -14,9 +14,7 @@ import BlurCircularIcon from "@mui/icons-material/BlurCircular";
 import { GraphContext } from "@/pages/ProtectedRoute";
 
 function Sidebar() {
-  const location = useLocation();
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const { setSelectedGraph, percentageChange } = useContext(GraphContext);
+  const {  percentageChange } = useContext(GraphContext);
 
   const calculateSpaceshipPosition = () => {
     // Clamp percentageChange between 0 and 100
@@ -25,25 +23,12 @@ function Sidebar() {
     return `${clampedPercentage}%`;
   };
 
-  useEffect(() => {
-    if (selectedIndex === undefined) {
-      setSelectedIndex(0);
-    }
-  }, [location.pathname]);
-
-  const handleListItemClick = (index, graph) => {
-    setSelectedIndex(index);
-    setSelectedGraph(graph);
-    // console.log("Selected graph:", graph);
-  };
-
-
   return (
     <Box
       sx={{
         backgroundColor: "#1d1d1d",
         width: 70,
-        height: "100vh",
+        minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",

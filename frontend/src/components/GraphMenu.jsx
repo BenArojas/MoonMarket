@@ -16,25 +16,11 @@ import { GraphContext } from "@/pages/ProtectedRoute";
 function GraphMenu() {
   const location = useLocation();
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const { setSelectedGraph, percentageChange } = useContext(GraphContext);
+  const {selectedGraph, setSelectedGraph, percentageChange} = useContext(GraphContext);
 
-  const calculateSpaceshipPosition = () => {
-    // Clamp percentageChange between 0 and 100
-    const clampedPercentage = Math.max(0, Math.min(percentageChange, 100));
-    // Calculate position (0% is bottom, 100% is top)
-    return `${clampedPercentage}%`;
-  };
 
-  useEffect(() => {
-    if (selectedIndex === undefined) {
-      setSelectedIndex(0);
-    }
-  }, [location.pathname]);
-
-  const handleListItemClick = (index, graph) => {
-    setSelectedIndex(index);
+  const handleListItemClick = (graph) => {
     setSelectedGraph(graph);
-    // console.log("Selected graph:", graph);
   };
 
   return (
@@ -58,8 +44,8 @@ function GraphMenu() {
         >
           <ListItem disablePadding>
             <ListItemButton
-              selected={selectedIndex === 0}
-              onClick={() => handleListItemClick(0, "Treemap")}
+              selected={selectedGraph === "Treemap"}
+              onClick={() => handleListItemClick( "Treemap")}
             >
               <ListItemIcon sx={{ 
                 justifyContent: 'center', // Center the icon
@@ -70,8 +56,8 @@ function GraphMenu() {
           </ListItem>
           <ListItem disablePadding>
             <ListItemButton
-              selected={selectedIndex === 1}
-              onClick={() => handleListItemClick(1, "DonutChart")}
+              selected={selectedGraph === "DonutChart"}
+              onClick={() => handleListItemClick( "DonutChart")}
             >
               <ListItemIcon sx={{ 
                 justifyContent: 'center', // Center the icon
@@ -82,8 +68,8 @@ function GraphMenu() {
           </ListItem>
           <ListItem disablePadding>
             <ListItemButton
-              selected={selectedIndex === 2}
-              onClick={() => handleListItemClick(2, "Circular")}
+              selected={selectedGraph === "Circular"}
+              onClick={() => handleListItemClick( "Circular")}
             >
               <ListItemIcon sx={{ 
                 justifyContent: 'center', // Center the icon
@@ -94,8 +80,8 @@ function GraphMenu() {
           </ListItem>
           <ListItem disablePadding>
             <ListItemButton
-              selected={selectedIndex === 3}
-              onClick={() => handleListItemClick(3, "Leaderboards")}
+              selected={selectedGraph === "Leaderboards"}
+              onClick={() => handleListItemClick( "Leaderboards")}
             >
               <ListItemIcon sx={{ 
                 justifyContent: 'center', // Center the icon
