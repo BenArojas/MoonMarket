@@ -1,25 +1,16 @@
+import React, { useContext } from "react";
 import { Box } from "@mui/material";
-import React, { useState, useEffect, useContext } from "react";
 import mainlogo from "/ToTheMoon.png";
 import spaceship from "/spaceship.png";
-import { Link, useLocation } from "react-router-dom";
-import AutoAwesomeMosaicIcon from "@mui/icons-material/AutoAwesomeMosaic";
-import DonutLargeIcon from "@mui/icons-material/DonutLarge";
-import TocSharpIcon from "@mui/icons-material/TocSharp";
-import List from "@mui/material/List";
-import ListItem from "@mui/material/ListItem";
-import ListItemButton from "@mui/material/ListItemButton";
-import ListItemIcon from "@mui/material/ListItemIcon";
-import BlurCircularIcon from "@mui/icons-material/BlurCircular";
+import { Link } from "react-router-dom";
 import { GraphContext } from "@/pages/ProtectedRoute";
+import ShootingStars from "@/components/ShootingStars";
 
 function Sidebar() {
-  const {  percentageChange } = useContext(GraphContext);
+  const { percentageChange } = useContext(GraphContext);
 
   const calculateSpaceshipPosition = () => {
-    // Clamp percentageChange between 0 and 100
     const clampedPercentage = Math.max(0, Math.min(percentageChange, 90));
-    // Calculate position (0% is bottom, 100% is top)
     return `${clampedPercentage}%`;
   };
 
@@ -33,31 +24,39 @@ function Sidebar() {
         flexDirection: "column",
         alignItems: "center",
         position: "relative",
+        overflow: "hidden",
       }}
     >
+      <ShootingStars />
+
       <Box
         className="logo1"
         sx={{
           paddingTop: "30px",
-          height: "50%",
-          
+          position: "relative",
+          zIndex: 1
         }}
       >
         <Link to="/portfolio" className="logo">
           <img src={mainlogo} style={{ height: "120px", width: "70px" }} />
         </Link>
-        <img
-        draggable={false}
-          src={spaceship}
-          style={{
-            position: "absolute",
-            bottom: calculateSpaceshipPosition(),
-            transition: "bottom 1s ease-in-out",
-            width: "70px", // Adjust as needed
-            height: "auto", // Maintain aspect ratio
-          }}
-        />
       </Box>
+
+      {/* Spaceship positioned relative to the entire sidebar */}
+      <img
+        draggable={false}
+        src={spaceship}
+        style={{
+          position: "absolute",
+          bottom: calculateSpaceshipPosition(),
+          left: "50%",
+          transform: "translateX(-50%)",
+          transition: "bottom 1s ease-in-out",
+          width: "70px",
+          height: "auto",
+          zIndex: 1
+        }}
+      />
     </Box>
   );
 }

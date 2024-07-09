@@ -29,7 +29,7 @@ function GraphMenu() {
       sx={{
         display: "flex",
         flexDirection: "row",
-        justifyContent: "center", // Center the menu horizontally
+        justifyContent: "flex-start", // Center the menu horizontally
         padding: "20px 0", // Add some vertical padding
         // borderBottom: "1px solid #e0e0e0",
       }}
