@@ -5,18 +5,17 @@ import { faCrown } from "@fortawesome/free-solid-svg-icons";
 import Avatar from "@mui/material/Avatar";
 import ShowChartSharpIcon from "@mui/icons-material/ShowChartSharp";
 import FolderIcon from "@mui/icons-material/Folder";
-import AlertDialogSlide from '@/components/StockDialog'
+import AlertDialogSlide from "@/components/stockDialog/StockDialog";
 
-
-export default function LeaderboardCard({ Number,stock, changeCount }) {
+export default function LeaderboardCard({ Number, stock, changeCount }) {
   const [dialogOpen, setDialogOpen] = React.useState(false);
 
   const handleClickDialogOpen = () => {
     setDialogOpen(true);
   };
 
-    return (
-      <>
+  return (
+    <>
       <Card
         sx={{
           height: 400,
@@ -65,7 +64,7 @@ export default function LeaderboardCard({ Number,stock, changeCount }) {
             icon={faCrown}
             style={{
               color:
-              Number === 1 ? "#FFD43B" : Number === 2 ? "#74C0FC" : "#9ca7b0",
+                Number === 1 ? "#FFD43B" : Number === 2 ? "#74C0FC" : "#9ca7b0",
               height: 40,
             }}
           />
@@ -74,7 +73,10 @@ export default function LeaderboardCard({ Number,stock, changeCount }) {
           </Avatar>
           <Typography>{stock.ticker}</Typography>
           <Typography>{changeCount}</Typography>
-          <FolderIcon onClick={handleClickDialogOpen} sx={{cursor:"pointer"}}/>
+          <FolderIcon
+            onClick={handleClickDialogOpen}
+            sx={{ cursor: "pointer" }}
+          />
         </Box>
         <Box
           className="Number"
@@ -101,7 +103,11 @@ export default function LeaderboardCard({ Number,stock, changeCount }) {
           </Typography>
         </Box>
       </Card>
-      <AlertDialogSlide dialogOpen={dialogOpen} setDialogOpen={setDialogOpen} stock ={stock}/>
-      </>
-    );
-  }
+      <AlertDialogSlide
+        dialogOpen={dialogOpen}
+        setDialogOpen={setDialogOpen}
+        stock={stock}
+      />
+    </>
+  );
+}
