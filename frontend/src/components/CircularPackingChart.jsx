@@ -92,7 +92,7 @@ export const CircularPacking = ({ width, height, data }) => {
     }, [width, height, data, root, colorScale]);
 
     return (
-        <svg ref={svgRef} width={width} height={height} style={{ display: "inline-block", border: "solid 1px white" }}>
+        <svg ref={svgRef} width={width} height={height} style={{ display: "inline-block", boxShadow: "0 0 5px rgba(255, 255, 255, 0.5)"  }}>
             {root.descendants().slice(1).map((node, index) => {
                 const {
                     ticker,

@@ -9,3 +9,5 @@ missions for moonmarket V3:
 save snapshots of portfolio value everytime i click refresh prices button
 
 make a competition of the users portfolios
+
+using FMP chart intraday and daily chart EOD create a stock chart in stockPage and stockItem and leaderboards table.

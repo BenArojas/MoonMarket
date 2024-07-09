@@ -47,6 +47,18 @@ async def get_stock(ticker: str,  user: User = Depends(current_user)):
         return stock
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Stock with ticker {ticker} does not exist")
 
+@router.get("/historicalPrice/{ticker}")
+async def get_historicalPrice(ticker: str, user: User =Depends(current_user)):
+    api_keys = [ config("FMP_FIRST_API_KEY"), config("FMP_SECOND_API_KEY")]
+    for key in api_keys:
+        try:
+            endpoint = f'/historical-price-full/{ticker}?apikey={key}'
+            url = BASE_URL + endpoint
+            response = requests.get(url)
+        except Exception as e:
+            return {"error": str(e)}
+    
+
 @router.post("/add_stock")
 async def add_stock(stock_data: Stock):
     # Check if the stock already exists in the database
