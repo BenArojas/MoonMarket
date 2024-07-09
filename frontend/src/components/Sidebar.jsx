@@ -20,7 +20,7 @@ function Sidebar() {
 
   const calculateSpaceshipPosition = () => {
     // Clamp percentageChange between 0 and 100
-    const clampedPercentage = Math.max(0, Math.min(percentageChange, 100));
+    const clampedPercentage = Math.max(0, Math.min(percentageChange, 90));
     // Calculate position (0% is bottom, 100% is top)
     return `${clampedPercentage}%`;
   };
