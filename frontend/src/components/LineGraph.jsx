@@ -19,7 +19,6 @@ const LineChart = ({ width, height, data, dataType }) => {
 
   const xScale = useMemo(() => {
     const extent = d3.extent(data, d => new Date(d.timestamp));
-    console.log("X-axis extent:", extent);
     return d3.scaleTime()
       .domain(extent)
       .range([0, boundsWidth]);
