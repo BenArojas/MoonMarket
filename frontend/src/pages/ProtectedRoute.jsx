@@ -20,6 +20,7 @@ export const ProtectedRoute = () => {
   const { token } = useAuth();
   const data = useLoaderData();
   const [selectedGraph, setSelectedGraph] = useState("Treemap");
+  const [percentageChange, setPercentageChange] = useState(0);
   const username = data.data;
   // todo: need to check if the token is acutally valid and not just exist
   // Check if the user is authenticated
@@ -35,7 +36,7 @@ export const ProtectedRoute = () => {
   // If authenticated, render the child routes
   return (
     <>
-      <GraphContext.Provider value={{ selectedGraph, setSelectedGraph }}>
+      <GraphContext.Provider value={{ selectedGraph, setSelectedGraph,percentageChange, setPercentageChange }}>
         <Box
           sx={{
             display: "flex",
