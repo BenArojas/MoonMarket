@@ -9,14 +9,11 @@ import { Box, Button, Typography } from "@mui/material";
 import Tooltip from "@mui/material/Tooltip";
 import { useContext, useEffect } from "react";
 import { useFetcher, useLoaderData } from "react-router-dom";
-// import DetailsChart from "@/components/DetailsChart";
 import PortfolioValue from "@/components/AnimatedNumber";
 import DataGraph from "@/components/DataGraph";
 import MarketStatus from "@/components/MarketStatus";
 import NewUserNoHoldings from "@/components/NewUserNoHoldings";
 import { postSnapshot, getPortfolioSnapshots } from "@/api/portfolioSnapshot";
-import useSnapshotData from "@/hooks/useSnapshotData";
-import LineChart from "@/components/LineGraph";
 import { SnapshotChart } from "@/components/SnapShotChart";
 import GraphMenu from "@/components/GraphMenu";
 

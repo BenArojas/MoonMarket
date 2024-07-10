@@ -6,7 +6,7 @@ add more stocks view options
 
 missions for moonmarket V3:
 
-save snapshots of portfolio value everytime i click refresh prices button
+save snapshots of portfolio value everytime i click refresh prices button - done
 
 make a competition of the users portfolios
 

@@ -43,7 +43,7 @@ export default function Leaderboards({ data }) {
     <Box
       sx={{
         height: 600,
-        width: 1100,
+        width: 1000,
         display: "flex",
         flexDirection: "column-reverse",
         justifyContent: "flex-end", // Changed from "center"

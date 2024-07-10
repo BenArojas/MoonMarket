@@ -2,7 +2,7 @@ import { Box, Divider, Typography } from '@mui/material'
 import AccountMenu from '@/components/AccountMenu';
 import React from 'react'
 import { useState } from 'react';
-import SearchBar from "@/components/SearchBar.jsx";
+
 
 
 function Greetings({ username }) {
@@ -36,7 +36,7 @@ function Greetings({ username }) {
                 <Box sx={{
                     marginRight:'11em'
                 }}>
-                <SearchBar />
+             
                 </Box>
                 <AccountMenu />
             </Box>

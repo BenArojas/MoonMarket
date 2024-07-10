@@ -1,8 +1,5 @@
 import { Box } from "@mui/material";
 import React, { useState, useEffect, useContext } from "react";
-import mainlogo from "/ToTheMoon.png";
-import spaceship from "/spaceship.png";
-import { Link, useLocation } from "react-router-dom";
 import AutoAwesomeMosaicIcon from "@mui/icons-material/AutoAwesomeMosaic";
 import DonutLargeIcon from "@mui/icons-material/DonutLarge";
 import TocSharpIcon from "@mui/icons-material/TocSharp";
@@ -12,11 +9,11 @@ import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import BlurCircularIcon from "@mui/icons-material/BlurCircular";
 import { GraphContext } from "@/pages/ProtectedRoute";
+import SearchBar from "@/components/SearchBar.jsx";
 
 function GraphMenu() {
-  const location = useLocation();
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const {selectedGraph, setSelectedGraph, percentageChange} = useContext(GraphContext);
+
+  const {selectedGraph, setSelectedGraph } = useContext(GraphContext);
 
 
   const handleListItemClick = (graph) => {
@@ -29,7 +26,7 @@ function GraphMenu() {
       sx={{
         display: "flex",
         flexDirection: "row",
-        justifyContent: "flex-start", // Center the menu horizontally
+        justifyContent: "space-between", // Center the menu horizontally
         padding: "20px 0", // Add some vertical padding
         // borderBottom: "1px solid #e0e0e0",
       }}
@@ -92,6 +89,7 @@ function GraphMenu() {
           </ListItem>
         </List>
       </nav>
+      <SearchBar />
     </Box>
   );
 }

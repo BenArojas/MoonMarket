@@ -5,6 +5,9 @@ from util.current_user import current_user
 from models.user import User
 from typing import Annotated
 import pytz
+from itertools import groupby
+from operator import itemgetter
+from beanie import PydanticObjectId
 
 from datetime import datetime, time
 
@@ -23,35 +26,48 @@ async def create_snapshot(value: float , user: User = Depends(current_user)):
     print(f"Timestamp after retrieval: {retrieved_snapshot.timestamp}")
     return {"message": "Snapshot created successfully"}
 
-@router.get("/{timeframe}")
-async def get_snapshots(timeframe: str, user: User = Depends(current_user)):
-    israel_tz = pytz.timezone('Asia/Jerusalem')
+# @router.get("/daily_snapshots")
+# async def get_daily_snapshots(user: User = Depends(current_user)):
+    # israel_tz = pytz.timezone('Asia/Jerusalem')
 
-    def to_israel_time(utc_time):
-        return utc_time.replace(tzinfo=pytz.UTC).astimezone(israel_tz)
+    # def to_israel_time(utc_time):
+    #     return utc_time.replace(tzinfo=pytz.UTC).astimezone(israel_tz)
 
-    if timeframe == "intraday":
-        # Return all snapshots for the current day in Israel time
-        today = datetime.now(israel_tz).date()
-        today_start = datetime.combine(today, time.min)
-        today_start_utc = today_start.astimezone(pytz.UTC)
-        snapshots = await PortfolioSnapshot.find(
-            PortfolioSnapshot.timestamp >= today_start_utc
-        ).to_list()
-        return [{"timestamp": to_israel_time(s.timestamp), "value": s.value} for s in snapshots]
+#     pipeline = [
+#         {"$match": {"userId": PydanticObjectId(user.id)}},
+#         {"$group": {
+#             "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$timestamp"}},
+#             "latest_snapshot": {"$last": "$$ROOT"}
+#         }},
+#         {"$replaceRoot": {"newRoot": "$latest_snapshot"}},
+#         {"$sort": {"timestamp": 1}}
+#     ]
     
-    elif timeframe == "daily":
-        # Return the latest snapshot for each day
-        pipeline = [
-            {"$group": {
-                "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$timestamp"}},
-                "latest_snapshot": {"$last": "$$ROOT"}
-            }},
-            {"$replaceRoot": {"newRoot": "$latest_snapshot"}},
-            {"$sort": {"timestamp": 1}}
-        ]
-        snapshots = await PortfolioSnapshot.aggregate(pipeline).to_list()
-        return [{"timestamp": to_israel_time(s["timestamp"]), "value": s["value"]} for s in snapshots]
+#     snapshots = await PortfolioSnapshot.aggregate(pipeline).to_list()
     
-    else:
-        raise HTTPException(status_code=400, detail="Invalid timeframe")
+    # return [
+    #     {
+    #         "timestamp": to_israel_time(s["timestamp"]),
+    #         "value": s["value"],
+    #         "userId": str(s["userId"])
+    #     } for s in snapshots
+    # ]
+
+@router.get("/daily_snapshots")
+async def get_daily_snapshots(user: User = Depends(current_user)):
+    # Get the user's snapshots
+    user_snapshots = await PortfolioSnapshot.find(PortfolioSnapshot.userId.id == PydanticObjectId(user.id)).sort(-PortfolioSnapshot.timestamp).to_list()
+
+    daily_snapshots = {}
+    for snapshot in user_snapshots:
+        # Convert timestamp to date only (YYYY-MM-DD)
+        snapshot_date = snapshot.timestamp.date()
+
+        # If the date is not in daily_snapshots, add it
+        if snapshot_date not in daily_snapshots:
+            daily_snapshots[snapshot_date] = snapshot
+
+    # Convert the daily_snapshots dict to a list of snapshots
+    result = list(daily_snapshots.values())
+    
+    return result

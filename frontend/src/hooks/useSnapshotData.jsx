@@ -4,22 +4,16 @@ import { useAuth } from "@/pages/AuthProvider";
 
 function useSnapshotData() {
     const { token } = useAuth();
-    const [hourlySnapshots, setHourlySnapshots] = useState(null)
-    const [dailySnapshots, setDailySnapshots] = useState(null)
+    const [dailySnapshots, setDailySnapshots] = useState([])
 
 
     useEffect(() => {
         async function fetchSnapshotsData() {
-            const [hourlyResponse, dailyResponse] = await Promise.all([
-                getPortfolioSnapshots(token, "intraday"),
-                getPortfolioSnapshots(token, "daily")
-            ])
-            setHourlySnapshots(hourlyResponse.data)
-            setDailySnapshots(dailyResponse.data)
+            const dailyTimeFrame = await getPortfolioSnapshots(token)
+            setDailySnapshots(dailyTimeFrame.data)
         }
-
         fetchSnapshotsData()
-    }, [])  // Only re-run if token changes
+    }, [])  
     
     // useEffect(() => {
     //     console.log("Updated Hourly Snapshots:", hourlySnapshots);
@@ -30,7 +24,7 @@ function useSnapshotData() {
     // }, [dailySnapshots]);
 
 
-    return [hourlySnapshots, dailySnapshots]
+    return  dailySnapshots
 }
 
 export default useSnapshotData
