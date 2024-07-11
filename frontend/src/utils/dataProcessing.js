@@ -285,7 +285,7 @@ export function processLeaderboardsData(stocksList, stocksInfo) {
 
 
 export function lastUpdateDate(data) {
-  let last_update_date = data.data.last_refresh;
+  let last_update_date = data.last_refresh;
   let date = new Date(last_update_date);
   let formattedDate = date.toLocaleString("en-GB", {
     day: "2-digit",

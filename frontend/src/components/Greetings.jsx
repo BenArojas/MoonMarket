@@ -2,7 +2,8 @@ import { Box, Divider, Typography } from '@mui/material'
 import AccountMenu from '@/components/AccountMenu';
 import React from 'react'
 import { useState } from 'react';
-
+import MarketStatus from "@/components/MarketStatus";
+import Navbar from '@/components/Navbar';
 
 
 function Greetings({ username }) {
@@ -28,17 +29,18 @@ function Greetings({ username }) {
 
             }}>
                 <Box className="Greetings" sx={{
-                    padding: 5
+                    padding: 3
                 }}>
                     <Typography variant="h4">Hello, {username}</Typography>
                     <Typography color={"#BDBDBD"} variant='subtitle1'>{formattedDate}</Typography>
+                    <MarketStatus />
                 </Box>
                 <Box sx={{
                     marginRight:'11em'
                 }}>
              
                 </Box>
-                <AccountMenu />
+                <Navbar />
             </Box>
             <Divider />
         </Box>

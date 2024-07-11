@@ -11,16 +11,15 @@ export const SnapshotChart = ({ width, height }) => {
     if (dailySnapshots == null) {
       return [];
     }
-    return dailySnapshots.slice(0, 6);
+    return dailySnapshots.slice(0, 6).reverse();
   }
     , [dailySnapshots]);
-
-    
+    console.log(chartData);
 
   return (
     <div>
       {chartData.length === 0 ? (
-        <div>No data available</div>
+        null
       ) : (
         <LineChart
           width={width}

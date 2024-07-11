@@ -51,7 +51,7 @@ function Sidebar() {
           bottom: calculateSpaceshipPosition(),
           left: "50%",
           transform: "translateX(-50%)",
-          transition: "bottom 1s ease-in-out",
+          transition: "bottom 3s ease-in-out",
           width: "70px",
           height: "auto",
           zIndex: 1

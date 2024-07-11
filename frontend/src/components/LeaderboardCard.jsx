@@ -68,7 +68,7 @@ export default function LeaderboardCard({ Number, stock, changeCount }) {
               height: 40,
             }}
           />
-          <Avatar>
+          <Avatar sx={{}}>
             <ShowChartSharpIcon />
           </Avatar>
           <Typography>{stock.ticker}</Typography>

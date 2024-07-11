@@ -13,7 +13,7 @@ import useHoldingsData from "@/hooks/useHoldingsData";
 
 function useGraphData(data, selectedGraph) {
   const { token } = useAuth();
-  const stockList = data.data.holdings;
+  const stockList = data.holdings;
   const stocksInfo = useHoldingsData(stockList, token);
 
   const [stockTickers, setStockTickers] = useState([]);

@@ -20,11 +20,11 @@ export const LineChart = ({ width, height, data }) => {
 
   // X axis
   const xScale = useMemo(() => {
-    const [xMin, xMax] = d3.extent(data, (d) => new Date(d.timestamp));
     return d3
-      .scaleTime()
-      .domain([xMin || new Date(), xMax || new Date()])
-      .range([0, boundsWidth]);
+      .scalePoint()
+      .domain(data.map(d => d.timestamp))
+      .range([0, boundsWidth])
+      .padding(0.5);
   }, [data, boundsWidth]);
 
   // Render the X and Y axis using d3.js, not react
@@ -33,7 +33,10 @@ export const LineChart = ({ width, height, data }) => {
     svgElement.selectAll("*").remove();
 
     const xAxisGenerator = d3.axisBottom(xScale)
-      .tickFormat(d3.timeFormat("%d/%m"));
+      .tickFormat(d => {
+        const date = new Date(d);
+        return `${date.getDate()}/${date.getMonth() + 1}`;
+      });
     svgElement
       .append("g")
       .attr("transform", `translate(0,${boundsHeight})`)
@@ -47,7 +50,7 @@ export const LineChart = ({ width, height, data }) => {
   // Build the line
   const lineBuilder = d3
     .line()
-    .x((d) => xScale(new Date(d.timestamp)))
+    .x((d) => xScale(d.timestamp))
     .y((d) => yScale(d.value));
 
   const linePath = lineBuilder(data);
@@ -67,7 +70,7 @@ export const LineChart = ({ width, height, data }) => {
           <path
             d={linePath}
             opacity={1}
-            stroke="#9a6fb0"
+            stroke="#C4C4C4" //Silver
             fill="none"
             strokeWidth={2}
           />

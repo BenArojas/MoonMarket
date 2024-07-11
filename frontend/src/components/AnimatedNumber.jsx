@@ -4,7 +4,7 @@ import Typography from '@mui/material/Typography';
 
 const PortfolioValue = ({ value }) => {
   return (
-    <Typography variant="h3">
+    <Typography variant="h3" color="secondary">
       <CountUp
         end={value}
         separator=","

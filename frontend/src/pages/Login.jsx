@@ -6,6 +6,30 @@ import { loginUser, refreshJwtKey } from "@/api/user";
 import { useForm } from "react-hook-form";
 import { TextField, Box, Card, Typography, Button } from "@mui/material";
 import WebsiteName from '@/components/WebsiteName';
+import { styled } from '@mui/material/styles';
+
+const StyledTextField = styled(TextField)({
+  '& .MuiInputBase-input': {
+    '&:-webkit-autofill': {
+      WebkitBoxShadow: '0 0 0 1000px transparent inset',
+      WebkitTextFillColor: 'white',
+      caretColor: 'white',
+      transition: 'background-color 5000s ease-in-out 0s',
+    },
+    '&:-webkit-autofill:hover': {
+      WebkitTextFillColor: 'white',
+      caretColor: 'white',
+    },
+    '&:-webkit-autofill:focus': {
+      WebkitTextFillColor: 'white',
+      caretColor: 'white',
+    },
+    '&:-webkit-autofill:active': {
+      WebkitTextFillColor: 'white',
+      caretColor: 'white',
+    },
+  },
+});
 
 const Login = () => {
   const { setToken } = useAuth();
@@ -101,7 +125,7 @@ const Login = () => {
       >
         <WebsiteName/>
         {error && <div style={{ color: "white" }}>{error}</div>}
-        <TextField
+        <StyledTextField 
           {...register("email", {
             required: true,
           })}

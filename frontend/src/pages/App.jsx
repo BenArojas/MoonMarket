@@ -101,6 +101,8 @@ function App() {
             display: "flex",
             flexDirection: "row",
             paddingLeft: "4em",
+            gap: 2,
+            alignItems: "center",
           }}
         >
           <Box
@@ -108,16 +110,16 @@ function App() {
             sx={{
               display: "flex",
               flexDirection: "column",
+              gap: 0.5,
             }}
           >
             <PortfolioValue value={value} />
             {value === 0 ? null : (
-              <Typography variant="body1" color={"#596ee7"}>
+              <Typography variant="body1" color="primary">
                 {incrementalChange.toLocaleString("en-US")}$ (
                 {percentageChange.toLocaleString("en-US")}%) Overall
               </Typography>
             )}
-            <MarketStatus />
           </Box>
           {value === 0 ? null : (
             <fetcher.Form method="post">
@@ -136,7 +138,9 @@ function App() {
                   sx={{
                     marginTop: "10px",
                     justifyContent: "flex-end",
+                    // color:'#077e5d'
                   }}
+                  color="secondary"
                   variant="outlined"
                   type="submit"
                   startIcon={<SyncIcon />}
@@ -153,15 +157,15 @@ function App() {
           margin: "auto",
           padding: 0,
           display: "flex",
-          flexDirection:'column',
-          height:'100%'
+          flexDirection: "column",
+          height: "100%",
         }}
       >
-        {data.data.holdings.length > 0 ? <GraphMenu/> : null}
-        {data.data.holdings.length === 0 ? (
+        {data.holdings.length > 0 ? <GraphMenu /> : null}
+        {data.holdings.length === 0 ? (
           <NewUserNoHoldings />
         ) : (
-          <DataGraph 
+          <DataGraph
             isDataProcessed={isDataProcessed}
             selectedGraph={selectedGraph}
             visualizationData={visualizationData}

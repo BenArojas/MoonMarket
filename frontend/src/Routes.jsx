@@ -17,6 +17,7 @@ import Transactions, {
 } from "@/pages/Transactions";
 import {action as profileAction} from '@/components/ProfileTabs'
 import Register from "@/pages/Register";
+import Space from "@/pages/Space";
 
 const Routes = () => {
   const { token } = useAuth();
@@ -58,6 +59,11 @@ const Routes = () => {
           element: <Transactions />,
           errorElement: <ErrorPage />,
           loader: transactionsLoader(token),
+        },
+        {
+          path: "/space",
+          element: <Space />,
+          errorElement: <ErrorPage />,
         },
         {
           path: "portfolio/:stockTicker",

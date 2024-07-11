@@ -8,7 +8,7 @@ module.exports = {
     extend: {
       colors:{
         customTurquoise:{
-          400: '#049985',
+          400: '#077e5d',
         },
         background: '#2B2B2B', // example background color
         foreground: 'white', // example text color

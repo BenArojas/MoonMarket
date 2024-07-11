@@ -14,7 +14,7 @@ export async function getUserData(token) {
       Authorization: `Bearer ${token}`,
     },
   });
-  return user;
+  return user.data;
 }
 
 export async function getUserName(token) {

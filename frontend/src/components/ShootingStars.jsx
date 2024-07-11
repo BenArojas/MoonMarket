@@ -2,21 +2,20 @@ import React from "react";
 
 const ShootingStars = () => {
   const spans = [
-    { top: 0, right: 0, animationDelay: "0s", animationDuration: "1s" },
-    { top: 0, right: 0, animationDelay: "0.2s", animationDuration: "3s" },
-    { top: 80, right: 0, animationDelay: "0.4s", animationDuration: "2s" },
-    { top: 0, right: 0, animationDelay: "0.6s", animationDuration: "1.5s" },
-    { top: 0, right: 0, animationDelay: "0.8s", animationDuration: "2.5s" },
-    { top: 0, right: 0, animationDelay: "1s", animationDuration: "3s" },
-    { top: 300, right: 0, animationDelay: "1.2s", animationDuration: "1.75s" },
-    { top: 0, right: 0, animationDelay: "1.4s", animationDuration: "1.25s" },
+    { top: 0, right: 0, animationDuration: "1s" },
+    { top: 0, right: 0, animationDuration: "3s" },
+    { top: 80, right: 0, animationDuration: "2s" },
+    { top: 0, right: 0, animationDuration: "1.5s" },
+    { top: 0, right: 0, animationDuration: "2.5s" },
+    { top: 0, right: 0, animationDuration: "3s" },
+    { top: 300, right: 0, animationDuration: "1.75s" },
+    { top: 0, right: 0, animationDuration: "1.25s" },
     {
       top: 0,
       right: 1000,
-      animationDelay: "0.7  5s",
       animationDuration: "2.25s",
     },
-    { top: 0, right: 450, animationDelay: "2.75s", animationDuration: "2.75s" },
+    { top: 0, right: 450, animationDuration: "2.75s" },
   ];
 
   return (
@@ -48,7 +47,6 @@ const ShootingStars = () => {
             animation: "animate 3s linear infinite",
             top: span.top,
             right: span.right,
-            animationDelay: span.animationDelay,
             animationDuration: span.animationDuration,
           }}
         >
