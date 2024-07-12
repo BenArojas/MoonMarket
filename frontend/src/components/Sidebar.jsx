@@ -5,8 +5,10 @@ import spaceship from "/spaceship.png";
 import { Link } from "react-router-dom";
 import { GraphContext } from "@/pages/ProtectedRoute";
 import ShootingStars from "@/components/ShootingStars";
+import { useLocation } from 'react-router-dom';
 
 function Sidebar() {
+  let location = useLocation();
   const { percentageChange } = useContext(GraphContext);
 
   const calculateSpaceshipPosition = () => {
@@ -27,36 +29,35 @@ function Sidebar() {
         overflow: "hidden",
       }}
     >
-      <ShootingStars />
+      {location.pathname === "/space" ? null : <div><ShootingStars />
 
-      <Box
-        className="logo1"
-        sx={{
-          paddingTop: "30px",
-          position: "relative",
-          zIndex: 1
-        }}
-      >
-        <Link to="/portfolio" className="logo">
-          <img src={mainlogo} style={{ height: "120px", width: "70px" }} />
-        </Link>
-      </Box>
+        <Box
+          className="logo1"
+          sx={{
+            paddingTop: "30px",
+            position: "relative",
+            zIndex: 1
+          }}
+        >
+          <Link to="/portfolio" className="logo">
+            <img src={mainlogo} style={{ height: "120px", width: "70px" }} />
+          </Link>
+        </Box>
 
-      {/* Spaceship positioned relative to the entire sidebar */}
-      <img
-        draggable={false}
-        src={spaceship}
-        style={{
-          position: "absolute",
-          bottom: calculateSpaceshipPosition(),
-          left: "50%",
-          transform: "translateX(-50%)",
-          transition: "bottom 3s ease-in-out",
-          width: "70px",
-          height: "auto",
-          zIndex: 1
-        }}
-      />
+        <img
+          draggable={false}
+          src={spaceship}
+          style={{
+            position: "absolute",
+            bottom: calculateSpaceshipPosition(),
+            left: "50%",
+            transform: "translateX(-50%)",
+            transition: "bottom 3s ease-in-out",
+            width: "70px",
+            height: "auto",
+            zIndex: 1
+          }}
+        /></div>}
     </Box>
   );
 }
