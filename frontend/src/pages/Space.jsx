@@ -26,7 +26,7 @@ const Spaceship = ({ percentage, angle }) => {
 
   const moonCenterX = 50;
   const moonCenterY = 45;
-  const moonRadius = 5;
+  const moonRadius = 6;
   const maxDistance = 40;
 
   // New distance calculation
@@ -81,8 +81,8 @@ const Spaceship = ({ percentage, angle }) => {
 
 const DistanceCircles = () => {
   const circles = [];
-  for (let i = 1; i <= 5; i++) {
-    const radius = 5 + (40 * i / 5); // 5% is moon radius, 40% is max distance
+  for (let i = 1; i <= 3; i++) {
+    const radius = 5 + (40 * i / 3); // 5% is moon radius, 40% is max distance
     circles.push(
       <circle
         key={i}
@@ -123,7 +123,7 @@ function Space() {
     let attempts = 0;
     const maxAttempts = 100;
 
-    while (newSpaceships.length < 10 && attempts < maxAttempts) {
+    while (newSpaceships.length < 7 && attempts < maxAttempts) {
       const newShip = {
         percentage: Math.random() * 100, // from 0% to 100%
         angle: Math.random() * 2 * Math.PI,
