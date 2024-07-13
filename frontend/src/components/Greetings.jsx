@@ -8,7 +8,7 @@ import Navbar from '@/components/Navbar';
 
 function Greetings({ username }) {
 
-    const [date,setDate] = useState(new Date());
+    const [date, setDate] = useState(new Date());
     const formattedDate = date.toLocaleDateString('en-US', {
         weekday: 'long',
         month: 'long',
@@ -20,25 +20,21 @@ function Greetings({ username }) {
             width: '90%',
             marginRight: 'auto',
             marginLeft: 'auto',
-            paddingBottom: '20px'
+            paddingBottom: '10px'
         }}>
             <Box sx={{
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems:'center',
+                alignItems: 'center',
+
 
             }}>
                 <Box className="Greetings" sx={{
-                    padding: 3
+                    padding: 2
                 }}>
                     <Typography variant="h4">Hello, {username}</Typography>
                     <Typography color={"#BDBDBD"} variant='subtitle1'>{formattedDate}</Typography>
                     <MarketStatus />
-                </Box>
-                <Box sx={{
-                    marginRight:'11em'
-                }}>
-             
                 </Box>
                 <Navbar />
             </Box>

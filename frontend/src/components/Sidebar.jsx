@@ -29,8 +29,9 @@ function Sidebar() {
         overflow: "hidden",
       }}
     >
-      {location.pathname === "/space" ? null : <div><ShootingStars />
-
+      {location.pathname === "/space" ? null : 
+      <div>
+        <ShootingStars />
         <Box
           className="logo1"
           sx={{
