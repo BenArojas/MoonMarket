@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { getPortfolioSnapshots } from '@/api/portfolioSnapshot'
 import { useAuth } from "@/pages/AuthProvider";
 
-function useSnapshotData() {
+function useSnapshotData(refreshTrigger) {
     const { token } = useAuth();
     const [dailySnapshots, setDailySnapshots] = useState([])
 
@@ -13,7 +13,7 @@ function useSnapshotData() {
             setDailySnapshots(dailyTimeFrame.data)
         }
         fetchSnapshotsData()
-    }, [])  
+    }, [refreshTrigger])  
     
     // useEffect(() => {
     //     console.log("Updated Hourly Snapshots:", hourlySnapshots);

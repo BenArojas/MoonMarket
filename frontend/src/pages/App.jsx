@@ -7,7 +7,7 @@ import { lastUpdateDate } from "@/utils/dataProcessing";
 import SyncIcon from "@mui/icons-material/Sync";
 import { Box, Button, Typography } from "@mui/material";
 import Tooltip from "@mui/material/Tooltip";
-import { useContext, useEffect } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useFetcher, useLoaderData } from "react-router-dom";
 import PortfolioValue from "@/components/AnimatedNumber";
 import DataGraph from "@/components/DataGraph";
@@ -69,11 +69,20 @@ function App() {
   const { formattedDate } = lastUpdateDate(data);
   const incrementalChange = value - moneySpent;
   const percentageChange = (incrementalChange / value) * 100;
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     const newPercentageChange = (incrementalChange / value) * 100;
     setPercentageChange(newPercentageChange);
   }, [incrementalChange, value]);
+
+  useEffect(() => {
+    // This effect will run when the fetcher's data changes
+    if (fetcher.data) {
+      // Increment the refreshTrigger to cause a re-fetch of snapshot data
+      setRefreshTrigger(prev => prev + 1);
+    }
+  }, [fetcher.data]);
 
   return (
     <Box
@@ -149,7 +158,7 @@ function App() {
             </fetcher.Form>
           )}
         </Box>
-        <SnapshotChart width={400} height={350} />
+        <SnapshotChart width={400} height={350} refreshTrigger={refreshTrigger} />
       </Box>
       <Box
         className="graph"
