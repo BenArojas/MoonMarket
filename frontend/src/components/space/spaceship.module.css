@@ -17,7 +17,7 @@
   transform: scale(0);
   position: absolute;
   animation: wrap 0.3s ease-in-out forwards;
-  animation-delay: 0.1s;
+  animation-delay: 0.2s;
 }
 
 .portal {
@@ -25,7 +25,7 @@
   height: 100px;
   position: absolute;
   background: hsl(180, 85%, 56%);
-  animation: portal 0.3s ease-in-out forwards;
+  animation: portal 0.5s ease-in-out forwards;
   border-radius: 100%;
   -webkit-box-shadow: 4px 10px 41px 8px rgba(21, 143, 143, 0.69);
   -moz-box-shadow: 4px 10px 41px 8px rgba(21, 143, 143, 0.69);
