@@ -36,7 +36,7 @@ function GraphMenu() {
           sx={{
             display: "flex",
             flexDirection: "row",
-            gap: 2,
+            gap: 1,
           }}
         >
           <ListItem disablePadding>
