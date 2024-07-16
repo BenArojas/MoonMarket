@@ -1,0 +1,67 @@
+.spaceshipContainer {
+  transform: translate(-50%, -50%);
+  position: absolute;
+  left: var(--postionX);
+  top: var(--postionY);
+  z-index: 1;
+  width: 100px;
+  height: 100px;
+}
+
+.container {
+  position: relative;
+}
+
+.spaceship {
+  scale: 0;
+  position: absolute;
+  animation: wrap 0.3s ease-in-out forwards;
+  animation-delay: 0.1s;
+}
+
+.portal {
+  width: 100px;
+  height: 100px;
+  position: absolute;
+  background: hsl(180, 85%, 56%);
+  animation: portal 0.3s ease-in-out forwards;
+  border-radius: 100%;
+  -webkit-box-shadow: 4px 10px 41px 8px rgba(21, 143, 143, 0.69);
+  -moz-box-shadow: 4px 10px 41px 8px rgba(21, 143, 143, 0.69);
+  box-shadow: 4px 10px 41px 8px rgba(21, 143, 143, 0.69);
+}
+
+@keyframes wrap {
+  0% {
+    scale: 0;
+  }
+  75% {
+    transform: translate(-50%, -50%);
+  }
+  100% {
+    scale: 1;
+  }
+}
+
+@keyframes portal {
+  0% {
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 0;
+  }
+}
+
+/* 
+@keyframes float {
+    0% {
+      transform: translate(-50%, -50%) translateY(0px);
+    }
+    50% {
+      transform: translate(-50%, -50%) translateY(-10px);
+    }
+    100% {
+      transform: translate(-50%, -50%) translateY(0px);
+    }
+  } */
