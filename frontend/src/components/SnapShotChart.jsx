@@ -4,8 +4,8 @@ import {LineChart} from '@/components/LineGraph';
 
 
 
-export const SnapshotChart = ({ width, height }) => {
-  const dailySnapshots = useSnapshotData();
+export const SnapshotChart = ({ width, height, refreshTrigger }) => {
+  const dailySnapshots = useSnapshotData(refreshTrigger);
 
   const chartData = useMemo(() => {
     if (dailySnapshots == null) {
