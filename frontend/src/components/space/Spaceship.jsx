@@ -1,28 +1,33 @@
 import React, { useState, useEffect } from "react";
 import HumanSpaceship from "/spaceship_4.png";
 import styles from "./spaceship.module.css";
+
 function Spaceship({ Radius, Percentage, centerX, centerY }) {
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [angle, setAngle] = useState(Math.random() * 2 * Math.PI);
 
   useEffect(() => {
-    const minRadius = Radius + 50;
-    const smallerRadius = ((100 - Percentage) / 100) * Radius + 100;
-    console.log(smallerRadius);
+    let animationFrameId;
 
-    const randomAngle = Math.random() * 2 * Math.PI;
+    const animateSpaceship = () => {
+      setAngle((prevAngle) => (prevAngle + 0.005) % (2 * Math.PI));
+      animationFrameId = requestAnimationFrame(animateSpaceship);
+    };
 
-    const x = centerX + smallerRadius * Math.cos(randomAngle);
-    const y = centerY + smallerRadius * Math.sin(randomAngle);
+    animationFrameId = requestAnimationFrame(animateSpaceship);
 
-    setPosition({ x, y });
-  }, [centerX, centerY, Radius, Percentage]);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, []);
+
+  const smallerRadius = ((100 - Percentage) / 100) * Radius + 150;
+  const x = centerX + smallerRadius * Math.cos(angle);
+  const y = centerY + smallerRadius * Math.sin(angle);
 
   return (
     <div
       className={styles.spaceshipContainer}
       style={{
-        "--postionX": position.x + "px",
-        "--postionY": position.y + "px",
+        transform: `translate(${x}px, ${y}px)`, // Use transform for smoother animations
+        transition: "transform 50ms linear",
       }}
     >
       <div className={styles.container}>

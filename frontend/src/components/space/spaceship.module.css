@@ -1,11 +1,12 @@
 .spaceshipContainer {
   transform: translate(-50%, -50%);
   position: absolute;
-  left: var(--postionX);
-  top: var(--postionY);
+  left: var(--positionX);
+  top: var(--positionY);
   z-index: 1;
   width: 100px;
   height: 100px;
+  transition: left 50ms linear, top 50ms linear; /* Smooth transitions */
 }
 
 .container {
@@ -13,7 +14,7 @@
 }
 
 .spaceship {
-  scale: 0;
+  transform: scale(0);
   position: absolute;
   animation: wrap 0.3s ease-in-out forwards;
   animation-delay: 0.1s;
@@ -33,35 +34,22 @@
 
 @keyframes wrap {
   0% {
-    scale: 0;
+    transform: scale(0);
   }
   75% {
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%) scale(1);
   }
   100% {
-    scale: 1;
+    transform: scale(1);
   }
 }
 
 @keyframes portal {
   0% {
-    scale: 1;
+    transform: scale(1);
   }
   100% {
     opacity: 0;
-    scale: 0;
+    transform: scale(0);
   }
 }
-
-/* 
-@keyframes float {
-    0% {
-      transform: translate(-50%, -50%) translateY(0px);
-    }
-    50% {
-      transform: translate(-50%, -50%) translateY(-10px);
-    }
-    100% {
-      transform: translate(-50%, -50%) translateY(0px);
-    }
-  } */

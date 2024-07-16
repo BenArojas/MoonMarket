@@ -14,7 +14,7 @@ function Space() {
       if (galaxy.current) {
         const { clientWidth, clientHeight } = galaxy.current;
         setDimensions({ width: clientWidth, height: clientHeight });
-        setRadius((Math.min(clientWidth, clientHeight) / 2) * 0.70); // 45% of the smaller dimension
+        setRadius((Math.min(clientWidth, clientHeight) / 2) * 0.60); // 45% of the smaller dimension
       }
     };
 
@@ -27,9 +27,9 @@ function Space() {
   const centerY = dimensions.height / 2;
 
   const spaceships = [
-    { percentage: 40, value: "10000" },
-    { percentage: 40, value: "20000" },
-    { percentage: 80, value: "5000" },
+    { percentage: 1, value: "10000" },
+    { percentage: 50, value: "20000" },
+    { percentage: 100, value: "5000" },
   ];
 
   return (
