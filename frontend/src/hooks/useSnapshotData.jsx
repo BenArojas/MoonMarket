@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { getPortfolioSnapshots } from '@/api/portfolioSnapshot'
-import { useAuth } from "@/pages/AuthProvider";
+import { useAuth } from "@/contexts/AuthProvider";
 
 function useSnapshotData(refreshTrigger) {
     const { token } = useAuth();

@@ -1,8 +1,8 @@
 import { updateStockPrice } from "@/api/stock";
 import { getUserData } from "@/api/user";
 import useGraphData from "@/hooks/useGraphData";
-import { useAuth } from "@/pages/AuthProvider";
-import { GraphContext } from "@/pages/ProtectedRoute";
+import { useAuth } from "@/contexts/AuthProvider";
+import { PercentageChange } from "@/pages/ProtectedRoute";
 import { lastUpdateDate } from "@/utils/dataProcessing";
 import SyncIcon from "@mui/icons-material/Sync";
 import { Box, Button, Typography } from "@mui/material";
@@ -59,7 +59,8 @@ export const loader = (token) => async () => {
 };
 
 function App() {
-  const { selectedGraph, setPercentageChange } = useContext(GraphContext);
+  const { percentageChange ,setPercentageChange } = useContext(PercentageChange);
+  const [selectedGraph, setSelectedGraph] = useState("Treemap");
   const { token } = useAuth();
   const fetcher = useFetcher();
   const data = useLoaderData();
@@ -68,7 +69,6 @@ function App() {
     useGraphData(data, selectedGraph);
   const { formattedDate } = lastUpdateDate(data);
   const incrementalChange = value - moneySpent;
-  const percentageChange = (incrementalChange / value) * 100;
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
@@ -93,6 +93,7 @@ function App() {
         height: "100%",
         width: "100%",
         margin: "auto",
+        paddingTop: 3
       }}
     >
       <Box
@@ -170,7 +171,7 @@ function App() {
           height: "100%",
         }}
       >
-        {data.holdings.length > 0 ? <GraphMenu /> : null}
+        {data.holdings.length > 0 ? <GraphMenu selectedGraph={selectedGraph} setSelectedGraph={setSelectedGraph}/> : null}
         {data.holdings.length === 0 ? (
           <NewUserNoHoldings />
         ) : (

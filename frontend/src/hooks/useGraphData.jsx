@@ -1,4 +1,4 @@
-import { useAuth } from "@/pages/AuthProvider";
+import { useAuth } from "@/contexts/AuthProvider";
 import "@/styles/App.css";
 import "@/styles/portfolio.css";
 import {

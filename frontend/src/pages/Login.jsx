@@ -1,6 +1,6 @@
 
 import { useNavigate, Form } from "react-router-dom";
-import { useAuth } from "./AuthProvider";
+import { useAuth } from "../contexts/AuthProvider";
 import { useState } from "react";
 import { loginUser, refreshJwtKey } from "@/api/user";
 import { useForm } from "react-hook-form";

@@ -1,7 +1,7 @@
 // ErrorPage.js
 import React from 'react';
 import { useNavigate, useRouteError } from 'react-router-dom';
-import { useAuth } from "@/pages/AuthProvider";
+import { useAuth } from "@/contexts/AuthProvider";
 import { Button } from '@mui/material';
 
 const ErrorPage = () => {

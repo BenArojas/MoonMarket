@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { Box } from "@mui/material";
 import { addUserPurchase, addUserSale } from "@/api/user";
 import { getStockFromPortfolio } from "@/api/stock";
-import { useAuth } from "@/pages/AuthProvider";
+import { useAuth } from "@/contexts/AuthProvider";
 import { useLocation } from "react-router-dom";
 import Card from "@mui/material/Card";
 import Button from "@mui/material/Button";

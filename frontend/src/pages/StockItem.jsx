@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import "@/styles/App.css";
 import AddStockDialog from "@/components/AddStockDialog.jsx";
 import Card from "@mui/material/Card";
-import { useAuth } from "@/pages/AuthProvider";
+import { useAuth } from "@/contexts/AuthProvider";
 import { Box } from "@mui/material";
 import { useLoaderData } from "react-router-dom";
 import { getStockData } from "@/api/stock";

@@ -10,7 +10,7 @@ import Tooltip from '@mui/material/Tooltip';
 import Logout from '@mui/icons-material/Logout';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/pages/AuthProvider";
+import { useAuth } from "@/contexts/AuthProvider";
 import SettingsIcon from '@mui/icons-material/Settings';
 
 export default function AccountMenu() {

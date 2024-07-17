@@ -1,11 +1,12 @@
-import { Navigate, Outlet } from "react-router-dom";
-import { useAuth } from "./AuthProvider";
 import { getUserName } from "@/api/user";
-import { useLoaderData } from "react-router-dom";
-import Sidebar from "@/components/Sidebar";
-import { useEffect, useState, createContext } from "react";
-import { Box } from "@mui/material";
 import Greetings from "@/components/Greetings";
+import Sidebar from "@/components/Sidebar";
+import { Box } from "@mui/material";
+import { createContext, useState } from "react";
+import { Navigate, Outlet, useLoaderData } from "react-router-dom";
+import { useAuth } from "../contexts/AuthProvider";
+import { useRefreshToken } from "@/contexts/RefreshTokenProvider";
+import { useEffect } from "react";
 
 export const loader = (token) => async () => {
   // console.log("loader activated")
@@ -14,14 +15,23 @@ export const loader = (token) => async () => {
   return userName;
 };
 
-export const GraphContext = createContext();
+export const PercentageChange = createContext(0);
+export const FirstLetter = createContext();
 
 export const ProtectedRoute = () => {
   const { token } = useAuth();
+  const { initializeTokenRefresh } = useRefreshToken();
+
+  useEffect(() => {
+    if (token) {
+      initializeTokenRefresh(token, "PT20M");
+    }
+  }, [token, initializeTokenRefresh]);
+
   const data = useLoaderData();
-  const [selectedGraph, setSelectedGraph] = useState("Treemap");
   const [percentageChange, setPercentageChange] = useState(0);
   const username = data.data;
+  const firstLetter = Array.from(username)[0];
   // todo: need to check if the token is acutally valid and not just exist
   // Check if the user is authenticated
   if (!token) {
@@ -29,34 +39,37 @@ export const ProtectedRoute = () => {
     return <Navigate to="/login" replace={true} />;
   }
 
-  // useEffect(() => {
-  //   console.log(selectedGraph);
-  // }, [selectedGraph]);
-
   // If authenticated, render the child routes
   return (
     <>
-      <GraphContext.Provider value={{ selectedGraph, setSelectedGraph,percentageChange, setPercentageChange }}>
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "row",
-            height: "100%",
-          }}
-        >
-          <Sidebar></Sidebar>
+      <PercentageChange.Provider
+        value={{
+          percentageChange,
+          setPercentageChange,
+        }}
+      >
+        <FirstLetter.Provider value={{ firstLetter }}>
           <Box
             sx={{
-              flexGrow: 1,
               display: "flex",
-              flexDirection: "column",
+              flexDirection: "row",
+              height: "100%",
             }}
           >
-            <Greetings username={username} />
-            <Outlet />
+            <Sidebar></Sidebar>
+            <Box
+              sx={{
+                flexGrow: 1,
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              <Greetings username={username} />
+              <Outlet />
+            </Box>
           </Box>
-        </Box>
-      </GraphContext.Provider>
+        </FirstLetter.Provider>
+      </PercentageChange.Provider>
     </>
   );
 };

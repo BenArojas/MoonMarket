@@ -8,13 +8,11 @@ import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import BlurCircularIcon from "@mui/icons-material/BlurCircular";
-import { GraphContext } from "@/pages/ProtectedRoute";
+
 import SearchBar from "@/components/SearchBar.jsx";
 
-function GraphMenu() {
-
-  const {selectedGraph, setSelectedGraph } = useContext(GraphContext);
-
+function GraphMenu({ selectedGraph, setSelectedGraph }) {
+ 
 
   const handleListItemClick = (graph) => {
     setSelectedGraph(graph);
@@ -42,11 +40,13 @@ function GraphMenu() {
           <ListItem disablePadding>
             <ListItemButton
               selected={selectedGraph === "Treemap"}
-              onClick={() => handleListItemClick( "Treemap")}
+              onClick={() => handleListItemClick("Treemap")}
             >
-              <ListItemIcon sx={{ 
-                justifyContent: 'center', // Center the icon
-              }}>
+              <ListItemIcon
+                sx={{
+                  justifyContent: "center", // Center the icon
+                }}
+              >
                 <AutoAwesomeMosaicIcon />
               </ListItemIcon>
             </ListItemButton>
@@ -54,11 +54,13 @@ function GraphMenu() {
           <ListItem disablePadding>
             <ListItemButton
               selected={selectedGraph === "DonutChart"}
-              onClick={() => handleListItemClick( "DonutChart")}
+              onClick={() => handleListItemClick("DonutChart")}
             >
-              <ListItemIcon sx={{ 
-                justifyContent: 'center', // Center the icon
-              }}>
+              <ListItemIcon
+                sx={{
+                  justifyContent: "center", // Center the icon
+                }}
+              >
                 <DonutLargeIcon />
               </ListItemIcon>
             </ListItemButton>
@@ -66,11 +68,13 @@ function GraphMenu() {
           <ListItem disablePadding>
             <ListItemButton
               selected={selectedGraph === "Circular"}
-              onClick={() => handleListItemClick( "Circular")}
+              onClick={() => handleListItemClick("Circular")}
             >
-              <ListItemIcon sx={{ 
-                justifyContent: 'center', // Center the icon
-              }}>
+              <ListItemIcon
+                sx={{
+                  justifyContent: "center", // Center the icon
+                }}
+              >
                 <BlurCircularIcon />
               </ListItemIcon>
             </ListItemButton>
@@ -78,11 +82,13 @@ function GraphMenu() {
           <ListItem disablePadding>
             <ListItemButton
               selected={selectedGraph === "Leaderboards"}
-              onClick={() => handleListItemClick( "Leaderboards")}
+              onClick={() => handleListItemClick("Leaderboards")}
             >
-              <ListItemIcon sx={{ 
-                justifyContent: 'center', // Center the icon
-              }}>
+              <ListItemIcon
+                sx={{
+                  justifyContent: "center", // Center the icon
+                }}
+              >
                 <TocSharpIcon />
               </ListItemIcon>
             </ListItemButton>
