@@ -24,6 +24,9 @@ function SearchFriends() {
   const handleClose = () => {
     setAnchorEl(null);
   };
+  const handleSearchClick = () =>{
+    // todo
+  }
 
   const open = Boolean(anchorEl);
   const id = open ? "simple-popover" : undefined;
@@ -60,7 +63,7 @@ function SearchFriends() {
           py={2}
         >
           <Input sx={{ flexGrow: 1 }} placeholder="Name" />
-          <Button variant="outlined">Search</Button>
+          <Button variant="outlined" onClick={handleSearchClick}>Search</Button>
         </Stack>
         <Stack spacing={2}>
           {friends.map((friend) => (

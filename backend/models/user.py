@@ -1,11 +1,14 @@
 """User models."""
 
 from datetime import datetime
-from typing import Annotated, Any, Optional, List, Optional
-from beanie import Document, Indexed, PydanticObjectId
+from typing import Annotated, Any, Optional, List, Optional, TYPE_CHECKING
+from beanie import Document, Indexed, PydanticObjectId, Link
 from pydantic import BaseModel, EmailStr, Field
 from bson import ObjectId
 
+
+if TYPE_CHECKING:
+    from .friendRequest import FriendRequest
 
 class Deposit(BaseModel):
     amount: float
@@ -40,7 +43,15 @@ class UserRegister(BaseModel):
     email: EmailStr
     password: str
     deposits: List[Deposit] = Field(..., min_items=1)  # At least one deposit required
-    username: str 
+    username: str
+
+class UserFriend(BaseModel):
+    """User fields that will be shown when searching user for sending friend request"""
+     
+    email: EmailStr | None = None
+    username: Optional[str] = None
+    holdings: List[Holding] = []
+
         
 class UserUpdate(BaseModel):
     """Updatable user fields."""
@@ -65,12 +76,48 @@ class UserOut(UserUpdate):
     holdings: List[Holding] = []
     last_refresh: datetime | None = None
     transactions: List[PydanticObjectId] = []  # Use PydanticObjectId for transactions  
+    friends: List[UserFriend] = []
+
+
 
 class User(Document, UserOut):
     """User DB representation."""
 
     password: str
     # email_confirmed_at: datetime | None = None
+    friends: List[Link["User"]] = []
+    friend_requests_sent: List[Link["FriendRequest"]] = []
+    friend_requests_received: List[Link["FriendRequest"]] = []
+    
+    async def add_friend(self, friend: "User"):
+        if friend not in self.friends:
+            self.friends.append(friend)
+            await self.save()
+
+    async def remove_friend(self, friend: "User"):
+        if friend in self.friends:
+            self.friends.remove(friend)
+            await self.save()
+
+    async def send_friend_request(self, to_user: "User"):
+        from .friendRequest import FriendRequest
+        friend_request = FriendRequest(from_user=self, to_user=to_user)
+        await friend_request.create()
+        self.friend_requests_sent.append(friend_request)
+        to_user.friend_requests_received.append(friend_request)
+        await self.save()
+        await to_user.save()
+
+    async def accept_friend_request(self, request: "FriendRequest"):
+        if request in self.friend_requests_received and request.status == "pending":
+            request.status = "accepted"
+            await request.save()
+            await self.add_friend(request.from_user)
+            await request.from_user.add_friend(self)
+            self.friend_requests_received.remove(request)
+            request.from_user.friend_requests_sent.remove(request)
+            await self.save()
+            await request.from_user.save()
 
     def __repr__(self) -> str:
         return f"<User {self.email}>"
@@ -109,3 +156,5 @@ class User(Document, UserOut):
 class PasswordChangeRequest(BaseModel):
     password: str
     new_password: str
+
+

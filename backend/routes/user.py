@@ -3,12 +3,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, Security
 from fastapi_jwt import JwtAuthorizationCredentials
 
-from models.user import User, UserOut, UserUpdate, PasswordChangeRequest, Deposit
+from models.user import User, UserOut, UserUpdate, PasswordChangeRequest, Deposit, UserFriend
 from jwt import access_security
 from util.current_user import current_user
 from models.transaction import Transaction
 from util.password import hash_password, verify_password
 from bson import DBRef
+from models.friendRequest import FriendRequest
 
 
 router = APIRouter(prefix="/user", tags=["User"])
@@ -38,6 +39,50 @@ async def get_user_transactions_by_type(type: str, user: User = Depends(current_
     transactions = await Transaction.find(Transaction.user_id.id == user.id, Transaction.type == type).to_list()
     # Return the list of transactions
     return transactions
+
+@router.get("/user_friend/{username}", response_model=UserFriend)
+async def get_user_by_username(username: str, current_user: User = Depends(current_user)):
+    if username == current_user.username:
+        raise HTTPException(status_code=400, detail="Cannot retrieve your own profile as a friend")
+
+    user = await User.find_one(User.username == username)
+    if user:
+        return UserFriend(email=user.email,username=user.username, holdings=user.holdings)
+    raise HTTPException(status_code=404, detail="User not found")
+
+@router.get("/pending_friend_requests")
+async def get_pending_friend_requests(current_user: User = Depends(current_user)):
+    pending_requests = await FriendRequest.find(
+        FriendRequest.to_user == current_user.id,
+        FriendRequest.status == "pending"
+    ).to_list()
+    
+    return pending_requests
+
+@router.post("/send_friend_request/{username}")
+async def send_friend_request(username: str, current_user: User = Depends(current_user)):
+    to_user = await User.find_one(User.username == username)
+    if not to_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if to_user in current_user.friends:
+        raise HTTPException(status_code=400, detail="User is already a friend")
+    await current_user.send_friend_request(to_user)
+    return {"message": "Friend request sent"}
+
+@router.post("/accept_friend_request/{request_id}")
+async def accept_friend_request(request_id: str, current_user: User = Depends(current_user)):
+    friend_request = await FriendRequest.get(request_id)
+    if not friend_request:
+        raise HTTPException(status_code=404, detail="Friend request not found")
+    
+    if friend_request.to_user.id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to accept this friend request")
+    
+    if friend_request.status != "pending":
+        raise HTTPException(status_code=400, detail="Friend request is not pending")
+    
+    await current_user.accept_friend_request(friend_request)
+    return {"message": "Friend request accepted"}
 
 @router.get("/user_portfolio_change")
 async def get_user_portfolio_change(user: User = Depends(current_user)):
