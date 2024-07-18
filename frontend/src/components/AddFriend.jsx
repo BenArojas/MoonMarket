@@ -2,10 +2,21 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { Avatar } from "@mui/material";
-function AddFriend({ src, username, email }) {
+import { sendFriendRequest } from '@/api/user'
+import { useAuth } from "@/contexts/AuthProvider";
+function AddFriend({ src, username, email, token }) {
+
+  const handleSubmit = async () => {
+    try {
+      const result = await sendFriendRequest(username, token)
+      console.log("Friend request sent successfully");
+    } catch (error) {
+      console.error("Error adding friend: ", error);
+    }
+  }
   return (
     <Stack direction={"row"} justifyContent={'space-between'} spacing={2} alignItems={"center"}>
-        
+
       <Avatar
         alt="Remy Sharp"
         src={
@@ -16,7 +27,7 @@ function AddFriend({ src, username, email }) {
         <Typography>{username}</Typography>
         <Typography>{email}</Typography>
       </Stack>
-      <Button variant="contained">Add</Button>
+      <Button variant="contained" onClick={handleSubmit}>Add</Button>
     </Stack>
   );
 }

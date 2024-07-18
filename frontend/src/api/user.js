@@ -149,3 +149,30 @@ export async function addDeposit(money, token) {
     throw error;
   }
 }
+
+
+export async function searchUser(username, token) {
+  try {
+    const response = await axios.get(`http://localhost:8000/user/user_friend/${username}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+}
+
+export async function sendFriendRequest(username, token) {
+  try {
+    const response = await axios.post(`http://localhost:8000/user/send_friend_request/${username}`,{}, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+}

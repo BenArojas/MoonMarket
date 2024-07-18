@@ -7,27 +7,42 @@ import Input from "@mui/material/Input";
 import Popover from "@mui/material/Popover";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import React from "react";
+import React, { useState } from "react";
 import Test from "/RealMoon.png";
+import { searchUser } from '@/api/user'
+import { useAuth } from "@/contexts/AuthProvider";
 
 function SearchFriends() {
-  const friends = [
-    { username: "Hilik", email: "benarojas11@mgai.com" },
-    { username: "Huriel", email: "huriel223@mgai.com" },
-  ];
-  const [anchorEl, setAnchorEl] = React.useState(null);
+  const { token } = useAuth();
+  const [friend,setFriend] = useState({})
+  const [error,setError] = useState()
 
+  const [anchorEl, setAnchorEl] = React.useState(null);
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
   };
-
   const handleClose = () => {
     setAnchorEl(null);
   };
-  const handleSearchClick = () =>{
-    // todo
-  }
 
+
+  const [searchInput, setSearchInput] = useState("");
+  const handleInputChange = (event) => {
+    setSearchInput(event.target.value);
+    setError(null)
+  };
+
+  const handleSearchClick = async () => {
+    if (searchInput.trim()) {
+      try {
+        const result = await searchUser(searchInput, token);
+        setFriend(result)
+      } catch (error) {
+        console.error("Error searching for user:", error);
+       setError(error.response.data.detail)
+      }
+    }
+  };
   const open = Boolean(anchorEl);
   const id = open ? "simple-popover" : undefined;
   return (
@@ -62,13 +77,16 @@ function SearchFriends() {
           spacing={2}
           py={2}
         >
-          <Input sx={{ flexGrow: 1 }} placeholder="Name" />
+          <Input sx={{ flexGrow: 1 }} placeholder="Name" value={searchInput}
+            onChange={handleInputChange} />
           <Button variant="outlined" onClick={handleSearchClick}>Search</Button>
         </Stack>
         <Stack spacing={2}>
-          {friends.map((friend) => (
+          {/* {friends.map((friend) => (
             <AddFriend src={Test} {...friend} />
-          ))}
+          ))} */}
+          {error? <p>{error}</p>: friend.username && <AddFriend src={Test} username={friend.username} email={friend.email} token={token}/>}
+          {/* {friend.username && <AddFriend src={Test} username={friend.username} email={friend.email} />} */}
         </Stack>
       </Popover>
     </>
