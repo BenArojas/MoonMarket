@@ -1,4 +1,4 @@
-import { getUserName } from "@/api/user";
+import { getUserName, getFriendRequest } from "@/api/user";
 import Greetings from "@/components/Greetings";
 import Sidebar from "@/components/Sidebar";
 import { Box } from "@mui/material";
@@ -11,8 +11,9 @@ import { useEffect } from "react";
 export const loader = (token) => async () => {
   // console.log("loader activated")
   const userName = await getUserName(token);
+  const friendRequests = await getFriendRequest(token)
   // console.log("user: " , user.data)
-  return userName;
+  return {userName, friendRequests};
 };
 
 export const PercentageChange = createContext(0);
@@ -30,7 +31,8 @@ export const ProtectedRoute = () => {
 
   const data = useLoaderData();
   const [percentageChange, setPercentageChange] = useState(0);
-  const username = data.data;
+  const username = data.userName.data;
+  const friendRequests = data.friendRequests
   const firstLetter = Array.from(username)[0];
   // todo: need to check if the token is acutally valid and not just exist
   // Check if the user is authenticated
@@ -64,7 +66,7 @@ export const ProtectedRoute = () => {
                 flexDirection: "column",
               }}
             >
-              <Greetings username={username} />
+              <Greetings username={username} friendRequests={friendRequests}/>
               <Outlet />
             </Box>
           </Box>

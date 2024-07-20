@@ -166,11 +166,44 @@ export async function searchUser(username, token) {
 
 export async function sendFriendRequest(username, token) {
   try {
-    const response = await axios.post(`http://localhost:8000/user/send_friend_request/${username}`,{}, {
+    const response = await axios.post(`http://localhost:8000/user/send_friend_request/${username}`, {}, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     })
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+}
+
+
+export async function getFriendRequest(token) {
+  try {
+    const response = await axios.get(`http://localhost:8000/user/pending_friend_requests`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+}
+
+export async function answerFriendRequest(requestId, action, token) {
+  try {
+    const response = await axios.post(
+      `http://localhost:8000/user/handle_friend_request/${requestId}`,
+      { action }, // Send action in the request body
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        params: { action }, // Also include action as a query parameter
+      }
+    );
     return response.data;
   } catch (error) {
     throw error;

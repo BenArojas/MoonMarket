@@ -51,7 +51,7 @@ export function TabsDemo({ username, current_balance }) {
 
 
   return (
-    <Tabs defaultValue="profile" className="w-[400px]">
+    <Tabs defaultValue="profile" className="w-[500px]">
       <TabsList className="grid w-full grid-cols-3 bg-zinc-700">
         <TabsTrigger value="profile">Profile</TabsTrigger>
         <TabsTrigger value="password">Settings</TabsTrigger>

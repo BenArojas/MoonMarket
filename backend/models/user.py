@@ -5,7 +5,7 @@ from typing import Annotated, Any, Optional, List, Optional, TYPE_CHECKING
 from beanie import Document, Indexed, PydanticObjectId, Link
 from pydantic import BaseModel, EmailStr, Field
 from bson import ObjectId
-
+from fastapi import  HTTPException
 
 if TYPE_CHECKING:
     from .friendRequest import FriendRequest
@@ -85,18 +85,17 @@ class User(Document, UserOut):
 
     password: str
     # email_confirmed_at: datetime | None = None
-    friends: List[Link["User"]] = []
+    friends: List[PydanticObjectId] = []
     friend_requests_sent: List[Link["FriendRequest"]] = []
     friend_requests_received: List[Link["FriendRequest"]] = []
     
-    async def add_friend(self, friend: "User"):
-        if friend not in self.friends:
-            self.friends.append(friend)
-            await self.save()
+    async def add_friend(self, id: PydanticObjectId):
+        self.friends.append(id)
+        await self.save()
 
     async def remove_friend(self, friend: "User"):
-        if friend in self.friends:
-            self.friends.remove(friend)
+        if friend.id in self.friends:
+            self.friends.remove(friend.id)
             await self.save()
 
     async def send_friend_request(self, to_user: "User"):
@@ -108,16 +107,26 @@ class User(Document, UserOut):
         await self.save()
         await to_user.save()
 
-    async def accept_friend_request(self, request: "FriendRequest"):
-        if request in self.friend_requests_received and request.status == "pending":
-            request.status = "accepted"
+    async def accept_friend_request(self, request: "FriendRequest", from_user: "User"):
+            if request.status == "pending":
+                # Update request status
+                request.status = "accepted"
+
+                # Add friends
+                if from_user.id in self.friends or self.id in from_user.friends:
+                    raise HTTPException(status_code=500, detail="Already friends")
+                else:
+                    await self.add_friend(from_user.id)
+                    await from_user.add_friend(self.id)
+                    
+                await request.save()
+
+    async def reject_friend_request(self, request: "FriendRequest", from_user: "User"):
+        if request.status == "pending":
+            # Update request status
+            request.status = "rejected"
             await request.save()
-            await self.add_friend(request.from_user)
-            await request.from_user.add_friend(self)
-            self.friend_requests_received.remove(request)
-            request.from_user.friend_requests_sent.remove(request)
-            await self.save()
-            await request.from_user.save()
+
 
     def __repr__(self) -> str:
         return f"<User {self.email}>"
