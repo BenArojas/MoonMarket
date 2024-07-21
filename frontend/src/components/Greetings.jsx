@@ -1,5 +1,4 @@
 import { Box, Divider, Typography } from '@mui/material'
-import AccountMenu from '@/components/AccountMenu';
 import React from 'react'
 import { useState } from 'react';
 import MarketStatus from "@/components/MarketStatus";

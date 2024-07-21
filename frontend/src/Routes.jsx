@@ -15,22 +15,22 @@ import Profile, { loader as profileLoader } from "@/pages/Profile";
 import Transactions, {
   loader as transactionsLoader,
 } from "@/pages/Transactions";
-import { action as profileAction } from '@/components/ProfileTabs'
+import { action as profileAction } from "@/components/ProfileTabs";
 import Register from "@/pages/Register";
 import Space from "@/pages/Space";
 
 const Routes = () => {
   const { token } = useAuth();
 
-  const boundAction = async (args) => {
-    try {
-      const result = await profileAction(args, token);
-      return result;
-    } catch (error) {
-      console.error("Error in boundAction:", error);
-      throw error;
-    }
-  };
+  // const boundAction = async (args) => {
+  //   try {
+  //     const result = await profileAction(args, token);
+  //     return result;
+  //   } catch (error) {
+  //     console.error("Error in boundAction:", error);
+  //     throw error;
+  //   }
+  // };
 
   // Combine and conditionally include routes based on authentication status
   const router = createBrowserRouter([
@@ -38,6 +38,7 @@ const Routes = () => {
       path: "/",
       element: <ProtectedRoute />,
       loader: ProtectedRouteLoader(token),
+      // action: ProtectedRouteAction,
       errorElement: <ErrorPage />,
       children: [
         {
@@ -52,7 +53,7 @@ const Routes = () => {
           element: <Profile />,
           errorElement: <ErrorPage />,
           loader: profileLoader(token),
-          action: boundAction
+          action: profileAction,
         },
         {
           path: "/transactions",
@@ -101,7 +102,7 @@ const Routes = () => {
           path: "/register",
           element: <Register />,
           errorElement: <ErrorPage />,
-        }
+        },
       ],
     },
   ]);

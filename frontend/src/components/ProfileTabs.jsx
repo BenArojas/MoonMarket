@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+// import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -13,10 +13,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEffect, useRef } from "react";
 import { Form, useNavigation } from "react-router-dom";
 import { updateUsername, changePassword, addDeposit } from "@/api/user";
+import { Stack, Typography, Avatar, Divider } from "@mui/material";
+import { useAuth } from "@/contexts/AuthProvider";
+import { answerFriendRequest } from "@/api/user";
+import { Badge, Box, Button } from "@mui/material";
 
-export async function action({ request }, token) {
+export async function action({ request }) {
   let formData = await request.formData();
   let intent = formData.get("intent");
+  const token = formData.get("token");
   if (intent === "username") {
     const newUsername = updateUsername(formData.get("username"), token);
     return newUsername;
@@ -29,14 +34,93 @@ export async function action({ request }, token) {
   }
   if (intent === "Deposit") {
     let money = formData.get("money");
-    const deposit  = addDeposit(money, token);
+    const deposit = addDeposit(money, token);
     return deposit;
+  }
+  if (intent === "accept") {
+    const requestId = formData.get("requestId");
+    const result = await answerFriendRequest(
+      requestId.toString(),
+      "accept",
+      token
+    );
+    return result;
+  }
+  if (intent === "reject") {
+    const requestId = formData.get("requestId");
+    const result = await answerFriendRequest(
+      requestId.toString(),
+      "reject",
+      token
+    );
+    return result;
   }
 }
 
-export function TabsDemo({ username, current_balance }) {
+function FriendRequestCard({ request, token }) {
+  return (
+    <Stack
+      key={request.from_user.id}
+      direction={"row"}
+      alignItems={"center"}
+      spacing={8}
+      // justifyContent={"space-around"}
+    >
+      <Avatar
+        sx={{ width: 56, height: 56, mr: 2 }}
+        alt="Remy Sharp"
+        src={
+          "https://plus.unsplash.com/premium_photo-1683121366070-5ceb7e007a97?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+        }
+      />
+      <Stack direction={"column"} spacing={1}>
+        <Typography variant="body2">{request.from_user.id}</Typography>
+        <Stack spacing={2} direction={"row"}>
+          <Box component={Form} method="post" sx={{width:'50%'}}>
+            <input
+              type="hidden"
+              readOnly
+              name="requestId"
+              value={request._id}
+            />
+            <input type="hidden" name="token" value={token} />
+            <Button
+            sx={{width:'100%'}}
+              variant="contained"
+              name="intent"
+              value="accept"
+              type="submit"
+            >
+              Add
+            </Button>
+          </Box>
+          <Box component={Form} method="post" sx={{width:'50%'}}>
+            <input
+              type="hidden"
+              readOnly
+              name="requestId"
+              value={request._id}
+            />
+            <input type="hidden" name="token" value={token} />
+            <Button
+               sx={{width:'100%'}}
+              variant="text"
+              name="intent"
+              value="reject"
+              type="submit"
+            >
+              Ignore
+            </Button>
+          </Box>
+        </Stack>
+      </Stack>
+    </Stack>
+  );
+}
+export function TabsDemo({ username, current_balance, friendRequests }) {
   const password = useRef(null);
   const money = useRef(null);
+  const { token } = useAuth();
   const navigation = useNavigation();
   const { state } = navigation;
 
@@ -44,18 +128,20 @@ export function TabsDemo({ username, current_balance }) {
     if (state === "idle" && password.current) {
       password.current.reset();
     }
-    if(state === "idle" && money.current){
+    if (state === "idle" && money.current) {
       money.current.reset();
     }
-  }, [state, password, money])
-
+  }, [state, password, money]);
 
   return (
-    <Tabs defaultValue="profile" className="w-[500px]">
-      <TabsList className="grid w-full grid-cols-3 bg-zinc-700">
+    <Tabs defaultValue="profile" className="w-[550px]">
+      <TabsList className="grid w-full grid-cols-4 bg-zinc-700">
         <TabsTrigger value="profile">Profile</TabsTrigger>
         <TabsTrigger value="password">Settings</TabsTrigger>
         <TabsTrigger value="money">Money</TabsTrigger>
+        <Badge badgeContent={friendRequests.length} color="primary">
+          <TabsTrigger value="Friend_requests">Friend Requests</TabsTrigger>
+        </Badge>
       </TabsList>
       <TabsContent value="profile">
         <Card>
@@ -70,11 +156,12 @@ export function TabsDemo({ username, current_balance }) {
               <div className="space-y-1">
                 <Label htmlFor="username">Username</Label>
                 <Input id="username" name="username" defaultValue={username} />
+                <input type="hidden" name="token" value={token} />
               </div>
             </CardContent>
             <CardFooter>
               <Button
-                variant="blackText"
+                variant="contained"
                 type="submit"
                 name="intent"
                 value="username"
@@ -89,9 +176,7 @@ export function TabsDemo({ username, current_balance }) {
         <Card>
           <CardHeader>
             <CardTitle>Password</CardTitle>
-            <CardDescription>
-              Change your password here.
-            </CardDescription>
+            <CardDescription>Change your password here.</CardDescription>
           </CardHeader>
           <Form method="patch" ref={password}>
             <CardContent className="space-y-2">
@@ -102,10 +187,11 @@ export function TabsDemo({ username, current_balance }) {
               <div className="space-y-1">
                 <Label htmlFor="new">New password</Label>
                 <Input id="new" type="password" name="new-password" />
+                <input type="hidden" name="token" value={token} />
               </div>
             </CardContent>
             <CardFooter>
-              <Button variant="blackText" name="intent" value="password">
+              <Button variant="contained" name="intent" value="password">
                 Save changes
               </Button>
             </CardFooter>
@@ -117,7 +203,8 @@ export function TabsDemo({ username, current_balance }) {
           <CardHeader>
             <CardTitle>Money</CardTitle>
             <CardDescription>
-              you currently have {current_balance.toLocaleString("en-US")}$ in your account. if you wish to add more, you can deposit more below.
+              you currently have {current_balance.toLocaleString("en-US")}$ in
+              your account. if you wish to add more, you can deposit more below.
             </CardDescription>
           </CardHeader>
           <Form method="post" ref={money}>
@@ -125,14 +212,38 @@ export function TabsDemo({ username, current_balance }) {
               <div className="space-y-1">
                 <Label htmlFor="new">$$$</Label>
                 <Input id="new" type="number" name="money" />
+                <input type="hidden" name="token" value={token} />
               </div>
             </CardContent>
             <CardFooter>
-              <Button variant="blackText" name="intent" value="Deposit">
+              <Button variant="contained" name="intent" value="Deposit">
                 Add
               </Button>
             </CardFooter>
           </Form>
+        </Card>
+      </TabsContent>
+      <TabsContent value="Friend_requests">
+        <Card>
+          <CardHeader>
+            <CardTitle>Friend Requests</CardTitle>
+            {/* <CardDescription>Friend requests to handle</CardDescription> */}
+          </CardHeader>
+          <CardContent className="space-y-2 mt-5">
+            {friendRequests.length ? (
+              <Stack
+                direction={"column"}
+                spacing={3}
+                divider={<Divider orientation="horizontal" flexItem />}
+              >
+                {friendRequests.map((request) => (
+                  <FriendRequestCard request={request} token={token} />
+                ))}
+              </Stack>
+            ) : (
+              <p>No Friend requests</p>
+            )}
+          </CardContent>
         </Card>
       </TabsContent>
     </Tabs>

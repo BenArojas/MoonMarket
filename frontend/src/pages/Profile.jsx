@@ -3,20 +3,22 @@ import React, { useEffect } from "react";
 import "@/styles/profile.css";
 import { TabsDemo } from "@/components/ProfileTabs";
 import { Suspense } from "react";
-import { useLoaderData, Await, defer } from "react-router-dom";
-import { getUserData } from "@/api/user";
+import { useLoaderData, Await, defer, useOutletContext } from "react-router-dom";
+import { getUserData, getFriendRequest } from "@/api/user";
 
 import TabsSkeleton from "@/Skeletons/TabsSkeleton";
 
 export const loader = (token) => async () => {
   const user = getUserData(token);
+  
   // const user = response.data;
   return defer({ user });
-};
+}
 
 function Profile() {
   // todo: add private details card and money stuff card
   const data = useLoaderData();
+  const friendRequests = useOutletContext()
 
   return (
     <div>
@@ -59,6 +61,7 @@ function Profile() {
                   <TabsDemo
                     username={res.username}
                     current_balance={res.current_balance}
+                    friendRequests={friendRequests}
                   />
                 </Box>
               )}

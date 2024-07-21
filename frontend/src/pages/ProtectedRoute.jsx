@@ -7,13 +7,15 @@ import { Navigate, Outlet, useLoaderData } from "react-router-dom";
 import { useAuth } from "../contexts/AuthProvider";
 import { useRefreshToken } from "@/contexts/RefreshTokenProvider";
 import { useEffect } from "react";
+import { json } from "react-router-dom";
+
 
 export const loader = (token) => async () => {
   // console.log("loader activated")
   const userName = await getUserName(token);
-  const friendRequests = await getFriendRequest(token)
+  const friendRequests = await getFriendRequest(token);
   // console.log("user: " , user.data)
-  return {userName, friendRequests};
+  return { userName, friendRequests };
 };
 
 export const PercentageChange = createContext(0);
@@ -32,7 +34,7 @@ export const ProtectedRoute = () => {
   const data = useLoaderData();
   const [percentageChange, setPercentageChange] = useState(0);
   const username = data.userName.data;
-  const friendRequests = data.friendRequests
+  const friendRequests = data.friendRequests;
   const firstLetter = Array.from(username)[0];
   // todo: need to check if the token is acutally valid and not just exist
   // Check if the user is authenticated
@@ -66,8 +68,8 @@ export const ProtectedRoute = () => {
                 flexDirection: "column",
               }}
             >
-              <Greetings username={username} friendRequests={friendRequests}/>
-              <Outlet />
+              <Greetings username={username} friendRequests={friendRequests} />
+              <Outlet context={friendRequests} />
             </Box>
           </Box>
         </FirstLetter.Provider>
@@ -75,3 +77,25 @@ export const ProtectedRoute = () => {
     </>
   );
 };
+
+// export const action = async ({ request }) => {
+//   const formData = await request.formData();
+//   const { _action, ...rest } = Object.fromEntries(formData);
+//   console.log(_action, rest);
+//   const { requestId, token } = rest;
+//   if (_action === "accept") {
+//     const result = await answerFriendRequest(
+//       requestId.toString(),
+//       "accept",
+//       token.toString()
+//     );
+//   }
+//   if (_action === "reject") {
+//     const result = await answerFriendRequest(
+//       requestId.toString(),
+//       "reject",
+//       token.toString()
+//     );
+//   }
+//   return json({});
+// };

@@ -114,7 +114,8 @@ class User(Document, UserOut):
 
                 # Add friends
                 if from_user.id in self.friends or self.id in from_user.friends:
-                    raise HTTPException(status_code=500, detail="Already friends")
+                    await request.save()
+                    return {"message": "Already friends"}
                 else:
                     await self.add_friend(from_user.id)
                     await from_user.add_friend(self.id)

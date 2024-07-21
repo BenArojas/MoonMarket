@@ -13,7 +13,7 @@ const MarketStatus = () => {
             const minutes = israelTime.getMinutes();
             const time = hours * 60 + minutes;
 
-            if (day === 6 || day === 7) {
+            if (day === 6 || day === 0) {
                 setStatus('Closed (Weekend)');
             } else if (time >= 660 && time < 990) { // 11:00 to 16:30 Israel time
                 setStatus('Pre-market');

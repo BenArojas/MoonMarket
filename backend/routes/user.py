@@ -56,7 +56,6 @@ async def get_pending_friend_requests(current_user: User = Depends(current_user)
         FriendRequest.to_user.id == current_user.id,
         FriendRequest.status == "pending"
     ).to_list()
-    print (pending_requests)
     
     return pending_requests
 

@@ -23,6 +23,8 @@ function SearchFriends() {
   };
   const handleClose = () => {
     setAnchorEl(null);
+    setFriend({})
+    setSearchInput(null);
   };
 
 
@@ -82,11 +84,7 @@ function SearchFriends() {
           <Button variant="outlined" onClick={handleSearchClick}>Search</Button>
         </Stack>
         <Stack spacing={2}>
-          {/* {friends.map((friend) => (
-            <AddFriend src={Test} {...friend} />
-          ))} */}
           {error? <p>{error}</p>: friend.username && <AddFriend src={Test} username={friend.username} email={friend.email} token={token}/>}
-          {/* {friend.username && <AddFriend src={Test} username={friend.username} email={friend.email} />} */}
         </Stack>
       </Popover>
     </>
