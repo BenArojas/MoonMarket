@@ -17,8 +17,8 @@ import Transactions, {
 } from "@/pages/Transactions";
 import { action as profileAction } from "@/components/ProfileTabs";
 import Register from "@/pages/Register";
-import Space from "@/pages/Space";
-
+import Space, { loader as spaceLoader } from "@/pages/Space";
+import "./styles/global.css";
 const Routes = () => {
   const { token } = useAuth();
 
@@ -64,6 +64,7 @@ const Routes = () => {
         {
           path: "/space",
           element: <Space />,
+          loader: spaceLoader(token),
           errorElement: <ErrorPage />,
         },
         {

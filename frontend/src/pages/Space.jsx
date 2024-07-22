@@ -1,10 +1,25 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import Starfield from "react-starfield";
-import "@/styles/moon.css";
+import "@/styles/space.css";
 import Moon from "@/components/space/Moon";
 import SpaceshipsFleet from "@/components/space/SpaceshipsFleet";
+import { getFriends } from "@/api/friend";
+import { Await, defer, useLoaderData } from "react-router-dom";
+import FriendsSideBar from "@/components/FriendsSideBar";
+
+
+
+
+export const loader = (token) => async()=>{
+  const friends = getFriends(token)
+  return defer({friends})
+}
 
 function Space() {
+  const data = useLoaderData();
+  console.log(data)
+
+
   const galaxy = useRef(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [radius, setRadius] = useState(0);
@@ -33,11 +48,15 @@ function Space() {
   ];
 
   return (
+    <div className="page">
+    <div className="floating-sidebar">
+      <FriendsSideBar/>
+    </div>
     <div className="space-container" ref={galaxy}>
       <Starfield
-        starCount={3000}
+        starCount={4000}
         starColor={[255, 255, 255]}
-        speedFactor={0.08}
+        speedFactor={0.10}
         backgroundColor="black"
       />
 
@@ -63,6 +82,7 @@ function Space() {
       </svg> */}
       <SpaceshipsFleet centerX={centerX} centerY={centerY} radius={radius} spaceships={spaceships}/>
       <Moon centerX={centerX} centerY={centerY} />
+    </div>
     </div>
   );
 }

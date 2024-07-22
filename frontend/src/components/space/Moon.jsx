@@ -1,6 +1,6 @@
 import React from "react";
 import Starfield from "react-starfield";
-import "@/styles/moon.css";
+import "@/styles/space.css";
 import HumanSpaceship from "/spaceship_4.png";
 
 const Moon = ({ centerX, centerY }) => {

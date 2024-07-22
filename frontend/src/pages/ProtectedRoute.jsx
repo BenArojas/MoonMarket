@@ -1,20 +1,22 @@
-import { getUserName, getFriendRequest } from "@/api/user";
+import { getUserName } from "@/api/user";
+import {  getFriendRequest } from "@/api/friend";
 import Greetings from "@/components/Greetings";
 import Sidebar from "@/components/Sidebar";
 import { Box } from "@mui/material";
 import { createContext, useState } from "react";
-import { Navigate, Outlet, useLoaderData } from "react-router-dom";
+import { Navigate, Outlet, useLoaderData, defer } from "react-router-dom";
 import { useAuth } from "../contexts/AuthProvider";
 import { useRefreshToken } from "@/contexts/RefreshTokenProvider";
-import { useEffect } from "react";
-import { json } from "react-router-dom";
+import { useEffect, Suspense } from "react";
+
 
 
 export const loader = (token) => async () => {
-  // console.log("loader activated")
+  console.log("loader activated")
   const userName = await getUserName(token);
   const friendRequests = await getFriendRequest(token);
-  // console.log("user: " , user.data)
+
+  
   return { userName, friendRequests };
 };
 

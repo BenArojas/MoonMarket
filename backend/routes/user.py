@@ -50,59 +50,14 @@ async def get_user_by_username(username: str, current_user: User = Depends(curre
         return UserFriend(email=user.email,username=user.username, holdings=user.holdings)
     raise HTTPException(status_code=404, detail="User not found")
 
-@router.get("/pending_friend_requests")
-async def get_pending_friend_requests(current_user: User = Depends(current_user)):
-    pending_requests = await FriendRequest.find(
-        FriendRequest.to_user.id == current_user.id,
-        FriendRequest.status == "pending"
-    ).to_list()
+@router.get("/get_friends")
+async def get_all_friends(current_user: User = Depends(current_user)):
+    friends = current_user.friends
+    # TODO:loop through friends and for each of them return an object with the following properties: ID, Username, calculate the percentage change of the portfolio profit/loss and return an array of holdings with percentage change of each stock and percentage of the stock in the portfolio 
+    return friends
     
-    return pending_requests
 
-@router.post("/send_friend_request/{username}")
-async def send_friend_request(username: str, current_user: User = Depends(current_user)):
-    to_user = await User.find_one(User.username == username)
-    if not to_user:
-        raise HTTPException(status_code=404, detail="User not found")
-    if to_user in current_user.friends:
-        raise HTTPException(status_code=400, detail="User is already a friend")
-    await current_user.send_friend_request(to_user)
-    return {"message": "Friend request sent"}
 
-@router.post("/handle_friend_request/{request_id}")
-async def handle_friend_request(
-    request_id: str,
-    action: FriendRequestAction,
-    current_user: User = Depends(current_user)
-):
-    friend_request = await FriendRequest.get(request_id)
-    if not friend_request:
-        raise HTTPException(status_code=404, detail="Friend request not found")
-    
-    to_user = await friend_request.to_user.fetch()
-    from_user = await friend_request.from_user.fetch()
-
-    if to_user.id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to handle this friend request")
-
-    if friend_request.status != "pending":
-        raise HTTPException(status_code=400, detail="Friend request is not pending")
-
-    try:
-        if action == FriendRequestAction.accept:
-            await current_user.accept_friend_request(friend_request, from_user)
-            message = "Friend request accepted"
-        elif action == FriendRequestAction.reject:
-            await current_user.reject_friend_request(friend_request, from_user)
-            message = "Friend request rejected"
-        
-        # Fetch the request again to confirm changes
-        updated_request = await FriendRequest.get(request_id)
-    except Exception as e:
-        print(f"Error occurred: {str(e)}")
-        raise HTTPException(status_code=500, detail="An error occurred while processing the request")
-
-    return {"message": message}
 
 @router.get("/user_portfolio_change")
 async def get_user_portfolio_change(user: User = Depends(current_user)):

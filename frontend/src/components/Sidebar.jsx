@@ -7,10 +7,11 @@ import FriendsSideBar from "@/components/FriendsSideBar";
 function Sidebar() {
   let location = useLocation();
 
-  return (
+  return location.pathname === "/space" ? null : (
     <Box
+      className="glass"
       sx={{
-        backgroundColor: "#1d1d1d",
+        // backgroundColor: "#1d1d1d",
         width: 70,
         minHeight: "100vh",
         display: "flex",
@@ -22,7 +23,7 @@ function Sidebar() {
         flexShrink: 0,
       }}
     >
-      {location.pathname === "/space" ? <FriendsSideBar /> : <RocketSideBar />}
+      <RocketSideBar />
     </Box>
   );
 }

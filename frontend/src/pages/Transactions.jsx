@@ -1,5 +1,5 @@
 import { getUserTransactions } from "@/api/transaction";
-import { Divider, Typography, Container } from "@mui/material";
+import { Divider, Typography, Container, Box } from "@mui/material";
 import { Suspense } from "react";
 import { useLoaderData, Await, defer } from "react-router-dom";
 import CustomizedTables from "@/components/TransactionsTable";

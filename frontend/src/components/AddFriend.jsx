@@ -2,7 +2,7 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { Avatar } from "@mui/material";
-import { sendFriendRequest } from '@/api/user';
+import { sendFriendRequest } from '@/api/friend';
 import { useState } from "react";
 
 function AddFriend({ src, username, email, token }) {

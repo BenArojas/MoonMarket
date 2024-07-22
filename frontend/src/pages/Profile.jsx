@@ -4,8 +4,7 @@ import "@/styles/profile.css";
 import { TabsDemo } from "@/components/ProfileTabs";
 import { Suspense } from "react";
 import { useLoaderData, Await, defer, useOutletContext } from "react-router-dom";
-import { getUserData, getFriendRequest } from "@/api/user";
-
+import { getUserData } from "@/api/user";
 import TabsSkeleton from "@/Skeletons/TabsSkeleton";
 
 export const loader = (token) => async () => {

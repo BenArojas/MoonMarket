@@ -56,7 +56,7 @@ function SearchFriends() {
       </IconButton>
       <Popover
         PaperProps={{
-          sx: { p: 3 },
+          sx: { p: 2 },
         }}
         id={id}
         open={open}

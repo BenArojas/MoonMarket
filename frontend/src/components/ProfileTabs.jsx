@@ -15,7 +15,7 @@ import { Form, useNavigation } from "react-router-dom";
 import { updateUsername, changePassword, addDeposit } from "@/api/user";
 import { Stack, Typography, Avatar, Divider } from "@mui/material";
 import { useAuth } from "@/contexts/AuthProvider";
-import { answerFriendRequest } from "@/api/user";
+import { answerFriendRequest } from "@/api/friend";
 import { Badge, Box, Button } from "@mui/material";
 
 export async function action({ request }) {

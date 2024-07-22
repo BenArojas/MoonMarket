@@ -11,7 +11,6 @@ import { useContext, useEffect, useState } from "react";
 import { useFetcher, useLoaderData } from "react-router-dom";
 import PortfolioValue from "@/components/AnimatedNumber";
 import DataGraph from "@/components/DataGraph";
-import MarketStatus from "@/components/MarketStatus";
 import NewUserNoHoldings from "@/components/NewUserNoHoldings";
 import { postSnapshot, getPortfolioSnapshots } from "@/api/portfolioSnapshot";
 import { SnapshotChart } from "@/components/SnapShotChart";
@@ -59,7 +58,8 @@ export const loader = (token) => async () => {
 };
 
 function App() {
-  const { percentageChange ,setPercentageChange } = useContext(PercentageChange);
+  const { percentageChange, setPercentageChange } =
+    useContext(PercentageChange);
   const [selectedGraph, setSelectedGraph] = useState("Treemap");
   const { token } = useAuth();
   const fetcher = useFetcher();
@@ -72,7 +72,7 @@ function App() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
-    const newPercentageChange = (incrementalChange / value) * 100;
+    const newPercentageChange = (incrementalChange / moneySpent) * 100;
     setPercentageChange(newPercentageChange);
   }, [incrementalChange, value]);
 
@@ -80,7 +80,7 @@ function App() {
     // This effect will run when the fetcher's data changes
     if (fetcher.data) {
       // Increment the refreshTrigger to cause a re-fetch of snapshot data
-      setRefreshTrigger(prev => prev + 1);
+      setRefreshTrigger((prev) => prev + 1);
     }
   }, [fetcher.data]);
 
@@ -93,7 +93,7 @@ function App() {
         height: "100%",
         width: "100%",
         margin: "auto",
-        paddingTop: 3
+        paddingTop: 3,
       }}
     >
       <Box
@@ -159,7 +159,11 @@ function App() {
             </fetcher.Form>
           )}
         </Box>
-        <SnapshotChart width={400} height={350} refreshTrigger={refreshTrigger} />
+        <SnapshotChart
+          width={400}
+          height={350}
+          refreshTrigger={refreshTrigger}
+        />
       </Box>
       <Box
         className="graph"
@@ -171,7 +175,12 @@ function App() {
           height: "100%",
         }}
       >
-        {data.holdings.length > 0 ? <GraphMenu selectedGraph={selectedGraph} setSelectedGraph={setSelectedGraph}/> : null}
+        {data.holdings.length > 0 ? (
+          <GraphMenu
+            selectedGraph={selectedGraph}
+            setSelectedGraph={setSelectedGraph}
+          />
+        ) : null}
         {data.holdings.length === 0 ? (
           <NewUserNoHoldings />
         ) : (

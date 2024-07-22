@@ -1,9 +1,9 @@
-import React, { useContext, useState } from "react";
 import Avatar from "@mui/material/Avatar";
 import Stack from "@mui/material/Stack";
+import { useContext } from "react";
 
-import { Divider } from "@mui/material";
 import { FirstLetter } from "@/pages/ProtectedRoute";
+import { Divider } from "@mui/material";
 import AvatarGroup from "@mui/material/AvatarGroup";
 
 import SearchFriends from "@/components/SearchFriends";
@@ -11,36 +11,20 @@ import SearchFriends from "@/components/SearchFriends";
 function FriendsSideBar() {
   const { firstLetter } = useContext(FirstLetter);
 
-
   return (
     <Stack
       direction={"column"}
-      spacing={2}
+      spacing={1}
       alignItems="center"
       justifyContent={"flex-start"}
-      sx={{
-        marginTop: 25,
-      }}
     >
-     <SearchFriends/>
-      <Divider flexItem />
+      <div>
+        <SearchFriends />
+        <Divider flexItem sx={{ m: 0 }} />
+      </div>
       <Avatar>{firstLetter}</Avatar>
-      <AvatarGroup> </AvatarGroup>
+      {/* <AvatarGroup /> */}
     </Stack>
-    // <Stack
-    //   direction={"column"}
-    //   spacing={2}
-    //   alignItems="center"
-    //   justifyContent={"flex-start"}
-    //   sx={{
-    //     marginTop: 25,
-    //   }}
-    // >
-    //  <SearchFriends/>
-    //   <Divider flexItem />
-    //   <Avatar>{firstLetter}</Avatar>
-    //   <AvatarGroup> </AvatarGroup>
-    // </Stack>
   );
 }
 
