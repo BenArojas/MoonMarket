@@ -10,7 +10,7 @@ function SpaceshipsFleet({ spaceships, centerX, centerY, radius }) {
           centerX={centerX}
           centerY={centerY}
           Radius={radius}
-          Percentage={spaceship.percentage}
+          Percentage={spaceship.portfolio_value_change_percentage}
         />
       ))}
     </div>
