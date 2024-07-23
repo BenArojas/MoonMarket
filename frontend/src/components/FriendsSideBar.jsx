@@ -8,6 +8,7 @@ import AvatarGroup from "@mui/material/AvatarGroup";
 import SearchFriends from "@/components/SearchFriends";
 
 function FriendsSideBar({ friends }) {
+  console.log(friends);
   const { firstLetter } = useContext(FirstLetter);
 
   return (
@@ -21,22 +22,11 @@ function FriendsSideBar({ friends }) {
         <SearchFriends />
         <Divider flexItem sx={{ m: 0 }} />
       </div>
-      {/* <Avatar sx={{
-        border:'2px solid black'
-      }}>{firstLetter}</Avatar> */}
-      <AvatarGroup max={4} sx={{
-        flexDirection:'column',
-      }}>
-        {friends && friends.length > 0 ? (
+      {friends && friends.length > 0 ? (
           friends.map((friend) => (
-            <Avatar key={friend.id}>
+            <Avatar key={friend.id} sx={{border:'2px solid black'}}>
               {friend.username.charAt(0).toUpperCase()}
-            </Avatar>
-          ))
-        ) : (
-          <div>No friends yet</div>
-        )}
-      </AvatarGroup>
+            </Avatar>))): null}
     </Stack>
   );
 }

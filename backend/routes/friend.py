@@ -68,18 +68,19 @@ async def handle_friend_request(
 async def get_all_friends(current_user: User = Depends(current_user)):
     friend_info_list = []
     stock_cache = {}
+    users = [current_user.id] + current_user.friends
 
-    for friend_id in current_user.friends:
-        friend = await User.get(friend_id)
-        if not friend:
+    for user_id in users:
+        user = await User.get(user_id)
+        if not user:
             continue
 
         # Calculate portfolio value change percentage
-        user_purchases = await get_user_transactions_by_type("purchase", friend)
+        user_purchases = await get_user_transactions_by_type("purchase", user)
         initial_portfolio_value = sum(transaction.price * transaction.quantity for transaction in user_purchases)
         # print("Initial portfolio value is", initial_portfolio_value)
 
-        user_sales = await get_user_transactions_by_type("sale", friend)
+        user_sales = await get_user_transactions_by_type("sale", user)
         cash_from_sales = sum(transaction.price * transaction.quantity for transaction in user_sales)
         # print("cash from sales is:", cash_from_sales)
 
@@ -87,7 +88,7 @@ async def get_all_friends(current_user: User = Depends(current_user)):
         holdings_info = []
 
         # First pass: Calculate total holdings value
-        for holding in friend.holdings:
+        for holding in user.holdings:
             stock = stock_cache.get(holding.ticker)
             if not stock:
                 stock = await Stock.find_one(Stock.ticker == holding.ticker)
@@ -102,7 +103,7 @@ async def get_all_friends(current_user: User = Depends(current_user)):
         # print("total portfolio value is:", total_portfolio_value)
 
         # Second pass: Calculate portfolio percentages and create HoldingInfo objects
-        for holding in friend.holdings:
+        for holding in user.holdings:
             stock = stock_cache.get(holding.ticker)
             if stock:
                 holding_value = stock.price * holding.quantity
@@ -126,8 +127,8 @@ async def get_all_friends(current_user: User = Depends(current_user)):
             portfolio_percentage_change = ((total_portfolio_value - initial_portfolio_value) / initial_portfolio_value) * 100
 
         friend_info = FriendInfo(
-            id=friend.id,
-            username=friend.username,
+            id=user.id,
+            username=user.username,
             portfolio_value_change_percentage=portfolio_percentage_change,
             holdings=holdings_info
         )
