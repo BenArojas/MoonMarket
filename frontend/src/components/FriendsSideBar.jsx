@@ -24,7 +24,7 @@ function FriendsSideBar({ friends }) {
       </div>
       {friends && friends.length > 0 ? (
           friends.map((friend) => (
-            <Avatar key={friend.id} sx={{border:'2px solid black'}}>
+            <Avatar key={friend.id} sx={{border:'2px solid #077e5d'}}>
               {friend.username.charAt(0).toUpperCase()}
             </Avatar>))): null}
     </Stack>

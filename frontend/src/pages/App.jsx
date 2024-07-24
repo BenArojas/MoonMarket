@@ -125,7 +125,7 @@ function App() {
           >
             <PortfolioValue value={value} />
             {value === 0 ? null : (
-              <Typography variant="body1" color="primary">
+              <Typography variant="body1" color="primary" sx={{ fontWeight: 'bold' }} >
                 {incrementalChange.toLocaleString("en-US")}$ (
                 {percentageChange.toLocaleString("en-US")}%) Overall
               </Typography>
