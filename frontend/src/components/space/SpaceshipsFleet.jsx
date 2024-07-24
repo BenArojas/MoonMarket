@@ -17,7 +17,7 @@ function SpaceshipsFleet({ spaceships, centerX, centerY, radius }) {
   const isHologramMode = activeSpaceship !== null;
 
   return (
-    <div>
+    <div className="spaceship-fleet">
       {spaceships.map((spaceship, index) => (
         <Spaceship
           key={index}

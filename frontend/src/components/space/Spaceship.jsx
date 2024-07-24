@@ -2,7 +2,10 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion, useAnimation } from "framer-motion";
 import HumanSpaceship from "/spaceship_4.png";
 import styles from "./spaceship.module.css";
-import Hologram from "./Hologram";
+import ReactDOM from "react-dom";
+
+
+
 function Spaceship({
   Radius,
   Percentage,
@@ -105,6 +108,36 @@ function Spaceship({
     onCloseHologram();
   };
 
+  const renderHologram = () => {
+    if (isActive && showHologram) {
+      return ReactDOM.createPortal(
+        <div className={styles.hologramWrapper}>
+          <motion.div
+            className={styles.hologramScreen}
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: [0, 1.2, 1], opacity: [0, 1] }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className={styles.hologramImage}></div>
+            <div className={styles.screenOverlay}></div>
+            <div className={styles.hologramContent}>
+              <button
+                className={styles.closeButton}
+                onClick={handleCloseHologram}
+              >
+                X
+              </button>
+              {/* Hologram content goes here */}
+              <p>Greetings, Earthling!</p>
+            </div>
+          </motion.div>
+        </div>,
+        document.querySelector('.space-container')
+      );
+    }
+    return null;
+  };
+
   return (
     <motion.div
       className={styles.spaceshipContainer}
@@ -121,22 +154,7 @@ function Spaceship({
         />
         <div className={styles.portal} />
       </div>
-      {isActive && showHologram && (
-        <Hologram text="Welcome to the Hologram!" />
-
-        // <motion.div
-        //   className={styles.hologram}
-        //   initial={{ scale: 0, opacity: 0 }}
-        //   animate={{ scale: [0, 1.2, 1], opacity: [0, 1] }}
-        //   transition={{ duration: 0.5 }}
-        // >
-        //   <button className={styles.closeButton} onClick={handleCloseHologram}>
-        //     X
-        //   </button>
-        //   {/* Hologram content goes here */}
-        //   <p>Greetings, Earthling!</p>
-        // </motion.div>
-      )}
+      {renderHologram()}
     </motion.div>
   );
 }
