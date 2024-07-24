@@ -1,5 +1,5 @@
 import { getUserName } from "@/api/user";
-import {  getFriendRequest } from "@/api/friend";
+import { getFriendRequest } from "@/api/friend";
 import Greetings from "@/components/Greetings";
 import Sidebar from "@/components/Sidebar";
 import { Box } from "@mui/material";
@@ -9,14 +9,11 @@ import { useAuth } from "../contexts/AuthProvider";
 import { useRefreshToken } from "@/contexts/RefreshTokenProvider";
 import { useEffect, Suspense } from "react";
 
-
-
 export const loader = (token) => async () => {
-  console.log("loader activated")
+  console.log("loader activated");
   const userName = await getUserName(token);
   const friendRequests = await getFriendRequest(token);
 
-  
   return { userName, friendRequests };
 };
 
@@ -64,6 +61,7 @@ export const ProtectedRoute = () => {
           >
             <Sidebar></Sidebar>
             <Box
+              className="layout"
               sx={{
                 flexGrow: 1,
                 display: "flex",

@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthProvider";
 import { PercentageChange } from "@/pages/ProtectedRoute";
 import { lastUpdateDate } from "@/utils/dataProcessing";
 import SyncIcon from "@mui/icons-material/Sync";
-import { Box, Button, Typography } from "@mui/material";
+import { Box, Button, Typography, Card } from "@mui/material";
 import Tooltip from "@mui/material/Tooltip";
 import { useContext, useEffect, useState } from "react";
 import { useFetcher, useLoaderData } from "react-router-dom";
@@ -169,10 +169,9 @@ function App() {
         className="graph"
         sx={{
           margin: "auto",
-          padding: 0,
+          padding: 2,
           display: "flex",
           flexDirection: "column",
-          height: "100%",
         }}
       >
         {data.holdings.length > 0 ? (

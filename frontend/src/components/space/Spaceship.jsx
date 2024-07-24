@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, useAnimation } from "framer-motion";
-import HumanSpaceship from "/spaceship_4.png";
+import HumanSpaceship from "/spaceship_4-cropped.png";
 import styles from "./spaceship.module.css";
 import ReactDOM from "react-dom";
-
-
 
 function Spaceship({
   Radius,
@@ -132,28 +130,26 @@ function Spaceship({
             </div>
           </motion.div>
         </div>,
-        document.querySelector('.space-container')
+        document.querySelector(".space-container")
       );
     }
     return null;
   };
-
+  const ariaProps = { "aria-selected": isActive };
   return (
     <motion.div
       className={styles.spaceshipContainer}
       animate={controls}
       onClick={handleClick}
+      {...ariaProps}
     >
-      <div className={styles.container}>
-        <img
-          className={styles.spaceship}
-          draggable={false}
-          src={HumanSpaceship}
-          alt="Spaceship"
-          style={{ width: "100px" }}
-        />
-        <div className={styles.portal} />
-      </div>
+      <img
+        className={styles.spaceship}
+        draggable={false}
+        src={HumanSpaceship}
+        alt="Spaceship"
+        style={{ width: "100px" }}
+      />
       {renderHologram()}
     </motion.div>
   );
