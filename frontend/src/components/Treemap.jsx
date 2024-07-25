@@ -59,7 +59,7 @@ export const Treemap = ({ width, height, data }) => {
       avgSharePrice,
       value,
       last_price,
-      name
+      name,
     } = leaf.data;
 
     return (
@@ -77,11 +77,15 @@ export const Treemap = ({ width, height, data }) => {
           <rect
             x={leaf.x0}
             y={leaf.y0}
+            rx={4}
             width={leaf.x1 - leaf.x0}
             height={leaf.y1 - leaf.y0}
             stroke="transparent"
             fill={colorScale(parentName)}
-            className={"opacity-80 hover:opacity-100"}
+            opacity={1}
+            fill-opacity="0.2"
+            // className={"opacity-80 hover:opacity-100"}
+            style={{ "--stock-color": colorScale(parentName) }}
             onClick={() => navigateToStockPage(leaf.data)}
           />
           <text

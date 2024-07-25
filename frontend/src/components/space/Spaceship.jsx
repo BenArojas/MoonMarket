@@ -135,7 +135,7 @@ function Spaceship({
     }
     return null;
   };
-  const ariaProps = { "aria-selected": isActive };
+  const ariaProps = { "aria-selected": isActive && showHologram};
   return (
     <motion.div
       className={styles.spaceshipContainer}

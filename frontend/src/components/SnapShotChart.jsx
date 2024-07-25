@@ -14,6 +14,7 @@ export const SnapshotChart = ({ width, height, refreshTrigger }) => {
     return dailySnapshots.slice(0, 6).reverse();
   }
     , [dailySnapshots]);
+    // console.log(chartData)
 
   return (
     <div>

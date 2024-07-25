@@ -1,6 +1,6 @@
-import React from 'react';
-import CountUp from 'react-countup';
-import Typography from '@mui/material/Typography';
+import React from "react";
+import CountUp from "react-countup";
+import Typography from "@mui/material/Typography";
 
 const PortfolioValue = ({ value }) => {
   return (

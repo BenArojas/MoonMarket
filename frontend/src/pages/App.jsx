@@ -93,7 +93,6 @@ function App() {
         height: "100%",
         width: "100%",
         margin: "auto",
-        paddingTop: 3,
       }}
     >
       <Box
@@ -110,9 +109,10 @@ function App() {
           sx={{
             display: "flex",
             flexDirection: "row",
-            paddingLeft: "4em",
+            paddingRight: 10,
             gap: 2,
             alignItems: "center",
+            justifyContent: "space-between",
           }}
         >
           <Box
@@ -125,7 +125,11 @@ function App() {
           >
             <PortfolioValue value={value} />
             {value === 0 ? null : (
-              <Typography variant="body1" color="primary" sx={{ fontWeight: 'bold' }} >
+              <Typography
+                variant="body1"
+                color="primary"
+                sx={{ fontWeight: "bold" }}
+              >
                 {incrementalChange.toLocaleString("en-US")}$ (
                 {percentageChange.toLocaleString("en-US")}%) Overall
               </Typography>
@@ -148,7 +152,6 @@ function App() {
                   sx={{
                     marginTop: "10px",
                     justifyContent: "flex-end",
-                    // color:'#077e5d'
                   }}
                   color="secondary"
                   variant="outlined"
@@ -160,7 +163,7 @@ function App() {
           )}
         </Box>
         <SnapshotChart
-          width={400}
+          width={500}
           height={350}
           refreshTrigger={refreshTrigger}
         />

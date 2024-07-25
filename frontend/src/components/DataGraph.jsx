@@ -33,7 +33,7 @@ function DataGraph({ isDataProcessed, selectedGraph, visualizationData }) {
   }
 
   return GraphComponent ? (
-    <GraphComponent data={visualizationData} width={1000} height={selectedGraph === "Circular" ? 650 : selectedGraph === "DonutChart" ? 650 : 600} />
+    <GraphComponent data={visualizationData} width={1000} height={650} />
   ) : null;
 }
 

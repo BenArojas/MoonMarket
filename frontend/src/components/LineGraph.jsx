@@ -11,7 +11,7 @@ export const LineChart = ({ width, height, data }) => {
   // Y axis
   const yScale = useMemo(() => {
     const [min, max] = d3.extent(data, (d) => d.value);
-    const padding = (max - min) * 0.1; // Add 10% padding
+    const padding = (max - min) * 0.1;
     return d3
       .scaleLinear()
       .domain([min - padding, max + padding])
@@ -22,57 +22,79 @@ export const LineChart = ({ width, height, data }) => {
   const xScale = useMemo(() => {
     return d3
       .scalePoint()
-      .domain(data.map(d => d.timestamp))
+      .domain(data.map((d) => d.timestamp))
       .range([0, boundsWidth])
-      .padding(0.5);
+      .padding(0.25);
   }, [data, boundsWidth]);
 
-  // Render the X and Y axis using d3.js, not react
   useEffect(() => {
     const svgElement = d3.select(axesRef.current);
     svgElement.selectAll("*").remove();
 
-    const xAxisGenerator = d3.axisBottom(xScale)
-      .tickFormat(d => {
-        const date = new Date(d);
-        return `${date.getDate()}/${date.getMonth() + 1}`;
-      });
+    const xAxisGenerator = d3.axisBottom(xScale).tickFormat((d) => {
+      const date = new Date(d);
+      return `${date.getDate()}/${date.getMonth() + 1}`;
+    });
     svgElement
       .append("g")
       .attr("transform", `translate(0,${boundsHeight})`)
       .call(xAxisGenerator);
-
-    const yAxisGenerator = d3.axisLeft(yScale)
-      .tickFormat(d3.format(","));
+    const yAxisGenerator = d3.axisLeft(yScale).tickFormat(d3.format(","));
     svgElement.append("g").call(yAxisGenerator);
+    svgElement.selectAll("path,line").remove();
   }, [xScale, yScale, boundsHeight]);
 
-  // Build the line
+  // Build the line and area
   const lineBuilder = d3
     .line()
     .x((d) => xScale(d.timestamp))
     .y((d) => yScale(d.value));
 
-  const linePath = lineBuilder(data);
+  const areaBuilder = d3
+    .area()
+    .x((d) => xScale(d.timestamp))
+    .y0(boundsHeight)
+    .y1((d) => yScale(d.value));
 
-  if (!linePath) {
+  const linePath = lineBuilder(data);
+  const areaPath = areaBuilder(data);
+
+  if (!linePath || !areaPath) {
     return null;
   }
 
   return (
     <div>
-      <svg width={width} height={height}>
+      <svg width={width} height={height} >
+        <defs>
+          <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#C4C4C4" stopOpacity={0.5} />
+            <stop offset="100%" stopColor="#C4C4C4" stopOpacity={0.0} />
+          </linearGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+            <feMerge>
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
         <g
           width={boundsWidth}
           height={boundsHeight}
           transform={`translate(${MARGIN.left},${MARGIN.top})`}
         >
           <path
+            d={areaPath}
+            fill="url(#areaGradient)"
+          />
+          <path
             d={linePath}
             opacity={1}
-            stroke="#C4C4C4" //Silver
+            stroke="#C4C4C4"
             fill="none"
-            strokeWidth={2}
+            strokeWidth={3}
+            filter="url(#glow)"
           />
         </g>
         <g
