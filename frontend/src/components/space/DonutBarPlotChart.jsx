@@ -2,16 +2,33 @@ import { useMemo, useState } from "react";
 import * as d3 from "d3";
 import { ShapeRenderer } from "@/components/space/Shaperender";
 
-
-const MARGIN = { top: 30, right: 150, bottom: 30, left: 250 };
+const MARGIN = { top: 10, right: 100, bottom: 10, left: 150 };
 const BAR_PADDING = 0.3;
-const MARGIN_PIE = 30;
+const MARGIN_PIE = 40;
 const INFLEXION_PADDING = 25;
 
 const colors = [
-  "#e0ac2b", "#e85252", "#6689c6", "#9a6fb0", "#a53253", "#69b3a2",
-  // Add more colors if needed
+  "#00ffff", // Cyan
+  "#ff00ff", // Magenta
+  "#ffff00", // Yellow
+  "#ff1493", // Deep Pink
+  "#7fff00", // Chartreuse
+  "#ff4500", // Orange Red
+  "#1e90ff", // Dodger Blue
+  "#ff69b4", // Hot Pink
 ];
+
+const shimmerStyle = `
+  @keyframes shimmer {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+.holographic-shape {
+  animation: shimmer 4s infinite;
+}
+`;
+
 
 export const DonutBarplotChart = ({
   width,
@@ -24,7 +41,7 @@ export const DonutBarplotChart = ({
   const sortedData = data.sort((a, b) => b.portfolio_percentage - a.portfolio_percentage);
   const groups = sortedData.map((d) => d.name);
 
-  const radius = Math.min(width - MARGIN.left - MARGIN.right, height - MARGIN.top - MARGIN.bottom) / 2 - MARGIN_PIE;
+  const radius = Math.min(width, height) / 2 - MARGIN_PIE;
 
   const pie = useMemo(() => {
     const pieGenerator = d3
@@ -41,7 +58,7 @@ export const DonutBarplotChart = ({
     return d3
       .scaleBand()
       .domain(groups)
-      .range([0, boundsHeight])
+      .range([-boundsHeight / 2, boundsHeight / 2])
       .padding(BAR_PADDING);
   }, [groups, boundsHeight]);
 
@@ -50,7 +67,7 @@ export const DonutBarplotChart = ({
     return d3
       .scaleLinear()
       .domain([0, max])
-      .range([0, boundsWidth]);
+      .range([0, boundsWidth / 2]);
   }, [sortedData, boundsWidth]);
 
   const arcGenerator = d3.arc();
@@ -88,6 +105,7 @@ export const DonutBarplotChart = ({
     const rectPath = `M ${x0} ${y} L ${x} ${y} L ${x} ${y + bw} L ${x0} ${y + bw} Z`;
 
     return (
+
       <g
         key={slice.data.name}
         className="slice"
@@ -97,6 +115,7 @@ export const DonutBarplotChart = ({
         <ShapeRenderer
           path={type === "pie" ? slicePath : rectPath}
           color={colors[i % colors.length]}
+          index={i}
         />
         {type === "pie" && hoveredIndex === i && (
           <>
@@ -123,6 +142,9 @@ export const DonutBarplotChart = ({
               dominantBaseline="middle"
               fontSize={12}
               fill={"white"}
+              style={{
+                textShadow: '0 0 3px #000, 0 0 5px #000'
+              }}
             >
               {label}
             </text>
@@ -163,20 +185,18 @@ export const DonutBarplotChart = ({
             </text>}
           </>
         )}
-
       </g>
     );
   });
 
   return (
-    <svg width={width} height={height} style={{ display: "inline-block" }}>
-      <g transform={
-        type === "pie"
-          ? `translate(${width / 2}, ${height / 2})`
-          : `translate(${MARGIN.left}, ${MARGIN.top})`
-      }>
-        {allPaths}
-      </g>
-    </svg>
+    <>
+      <style>{shimmerStyle}</style>
+      <svg width={width} height={height} style={{ display: "inline-block" }}>
+        <g transform={`translate(${width / 2}, ${height / 2})`}>
+          {allPaths}
+        </g>
+      </svg>
+    </>
   );
 };
