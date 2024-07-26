@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import * as d3 from "d3";
+import "@/styles/lineGraphAnimation.css";
 
 const MARGIN = { top: 30, right: 30, bottom: 50, left: 50 };
 
@@ -48,13 +49,13 @@ export const LineChart = ({ width, height, data }) => {
   const lineBuilder = d3
     .line()
     .x((d) => xScale(d.timestamp))
-    .y((d) => yScale(d.value));
+    .y((d) => yScale(d.value)).curve(d3.curveCatmullRom.alpha(0.5))
 
   const areaBuilder = d3
     .area()
     .x((d) => xScale(d.timestamp))
     .y0(boundsHeight)
-    .y1((d) => yScale(d.value));
+    .y1((d) => yScale(d.value)).curve(d3.curveCatmullRom.alpha(0.5))
 
   const linePath = lineBuilder(data);
   const areaPath = areaBuilder(data);
@@ -64,7 +65,7 @@ export const LineChart = ({ width, height, data }) => {
   }
 
   return (
-    <div>
+    <div className="chart-container">
       <svg width={width} height={height} >
         <defs>
           <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -85,10 +86,12 @@ export const LineChart = ({ width, height, data }) => {
           transform={`translate(${MARGIN.left},${MARGIN.top})`}
         >
           <path
+          className="area-path"
             d={areaPath}
             fill="url(#areaGradient)"
           />
           <path
+           className="line-path"
             d={linePath}
             opacity={1}
             stroke="#C4C4C4"

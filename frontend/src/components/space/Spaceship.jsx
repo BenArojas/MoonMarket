@@ -150,6 +150,8 @@ function Spaceship({
         alt="Spaceship"
         style={{ width: "100px" }}
       />
+      <div className={styles.portal} />   {/* portal animation, do not remove */}
+    
       {renderHologram()}
     </motion.div>
   );
