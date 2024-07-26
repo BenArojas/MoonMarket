@@ -3,6 +3,7 @@ import { motion, useAnimation } from "framer-motion";
 import HumanSpaceship from "/spaceship_4-cropped.png";
 import styles from "./spaceship.module.css";
 import ReactDOM from "react-dom";
+import { DonutBarplotTransition } from "./DonutBarplotTransition";
 
 function Spaceship({
   Radius,
@@ -13,7 +14,10 @@ function Spaceship({
   onClick,
   onCloseHologram,
   isHologramMode,
+  data
 }) {
+
+  
   const FIXED_DESTINATION_X = 100;
   const FIXED_DESTINATION_Y = window.innerHeight / 2 - 150;
   const [showHologram, setShowHologram] = useState(false);
@@ -108,6 +112,7 @@ function Spaceship({
 
   const renderHologram = () => {
     if (isActive && showHologram) {
+      console.log(data)
       return ReactDOM.createPortal(
         <div className={styles.hologramWrapper}>
           <motion.div
@@ -126,7 +131,8 @@ function Spaceship({
                 X
               </button>
               {/* Hologram content goes here */}
-              <p>Greetings, Earthling!</p>
+              <p>{data.username+ "'"+ 's'} Portfolio</p>
+              {data.holdings.length === 0 ? <p>No holdings</p>: <DonutBarplotTransition Holdingsdata={data.holdings}></DonutBarplotTransition>}
             </div>
           </motion.div>
         </div>,

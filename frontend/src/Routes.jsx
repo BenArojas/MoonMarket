@@ -18,6 +18,7 @@ import Transactions, {
 import { action as profileAction } from "@/components/ProfileTabs";
 import Register from "@/pages/Register";
 import Space, { loader as spaceLoader } from "@/pages/Space";
+import Test from "@/pages/Test";
 import "./styles/global.css";
 const Routes = () => {
   const { token } = useAuth();
@@ -78,6 +79,10 @@ const Routes = () => {
         {
           path: "/logout",
           element: <Logout />,
+        },
+        {
+          path: "/test",
+          element: <Test />,
         },
         {
           path: "stock/:stockTicker",

@@ -3,6 +3,7 @@ import Spaceship from "@/components/space/Spaceship";
 
 function SpaceshipsFleet({ spaceships, centerX, centerY, radius }) {
   const [activeSpaceship, setActiveSpaceship] = useState(null);
+  // console.log("spaceships: " , spaceships)
 
   const handleSpaceshipClick = (index) => {
     if (activeSpaceship === null) {
@@ -25,6 +26,7 @@ function SpaceshipsFleet({ spaceships, centerX, centerY, radius }) {
           centerY={centerY}
           Radius={radius}
           Percentage={spaceship.portfolio_value_change_percentage}
+          data={spaceship}
           isActive={activeSpaceship === index}
           onClick={() => handleSpaceshipClick(index)}
           onCloseHologram={handleCloseHologram}
