@@ -20,9 +20,9 @@ const colors = [
 
 const shimmerStyle = `
   @keyframes shimmer {
-  0% { opacity: 0.6; }
+  0% { opacity: 0.7; }
   50% { opacity: 1; }
-  100% { opacity: 0.6; }
+  100% { opacity: 0.7; }
 }
 .holographic-shape {
   animation: shimmer 4s infinite;

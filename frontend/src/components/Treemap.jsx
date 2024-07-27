@@ -83,7 +83,7 @@ export const Treemap = ({ width, height, data }) => {
             stroke="transparent"
             fill={colorScale(parentName)}
             opacity={1}
-            fill-opacity="0.2"
+            fill-opacity="0.3"
             // className={"opacity-80 hover:opacity-100"}
             style={{ "--stock-color": colorScale(parentName) }}
             onClick={() => navigateToStockPage(leaf.data)}
