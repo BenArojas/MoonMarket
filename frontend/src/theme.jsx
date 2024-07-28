@@ -1,21 +1,24 @@
 import { createTheme } from "@mui/material";
 
 export const darkTheme = createTheme({
+  shape: {
+    borderRadius: 16,
+  },
   palette: {
     background: {
       // default: "#2B2B2B",
-      default: "black",
+      default: "#060817",
     },
     primary: {
-      main: '#077e5d', // metalic green
+      main: "#077e5d", // metalic green
     },
-    secondary:{
-      main: '#E1E5EB' // light grey
+    secondary: {
+      main: "#E1E5EB", // light grey
     },
     mode: "dark",
   },
   typography: {
-    fontFamily: 'Poppins, sans-serif',
+    fontFamily: "Poppins, sans-serif",
   },
   components: {
     MuiCssBaseline: {
@@ -30,5 +33,5 @@ export const darkTheme = createTheme({
         }
       `,
     },
-  }
+  },
 });

@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthProvider";
 import { PercentageChange } from "@/pages/ProtectedRoute";
 import { lastUpdateDate } from "@/utils/dataProcessing";
 import SyncIcon from "@mui/icons-material/Sync";
-import { Box, Button, Typography, Card } from "@mui/material";
+import { Box, Button, Typography, Card, Stack, Container } from "@mui/material";
 import Tooltip from "@mui/material/Tooltip";
 import { useContext, useEffect, useState } from "react";
 import { useFetcher, useLoaderData } from "react-router-dom";
@@ -15,6 +15,9 @@ import NewUserNoHoldings from "@/components/NewUserNoHoldings";
 import { postSnapshot, getPortfolioSnapshots } from "@/api/portfolioSnapshot";
 import { SnapshotChart } from "@/components/SnapShotChart";
 import GraphMenu from "@/components/GraphMenu";
+import IconButton from "@mui/material/IconButton";
+import { ArrowUp, ArrowDown } from "lucide-react";
+import GraphCardSkeleton from '@/Skeletons/GraphCardSkeleton'
 
 export const action = async ({ request }) => {
   const formData = await request.formData();
@@ -60,6 +63,7 @@ export const loader = (token) => async () => {
 function App() {
   const { percentageChange, setPercentageChange } =
     useContext(PercentageChange);
+  const trendColor = percentageChange > 0 ? "primary" : "error";
   const [selectedGraph, setSelectedGraph] = useState("Treemap");
   const { token } = useAuth();
   const fetcher = useFetcher();
@@ -86,93 +90,17 @@ function App() {
 
   return (
     <Box
-      className="App"
+      id="app"
       sx={{
         display: "flex",
-        flexDirection: "row-reverse",
-        height: "100%",
-        width: "100%",
-        margin: "auto",
+        padding: 2,
+        marginX: 4,
       }}
     >
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 5,
-          width: "30%",
-          marginTop: "8%", // This line moves the box down by 30%
-        }}
-      >
-        <Box
-          className="stats"
-          sx={{
-            display: "flex",
-            flexDirection: "row",
-            paddingRight: 10,
-            gap: 2,
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <Box
-            className="portfolio-details"
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 0.5,
-            }}
-          >
-            <PortfolioValue value={value} />
-            {value === 0 ? null : (
-              <Typography
-                variant="body1"
-                color="primary"
-                sx={{ fontWeight: "bold" }}
-              >
-                {incrementalChange.toLocaleString("en-US")}$ (
-                {percentageChange.toLocaleString("en-US")}%) Overall
-              </Typography>
-            )}
-          </Box>
-          {value === 0 ? null : (
-            <fetcher.Form method="post">
-              <input
-                type="hidden"
-                name="tickers"
-                value={stockTickers.join(",")}
-              />
-              <input type="hidden" name="token" value={token} />
-              <input type="hidden" name="value" value={value} />
-              <Tooltip
-                title={`last updated at: ${formattedDate}. Click to refresh Stocks price`}
-                placement="top"
-              >
-                <Button
-                  sx={{
-                    marginTop: "10px",
-                    justifyContent: "flex-end",
-                  }}
-                  color="secondary"
-                  variant="outlined"
-                  type="submit"
-                  startIcon={<SyncIcon />}
-                ></Button>
-              </Tooltip>
-            </fetcher.Form>
-          )}
-        </Box>
-        <SnapshotChart
-          width={500}
-          height={350}
-          refreshTrigger={refreshTrigger}
-        />
-      </Box>
       <Box
         className="graph"
         sx={{
           margin: "auto",
-          padding: 2,
           display: "flex",
           flexDirection: "column",
         }}
@@ -193,6 +121,30 @@ function App() {
           />
         )}
       </Box>
+      <Stack spacing={2}>
+      <SnapshotChart
+            formattedDate={formattedDate}
+            stockTickers={stockTickers}
+            incrementalChange={incrementalChange}
+            percentageChange={percentageChange}
+            token={token}
+            value={value}
+            width={550}
+            height={250}
+            refreshTrigger={refreshTrigger}
+          />
+          <SnapshotChart
+            formattedDate={formattedDate}
+            stockTickers={stockTickers}
+            incrementalChange={incrementalChange}
+            percentageChange={percentageChange}
+            token={token}
+            value={value}
+            width={550}
+            height={250}
+            refreshTrigger={refreshTrigger}
+          />
+      </Stack>
     </Box>
   );
 }

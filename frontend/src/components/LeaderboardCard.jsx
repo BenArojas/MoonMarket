@@ -50,11 +50,11 @@ export default function LeaderboardCard({ Number, stock, changeCount }) {
               height: "100%",
               background:
                 Number === 1
-                  ? "linear-gradient(to top, rgba(255, 212, 59, 0.8) 0%, rgba(255, 212, 59, 0.6) 100%)"
+                  ? "linear-gradient(to top, rgba(255, 212, 59, 0.3) 0%, rgba(255, 212, 59, 0.1) 100%)"
                   : Number === 2
-                    ? "linear-gradient(to top, rgba(116, 192, 252, 0.8) 0%, rgba(116, 192, 252, 0.6) 100%)"
+                    ? "linear-gradient(to top, rgba(116, 192, 252, 0.3) 0%, rgba(116, 192, 252, 0.1) 100%)"
                     : Number === 3
-                      ? "linear-gradient(to top, rgba(192, 192, 192, 0.8) 0%, rgba(192, 192, 192, 0.6) 100%)"
+                      ? "linear-gradient(to top, rgba(192, 192, 192, 0.3) 0%, rgba(192, 192, 192, 0.1) 100%)"
                       : "none",
               zIndex: -1,
             },

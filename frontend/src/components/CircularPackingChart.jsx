@@ -9,9 +9,9 @@ export const CircularPacking = ({ width, height, data }) => {
     const textRefs = useRef([]);
     const theme = useTheme();
     const colors = {
-        positive: theme.palette.success.main,
+        positive: theme.palette.primary.light,
         // positive: "#a4c969",
-        negative: theme.palette.error.main,
+        negative: theme.palette.error.dark,
     };
 
     const hierarchy = useMemo(() => {

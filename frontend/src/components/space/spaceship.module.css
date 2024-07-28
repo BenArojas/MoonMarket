@@ -106,7 +106,7 @@
   background-position: center;
   filter: sepia(100%) hue-rotate(160deg);
   opacity: 1;
-  animation: pan-image 15s linear infinite;
+  animation: pan-image 20s linear infinite;
 }
 
 .screenOverlay {

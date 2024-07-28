@@ -69,8 +69,8 @@ export const LineChart = ({ width, height, data }) => {
       <svg width={width} height={height} >
         <defs>
           <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#C4C4C4" stopOpacity={0.5} />
-            <stop offset="100%" stopColor="#C4C4C4" stopOpacity={0.0} />
+            <stop offset="0%" stopColor="#077e5d" stopOpacity={0.5} />
+            <stop offset="100%" stopColor="#077e5d" stopOpacity={0.0} />
           </linearGradient>
           <filter id="glow">
             <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
@@ -94,9 +94,9 @@ export const LineChart = ({ width, height, data }) => {
            className="line-path"
             d={linePath}
             opacity={1}
-            stroke="#C4C4C4"
+            stroke="#077e5d"
             fill="none"
-            strokeWidth={3}
+            strokeWidth={2}
             filter="url(#glow)"
           />
         </g>

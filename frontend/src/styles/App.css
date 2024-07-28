@@ -4,6 +4,9 @@
 
 .layout {
   /* background-size: 100% 100%;
+  background-position: 0px 0px,0px 0px,0px 0px,0px 0px,0px 0px;
+  background-image: radial-gradient(42% 53% at 19% -14%, #FFFFFF5C 9%, #073AFF00 100%),radial-gradient(21% 37% at 96% -11%, #FFFFFF75 27%, #073AFF00 100%),linear-gradient(125deg, #0B0000FF 1%, #000000FF 100%); */
+  /* background-size: 100% 100%;
   background-position: 0px 0px, 0px 0px, 0px 0px, 0px 0px, 0px 0px, 0px 0px,
     0px 0px, 0px 0px;
   background-image: radial-gradient(
@@ -25,7 +28,7 @@
     hsl(149deg 80% 12%) 78%,
     hsl(0deg 0% 0%) 100%
   ); */
-  background-image: radial-gradient(
+ /* background-image: radial-gradient(
       at 72.14319362964861% 27.394890291488316%,
       hsla(0, 0%, 0%, 1) 0%,
       hsla(0, 0%, 0%, 0) 100%
@@ -39,7 +42,7 @@
       at 54.331578656522225% 79.48548792854433%,
       hsla(0, 0%, 0%, 1) 0%,
       hsla(0, 0%, 0%, 0) 100%
-    );
+    ); */
 }
 .navbar {
   display: flex;

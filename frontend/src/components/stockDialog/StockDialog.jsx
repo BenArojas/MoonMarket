@@ -14,7 +14,7 @@ function InfoBox({ text, subtitle }) {
   return (
     <Box className={styles.infoBox}>
       <Typography variant="h5" fontWeight={"bold"}>
-        {text}
+        {text}{subtitle === 'Value' ? ' $': null}
       </Typography>
       <Typography variant="subtitle2">{subtitle}</Typography>
     </Box>

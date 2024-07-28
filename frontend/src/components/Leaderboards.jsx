@@ -13,7 +13,7 @@ import Stack from "@mui/material/Stack";
 import * as React from "react";
 import TopLeaders from "@/components/TopLeaders";
 
-export default function Leaderboards({ data }) {
+export default function Leaderboards({ data, width, height}) {
   const [category, setCategory] = React.useState("positionSize");
   const [page, setPage] = React.useState(1);
   const leadersCount = 3;
@@ -42,8 +42,8 @@ export default function Leaderboards({ data }) {
   return (
     <Box
       sx={{
-        height: 600,
-        width: 1000,
+        height: height,
+        width: width,
         display: "flex",
         flexDirection: "column-reverse",
         justifyContent: "flex-end", // Changed from "center"

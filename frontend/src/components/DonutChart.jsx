@@ -8,9 +8,16 @@ const MARGIN_X = 150;
 const MARGIN_Y = 50;
 const INFLEXION_PADDING = 25;
 
-const colors = [
-  "#e0ac2b", "#e85252", "#6689c6", "#9a6fb0", "#a53253",
-  "#69b3a2", "#4caf50", "#2196f3", "#f44336"
+const colors  =  [
+  "#077e5d", // Your main metallic green
+  "#f2c94c", // Complementary golden yellow
+  "#2d9cdb", // Cool blue
+  "#eb5757", // Accent red
+  "#6fcf97", // Light green
+  "#bb6bd9", // Purple
+  "#4f4f4f", // Dark gray
+  "#ff9800", // Orange
+  "#00bcd4"  // Cyan
 ];
 
 export const DonutChart = ({ width, height, data }) => {
