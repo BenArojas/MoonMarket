@@ -1,14 +1,26 @@
 import React, { useEffect, useState, useRef } from "react";
 import "@/styles/App.css";
-import AddStockDialog from "@/components/AddStockDialog.jsx";
+import ConfirmBuyDialog from "@/components/ConfirmBuy.jsx";
 import Card from "@mui/material/Card";
 import { useAuth } from "@/contexts/AuthProvider";
-import { Box } from "@mui/material";
+import { Box, Divider, Typography } from "@mui/material";
 import { useLoaderData } from "react-router-dom";
 import { getStockData } from "@/api/stock";
 import Button from "@mui/material/Button";
-import useTruncatedElement from "@/hooks/showMoreText";
 import LoadingImage from "@/components/LoadingImage";
+import "@/styles/global.css";
+import InputLabel from "@mui/material/InputLabel";
+import MenuItem from "@mui/material/MenuItem";
+import FormControl from "@mui/material/FormControl";
+import Select from "@mui/material/Select";
+import CandleStickChart from "@/components/CandleSticksChart";
+import Input from "@mui/material/Input";
+import { transactionSchema } from "@/schemas/transaction";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { useMutation } from "@tanstack/react-query";
+import { addStockToPortfolio } from "@/api/user";
+import { Height } from "@mui/icons-material";
 
 export async function loader(ticker, token) {
   const stock = await getStockData(ticker, token);
@@ -16,131 +28,200 @@ export async function loader(ticker, token) {
 }
 function StockItem() {
   const { token } = useAuth();
-  const data = useLoaderData();
-  const [stockData, setStockData] = useState(null);
-  const ref = useRef(null);
+  const stock = useLoaderData();
+  console.log(stock);
+  const [isBought, setisBought] = useState(false);
+  const [price, setPrice] = useState(stock?.price.toFixed(2));
+  const [quantity, setQuantity] = useState(0);
+  const totalPrice = (parseFloat(price) || 0) * (parseFloat(quantity) || 0);
 
-  const { isTruncated, isShowingMore, toggleIsShowingMore } =
-    useTruncatedElement({
-      ref,
-      dependency: stockData?.description,
-    });
-
-  useEffect(() => {
-    if (data) {
-      const res = data;
-      const options = { day: "2-digit", month: "2-digit", year: "numeric" };
-      
-
-      const stockInfo = {
-        ticker: res.symbol,
-        name: res.name,
-        price: res.price,
-        exchange: res.exchange,
-        earningsAnnouncement: res.earningsAnnouncement, 
-        priceAvg50: res.priceAvg50,
-        priceAvg200: res.priceAvg200,
-        yearHigh: res.yearHigh,
-        yearLow: res.yearLow,
-        imageUrl: res.image,
-        sector: res.sector,
-        ceo: res.ceo,
-        website: res.website,
-        description: res.description,
-      };
-
-      setStockData(stockInfo);
+  const handleInputChange = (setter) => (event) => {
+    const value = event.target.value;
+    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+      setter(value);
     }
-  }, [data]);
+  };
+
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      price: stock?.price.toFixed(2),
+    },
+    resolver: zodResolver(transactionSchema),
+    criteriaMode: "all",
+  });
+
+  const { mutateAsync: addStockMutation } = useMutation({
+    mutationFn: ({ portfolioStock, price, quantity, token }) =>
+      addStockToPortfolio(portfolioStock, price, quantity, token),
+  });
+
+  const onSubmit = async (data) => {
+    try {
+      const portfolioStock = {
+        name: stock.name,
+        ticker: stock.symbol,
+        description: "",
+        price: stock.price,
+      };
+      // Only include earnings if it's not null
+      if (stock.earningsAnnouncement !== null) {
+        portfolioStock.earnings = stock.earningsAnnouncement;
+      }
+      await addStockMutation({
+        portfolioStock,
+        price: data.price,
+        quantity: data.quantity,
+        token,
+      });
+      setisBought(true);
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
+  const [age, setAge] = React.useState("");
+
+  const handleChange = (event) => {
+    setAge(event.target.value);
+  };
 
   return (
-    <div className="layout">
+    <Box
+      className="layoutContainer"
+      sx={{
+        display: "grid",
+        flex: 1,
+        gridTemplateRows: "auto 1fr auto",
+        gap: 4,
+        margin: "auto",
+        width: "80%",
+      }}
+    >
+      <Box sx={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <Typography variant="h4">{stock?.name}</Typography>
+        <Box sx={{ shrink: 0 }}>
+          <Typography variant="overline" color="GrayText">
+            Last Price
+          </Typography>
+          <Typography variant="body2">{stock?.price}</Typography>
+        </Box>
+        <Box sx={{ shrink: 0 }}>
+          <Typography variant="overline" color="GrayText">
+            Volume
+          </Typography>
+          <Typography variant="body2">{stock?.volume}</Typography>
+        </Box>
+        <Box sx={{ shrink: 0 }}>
+          <Typography variant="overline" color="GrayText">
+            High (24h)
+          </Typography>
+          <Typography variant="body2">{stock?.dayHigh}</Typography>
+        </Box>
+        <Box sx={{ shrink: 0 }}>
+          <Typography variant="overline" color="GrayText">
+            Low (24h)
+          </Typography>
+          <Typography variant="body2">{stock?.dayLow}</Typography>
+        </Box>
+        <Box sx={{ shrink: 0 }}>
+          <Typography variant="overline" color="GrayText">
+            Change (24h)
+          </Typography>
+          <Typography variant="body2">{stock?.changesPercentage}%</Typography>
+        </Box>
+        <Box sx={{ ml: "auto" }}>
+          <FormControl>
+            <InputLabel id="demo-simple-select-label">Age</InputLabel>
+            <Select
+              labelId="demo-simple-select-label"
+              id="demo-simple-select"
+              value={age}
+              label="Age"
+              className=""
+              onChange={handleChange}
+              sx={{
+                width: 120,
+              }}
+            >
+              <MenuItem value={10}>Ten</MenuItem>
+              <MenuItem value={20}>Twenty</MenuItem>
+              <MenuItem value={30}>Thirty</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
+      </Box>
+
+      {/* <Box sx={{ height: "100%" }}> */}
+      <CandleStickChart />
+      {/* </Box> */}
       <Card
-        elevation={8}
         sx={{
-          width: 1300,
+          backgroundColor: "transparent",
           p: 1,
+          // width: "70%",
           margin: "auto",
-          padding: 4,
-          marginTop: "80px",
-          bgcolor: "#423F3E",
-          color: "whitesmoke",
         }}
       >
-        {stockData && (
-          <>
-            <Box sx={{ display: "flex", flexDirection: "column" }}>
-              <Box
-                className="card-header"
-                sx={{
-                  display: "flex",
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  width: "60%",
-                  margin: "auto",
-                  marginBottom:'4em',
-                  alignItems: "center",
-                }}
-              >
-                <Box
-                  className="card-title"
-                  sx={{ display: "flex", flexDirection: "column", gap:1 }}
-                >
-                  <h2>{stockData.name}</h2>
-                  <h4 style={{color: "#fff9" }}>
-                    {stockData.ticker}
-                  </h4>
-
-                  <LoadingImage
-                    src={stockData.imageUrl}
-                    alt={stockData.ticker}
-                    width="100"
-                    height="100"
-                  />
-                </Box>
-                <Box className="card-details">
-                  <h3>Stock Price: {stockData.price}$</h3>
-                  <h3>Stock Exchange: {stockData.exchange}</h3>
-                  {/* <h3>Next Earnings date: {stockData.earningsAnnouncement}</h3> */}
-                  <h3>Average 50 days price: {stockData.priceAvg50}$</h3>
-                  <h3>
-                    Stock's highest price this year: {stockData.yearHigh}$
-                  </h3>
-                  <h3>Stock's lowest price this year: {stockData.yearLow}$</h3>
-                </Box>
-              </Box>
-              <Box className="description">
-                <Box
-                  ref={ref}
-                  className={`break-words text-l ${
-                    !isShowingMore && "line-clamp-3"
-                  }`}
-                  sx={{ color: "whitesmoke" }}
-                >
-                  {stockData.description}
-                </Box>
-                {isTruncated && (
-                  <Button
-                    onClick={toggleIsShowingMore}
-                    variant="text"
-                    sx={{ float: "right" }}
-                  >
-                    {isShowingMore ? "Show less" : "Show more"}
-                  </Button>
-                )}
-                <div className="addStockBox" style={{ marginTop: "20px" }}>
-                  <AddStockDialog
-                    stock={stockData}
-                    token={token}
-                  ></AddStockDialog>
-                </div>
-              </Box>
-            </Box>
-          </>
-        )}
-        {stockData == null && <p>stock ticker isnt valid</p>}
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+          component={"form"}
+          onSubmit={handleSubmit(onSubmit)}
+        >
+          <Box sx={{ display: "flex", flexDirection: "Column", p: 1 }}>
+            <Typography>At Price</Typography>
+            <Input
+              placeholder="10.52"
+              {...register("price")}
+              value={price}
+              onChange={handleInputChange(setPrice)}
+            ></Input>
+            {errors.price?.message ?? null}
+          </Box>
+          <Box sx={{ display: "flex", flexDirection: "Column" }}>
+            <Typography>Amount</Typography>
+            <Input
+              placeholder="0"
+              {...register("quantity")}
+              value={quantity}
+              onChange={handleInputChange(setQuantity)}
+            ></Input>
+            {errors.quantity?.message ?? null}
+          </Box>
+          <Box sx={{ display: "flex", flexDirection: "Column" }}>
+            <Typography>Total Price</Typography>
+            <Input
+              placeholder="0"
+              value={isNaN(totalPrice) ? "0" : totalPrice.toFixed(2)}
+              readOnly
+            ></Input>
+          </Box>
+          <Box>
+            <Button variant="contained" type="submit">
+              Buy
+            </Button>
+            {isBought && (
+              <ConfirmBuyDialog
+                setisBought={setisBought}
+                open={isBought}
+                ticker={stock?.symbol}
+                price={price}
+                quantity={quantity}
+                totalCost={totalPrice.toFixed(2)}
+              />
+            )}
+          </Box>
+        </Box>
       </Card>
-    </div>
+    </Box>
   );
 }
 

@@ -33,6 +33,7 @@
     "dayjs": "^1.11.11",
     "flubber": "^0.4.2",
     "framer-motion": "^11.3.8",
+    "lightweight-charts": "^4.2.0",
     "localforage": "^1.10.0",
     "lucide-react": "^0.379.0",
     "match-sorter": "^6.3.4",

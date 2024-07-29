@@ -1,11 +1,11 @@
-import { DonutBarplotChart } from '@/components/space/DonutBarPlotChart'
-import { DonutBarplotTransition } from '@/components/space/DonutBarplotTransition'
+
 import React from 'react'
+import CandleStickChart from '@/components/CandleSticksChart'
 
 function Test() {
   return (
     <div>
-        <DonutBarplotTransition></DonutBarplotTransition>
+      <CandleStickChart/>
     </div>
   )
 }

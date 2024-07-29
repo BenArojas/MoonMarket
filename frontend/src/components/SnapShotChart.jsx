@@ -6,7 +6,7 @@ import SyncIcon from "@mui/icons-material/Sync";
 import { Box, Card, Stack, Typography } from "@mui/material";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
-import { ArrowUp } from "lucide-react";
+import { ArrowUp, ArrowDown } from "lucide-react";
 import { useMemo } from "react";
 import { useFetcher } from "react-router-dom";
 
@@ -70,7 +70,7 @@ export const SnapshotChart = ({
             >
               <Box sx={{ display: "flex" }}>
                 <Typography color={trendColor}>
-                  <ArrowUp />
+                  {percentageChange > 0 ? <ArrowUp /> : <ArrowDown />}
                 </Typography>
                 <Typography
                   variant="body1"

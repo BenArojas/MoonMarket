@@ -14,11 +14,12 @@ BASE_URL = 'https://financialmodelingprep.com/api/v3'
 @router.get("/quote/{symbol}", response_description="stock details from api")
 def get_quote(symbol: str):
     
-    api_keys = [ config("FMP_FIRST_API_KEY"), config("FMP_SECOND_API_KEY")]
+    api_keys = [ config("FMP_FIRST_API_KEY"), config("FMP_SECOND_API_KEY"), config("FMP_THIRD_API_KEY"), config("FMP_FOURTH_API_KEY")]
     for key in api_keys:
         try:
             endpoint = f'/quote/{symbol}?apikey={key}'
             url = BASE_URL + endpoint
+            print('fetching data')
             response = requests.get(url)
             data1 = response.json()[0]
 
@@ -31,13 +32,16 @@ def get_quote(symbol: str):
             combined_data = {**data1, **data2}
             return combined_data
         except Exception as e:
-            return {"error": str(e)}
+            print( {"error": str(e)})
         
 # Requests from Stock collection
 @router.get("/", response_description="list of all stocks in portfolio")
 async def list_stocks( user: User = Depends(current_user)):
     stocks = await Stock.find_all().to_list()
     return stocks
+
+@router.get("/dailyChart/{ticker}")
+
 
 
 @router.get("/{ticker}")

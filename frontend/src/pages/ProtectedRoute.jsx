@@ -8,7 +8,7 @@ import { Navigate, Outlet, useLoaderData, defer } from "react-router-dom";
 import { useAuth } from "../contexts/AuthProvider";
 import { useRefreshToken } from "@/contexts/RefreshTokenProvider";
 import { useEffect, Suspense } from "react";
-
+import "@/styles/global.css";
 export const loader = (token) => async () => {
   console.log("loader activated");
   const userName = await getUserName(token);
