@@ -5,7 +5,7 @@ import Card from "@mui/material/Card";
 import { useAuth } from "@/contexts/AuthProvider";
 import { Box, Divider, Typography } from "@mui/material";
 import { useLoaderData } from "react-router-dom";
-import { getStockData } from "@/api/stock";
+import { getStockData, getHistoricalData } from "@/api/stock";
 import Button from "@mui/material/Button";
 import LoadingImage from "@/components/LoadingImage";
 import "@/styles/global.css";
@@ -24,12 +24,16 @@ import { Height } from "@mui/icons-material";
 
 export async function loader(ticker, token) {
   const stock = await getStockData(ticker, token);
-  return stock;
+  const historicaldata = await getHistoricalData(ticker, token);
+  return { stock, historicaldata };
 }
 function StockItem() {
   const { token } = useAuth();
-  const stock = useLoaderData();
-  console.log(stock);
+  const {
+    stock,
+    historicaldata: { historical, symbol },
+  } = useLoaderData();
+
   const [isBought, setisBought] = useState(false);
   const [price, setPrice] = useState(stock?.price.toFixed(2));
   const [quantity, setQuantity] = useState(0);
@@ -64,7 +68,7 @@ function StockItem() {
     try {
       const portfolioStock = {
         name: stock.name,
-        ticker: stock.symbol,
+        ticker: symbol,
         description: "",
         price: stock.price,
       };
@@ -102,8 +106,8 @@ function StockItem() {
         width: "80%",
       }}
     >
-      <Box sx={{ display: "flex", gap: 6, alignItems: "center" }}>
-        <Typography variant="h4">{stock?.name}</Typography>
+      <Box sx={{ display: "flex", gap: 5, alignItems: "center" }}>
+        <Typography variant="h4">{symbol}</Typography>
         <Box sx={{ shrink: 0 }}>
           <Typography variant="overline" color="GrayText">
             Last Price
@@ -114,7 +118,7 @@ function StockItem() {
           <Typography variant="overline" color="GrayText">
             Volume
           </Typography>
-          <Typography variant="body2">{stock?.volume}</Typography>
+          <Typography variant="body2">{stock?.volume.toLocaleString("en-US")}</Typography>
         </Box>
         <Box sx={{ shrink: 0 }}>
           <Typography variant="overline" color="GrayText">
@@ -157,13 +161,13 @@ function StockItem() {
       </Box>
 
       {/* <Box sx={{ height: "100%" }}> */}
-      <CandleStickChart />
+      <CandleStickChart data={historical}/>
       {/* </Box> */}
       <Card
         sx={{
           backgroundColor: "transparent",
           p: 1,
-          // width: "70%",
+          width: "70%",
           margin: "auto",
         }}
       >
@@ -171,6 +175,7 @@ function StockItem() {
           sx={{
             display: "flex",
             justifyContent: "space-between",
+            // gap:6,
             alignItems: "center",
           }}
           component={"form"}

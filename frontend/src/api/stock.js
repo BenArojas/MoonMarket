@@ -23,6 +23,23 @@ export async function getStockData(ticker, token) {
     return stock.data;
   }
 }
+
+export async function getHistoricalData(ticker, token) {
+  if (isValidStockTicker(ticker) === false) {
+    return false;
+  } else {
+    const data = await axios.get(
+      `http://localhost:8000/stocks/historical_data/${ticker}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return data.data;
+  }
+}
+
 function isValidStockTicker(ticker) {
   // Check if ticker is a string and has length between 1 and 5
   if (typeof ticker === "string" && ticker.length >= 1 && ticker.length <= 5) {
