@@ -1,4 +1,4 @@
-import { updateStockPrice } from "@/api/stock";
+import { updateStockPrice, getHistoricalData } from "@/api/stock";
 import { getUserData } from "@/api/user";
 import useGraphData from "@/hooks/useGraphData";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -17,7 +17,8 @@ import { SnapshotChart } from "@/components/SnapShotChart";
 import GraphMenu from "@/components/GraphMenu";
 import IconButton from "@mui/material/IconButton";
 import { ArrowUp, ArrowDown } from "lucide-react";
-import GraphCardSkeleton from '@/Skeletons/GraphCardSkeleton'
+import GraphCardSkeleton from "@/Skeletons/GraphCardSkeleton";
+import CurrentStockCard from "@/components/CurrentStock";
 
 export const action = async ({ request }) => {
   const formData = await request.formData();
@@ -55,10 +56,17 @@ export const action = async ({ request }) => {
   }
 };
 
-export const loader = (token) => async () => {
-  const user = await getUserData(token);
-  return user;
-};
+export const loader =
+  (token) =>
+  async ({ request }) => {
+    const url = new URL(request.url);
+    const defaultStockTicker = "MARA";
+    const stockTicker = url.searchParams.get("selected") || defaultStockTicker;
+    const stockData = await getHistoricalData(stockTicker, token);
+    console.log(stockData);
+    const userData = await getUserData(token);
+    return { userData, stockData };
+  };
 
 function App() {
   const { percentageChange, setPercentageChange } =
@@ -67,13 +75,15 @@ function App() {
   const [selectedGraph, setSelectedGraph] = useState("Treemap");
   const { token } = useAuth();
   const fetcher = useFetcher();
-  const data = useLoaderData();
+  const { userData: data, stockData } = useLoaderData();
   //add that dailty data to the chart
   const [stockTickers, visualizationData, value, moneySpent, isDataProcessed] =
     useGraphData(data, selectedGraph);
   const { formattedDate } = lastUpdateDate(data);
   const incrementalChange = value - moneySpent;
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [shownStock, setshownStock] = useState(null);
+  console.log(shownStock);
 
   useEffect(() => {
     const newPercentageChange = (incrementalChange / moneySpent) * 100;
@@ -118,11 +128,23 @@ function App() {
             isDataProcessed={isDataProcessed}
             selectedGraph={selectedGraph}
             visualizationData={visualizationData}
+            setShownStock={setshownStock}
           />
         )}
       </Box>
       <Stack spacing={2}>
-      <SnapshotChart
+        <SnapshotChart
+          formattedDate={formattedDate}
+          stockTickers={stockTickers}
+          incrementalChange={incrementalChange}
+          percentageChange={percentageChange}
+          token={token}
+          value={value}
+          width={550}
+          height={250}
+          refreshTrigger={refreshTrigger}
+        />
+        {/* <SnapshotChart
             formattedDate={formattedDate}
             stockTickers={stockTickers}
             incrementalChange={incrementalChange}
@@ -132,18 +154,8 @@ function App() {
             width={550}
             height={250}
             refreshTrigger={refreshTrigger}
-          />
-          <SnapshotChart
-            formattedDate={formattedDate}
-            stockTickers={stockTickers}
-            incrementalChange={incrementalChange}
-            percentageChange={percentageChange}
-            token={token}
-            value={value}
-            width={550}
-            height={250}
-            refreshTrigger={refreshTrigger}
-          />
+          /> */}
+        <CurrentStockCard stockData={stockData} />
       </Stack>
     </Box>
   );

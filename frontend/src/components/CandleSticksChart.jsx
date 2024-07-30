@@ -50,8 +50,8 @@ export const ChartComponent = (props) => {
         },
       },
       width: chartContainerRef.current.clientWidth,
-      height: 400,
-      autoSize: true,
+      height: 500,
+      // autoSize: true,
     });
     chart.timeScale().fitContent();
 

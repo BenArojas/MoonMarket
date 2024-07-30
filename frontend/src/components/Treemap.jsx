@@ -2,10 +2,9 @@ import "@/styles/Treemap.css";
 import { useTheme } from "@mui/material";
 import * as d3 from "d3";
 import { useMemo, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 // import { Typography } from '@mui/material';
 import CustomTooltip from "@/components/CustomToolTip";
-
 export const Treemap = ({ width, height, data }) => {
   const navigate = useNavigate();
   const tooltipRef = useRef(null);
@@ -38,14 +37,14 @@ export const Treemap = ({ width, height, data }) => {
     return treeGenerator(hierarchy);
   }, [hierarchy]);
 
-  const navigateToStockPage = (data) => {
-    navigate(`/portfolio/${data.ticker}`, {
-      state: {
-        quantity: data.quantity,
-        percentageOfPortfolio: data.percentageOfPortfolio,
-      },
-    });
-  };
+  // const navigateToStockPage = (data) => {
+  //   navigate(`/portfolio/${data.ticker}`, {
+  //     state: {
+  //       quantity: data.quantity,
+  //       percentageOfPortfolio: data.percentageOfPortfolio,
+  //     },
+  //   });
+  // };
 
   const allShapes = root.leaves().map((leaf, i) => {
     const parentName = leaf.parent?.data.name;
@@ -73,44 +72,48 @@ export const Treemap = ({ width, height, data }) => {
         key={i}
         name={name}
       >
-        <g key={i} className="rectangle">
-          <rect
-            x={leaf.x0}
-            y={leaf.y0}
-            rx={4}
-            width={leaf.x1 - leaf.x0}
-            height={leaf.y1 - leaf.y0}
-            stroke="transparent"
-            fill={colorScale(parentName)}
-            opacity={1}
-            fill-opacity="0.3"
-            // className={"opacity-80 hover:opacity-100"}
-            style={{ "--stock-color": colorScale(parentName) }}
-            onClick={() => navigateToStockPage(leaf.data)}
-          />
-          <text
-            x={centerX}
-            y={centerY - 6}
-            fontSize={12}
-            textAnchor="middle"
-            alignmentBaseline="middle"
-            fill="white"
-            className="font-medium"
-          >
-            {leaf.data.ticker}
-          </text>
-          <text
-            x={centerX}
-            y={centerY + 6}
-            fontSize={12}
-            textAnchor="middle"
-            alignmentBaseline="middle"
-            fill="white"
-            className="font-light"
-          >
-            {leaf.data.priceChangePercentage}%
-          </text>
-        </g>
+        <Link to={{
+          search: `selected=${ticker}`,
+        }}>
+          <g key={i} className="rectangle">
+            <rect
+              x={leaf.x0}
+              y={leaf.y0}
+              rx={4}
+              width={leaf.x1 - leaf.x0}
+              height={leaf.y1 - leaf.y0}
+              stroke="transparent"
+              fill={colorScale(parentName)}
+              opacity={1}
+              fill-opacity="0.3"
+              // className={"opacity-80 hover:opacity-100"}
+              style={{ "--stock-color": colorScale(parentName) }}
+              // onClick={() => setShownStock(ticker)}
+            />
+            <text
+              x={centerX}
+              y={centerY - 6}
+              fontSize={12}
+              textAnchor="middle"
+              alignmentBaseline="middle"
+              fill="white"
+              className="font-medium"
+            >
+              {leaf.data.ticker}
+            </text>
+            <text
+              x={centerX}
+              y={centerY + 6}
+              fontSize={12}
+              textAnchor="middle"
+              alignmentBaseline="middle"
+              fill="white"
+              className="font-light"
+            >
+              {leaf.data.priceChangePercentage}%
+            </text>
+          </g>
+        </Link>
       </CustomTooltip>
     );
   });

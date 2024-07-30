@@ -20,7 +20,7 @@ const components = {
   Leaderboards: Leaderboards,
 };
 
-function DataGraph({ isDataProcessed, selectedGraph, visualizationData }) {
+function DataGraph({ isDataProcessed, selectedGraph, visualizationData, setShownStock }) {
   const Skeleton = skeletons[selectedGraph] || TreeMapSkeleton;
   const GraphComponent = components[selectedGraph];
 
@@ -33,7 +33,7 @@ function DataGraph({ isDataProcessed, selectedGraph, visualizationData }) {
   }
 
   return GraphComponent ? (
-    <GraphComponent data={visualizationData} width={1000} height={650} />
+    <GraphComponent setShownStock={setShownStock} data={visualizationData} width={1000} height={650} />
   ) : null;
 }
 

@@ -99,9 +99,9 @@ function StockItem() {
       className="layoutContainer"
       sx={{
         display: "grid",
-        flex: 1,
+        // flex: 1,
         gridTemplateRows: "auto 1fr auto",
-        gap: 4,
+        gap: 5,
         margin: "auto",
         width: "80%",
       }}
@@ -160,9 +160,9 @@ function StockItem() {
         </Box>
       </Box>
 
-      {/* <Box sx={{ height: "100%" }}> */}
+      
       <CandleStickChart data={historical}/>
-      {/* </Box> */}
+      
       <Card
         sx={{
           backgroundColor: "transparent",

@@ -42,7 +42,7 @@ export const SnapshotChart = ({
             flexDirection: "column",
             gap: 2,
             margin: "auto",
-            padding: "15px 25px",
+            padding: "15px 15px",
             backgroundColor: "transparent",
           }}
         >
@@ -52,7 +52,6 @@ export const SnapshotChart = ({
               display: "flex",
               flexDirection: "row",
               alignItems: "center",
-              justifyContent: "space-between",
               p: 1,
             }}
           >
@@ -66,6 +65,7 @@ export const SnapshotChart = ({
                 flexDirection: "row",
                 gap: 2,
                 alignItems: "center",
+                ml:'auto'
               }}
             >
               <Box sx={{ display: "flex" }}>

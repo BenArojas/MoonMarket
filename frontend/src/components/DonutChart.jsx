@@ -1,14 +1,14 @@
 import { useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
 import "@/styles/donut-chart.css";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Box, Button } from "@mui/material";
 
 const MARGIN_X = 150;
 const MARGIN_Y = 50;
 const INFLEXION_PADDING = 25;
 
-const colors  =  [
+const colors = [
   "#077e5d", // Your main metallic green
   "#f2c94c", // Complementary golden yellow
   "#2d9cdb", // Cool blue
@@ -17,7 +17,7 @@ const colors  =  [
   "#bb6bd9", // Purple
   "#4f4f4f", // Dark gray
   "#ff9800", // Orange
-  "#00bcd4"  // Cyan
+  "#00bcd4", // Cyan
 ];
 
 export const DonutChart = ({ width, height, data }) => {
@@ -61,97 +61,118 @@ export const DonutChart = ({ width, height, data }) => {
     const isRightLabel = inflexionPoint[0] > 0;
     const labelPosX = inflexionPoint[0] + 50 * (isRightLabel ? 1 : -1);
     const textAnchor = isRightLabel ? "start" : "end";
-    const label = grp.data.name + " (" + grp.value.toLocaleString("en-US") + "$)";
+    const ticker = grp.data.name;
+    const label = ticker + " (" + grp.value.toLocaleString("en-US") + "$)";
     const percentageOfPortfolio = grp.data.percentageOfPortfolio;
 
-    const handleClick = (stockData) => {
-      if (stockData.name === 'Others' && !showOthers) {
-        setShowOthers(true);
-      } else if (showOthers && stockData.name !== 'Others') {
-        navigate(`/portfolio/${stockData.name}`, {
-          state: {
-            quantity: stockData.quantity,
-            percentageOfPortfolio: stockData.percentageOfPortfolio,
-          },
-        });
-      } else if (showOthers) {
-        setShowOthers(false);
-      } else {
-        navigate(`/portfolio/${stockData.name}`, {
-          state: {
-            quantity: stockData.quantity,
-            percentageOfPortfolio: stockData.percentageOfPortfolio,
-          },
-        });
-      }
-    };
+    // const handleClick = (stockData) => {
+    //   const showOthersClicked =
+    //   if (stockData.name === "Others" && !showOthers) {
+    //     setShowOthers(true);
+    //   } else if (showOthers) {
+    //     setShowOthers(false);
+    //   } else {
+    //   }
+    // };
 
     return (
-      <g
-        key={i}
-        className="slice"
-        onClick={() => handleClick(grp.data)}
-        onMouseEnter={() => {
-          if (ref.current) {
-            ref.current.classList.add("hasHighlight");
-          }
+      <Link
+        to={{
+          search: grp.data.name === "Others" ? "" : `selected=${ticker}`,
         }}
-        onMouseLeave={() => {
-          if (ref.current) {
-            ref.current.classList.remove("hasHighlight");
-          }
+        onClick={(e) => {
+          if (grp.data.name === "Others") e.preventDefault();
         }}
       >
-        <path d={slicePath} fill={colors[i % colors.length]} />
-        <circle cx={centroid[0]} cy={centroid[1]} r={2} />
-        <line
-          x1={centroid[0]}
-          y1={centroid[1]}
-          x2={inflexionPoint[0]}
-          y2={inflexionPoint[1]}
-          stroke={"white"}
-          fill={"white"}
-        />
-        <line
-          x1={inflexionPoint[0]}
-          y1={inflexionPoint[1]}
-          x2={labelPosX}
-          y2={inflexionPoint[1]}
-          stroke={"white"}
-          fill={"white"}
-        />
-        <text
-          x={labelPosX + (isRightLabel ? 2 : -2)}
-          y={inflexionPoint[1]}
-          textAnchor={textAnchor}
-          dominantBaseline="middle"
-          fontSize={14}
-          fill={"white"}
+        <defs>
+          {colors.map((color, i) => (
+            <radialGradient key={i} id={`holographic-gradient-${i}`}>
+              <stop offset="0%" stopColor={color} stopOpacity="0.6" />
+              <stop offset="40%" stopColor={color} stopOpacity="0.8" />
+              <stop offset="100%" stopColor={color} stopOpacity="1" />
+            </radialGradient>
+          ))}
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="1" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <g
+          key={i}
+          className="slice"
+          onClick={() => setShowOthers(grp.data.name === "Others")}
+          onMouseEnter={() => {
+            if (ref.current) {
+              ref.current.classList.add("hasHighlight");
+            }
+          }}
+          onMouseLeave={() => {
+            if (ref.current) {
+              ref.current.classList.remove("hasHighlight");
+            }
+          }}
         >
-          {label}
-        </text>
-        <text
-          x={labelPosX + (isRightLabel ? 2 : -2)}
-          y={inflexionPoint[1] + verticalOffset}
-          textAnchor={textAnchor}
-          dominantBaseline="middle"
-          fontSize={14}
-          fill={"white"}
-        >
-          {percentageOfPortfolio}%
-        </text>
-      </g>
+          <path
+            d={slicePath}
+            fill={`url(#holographic-gradient-${i % colors.length})`}
+            filter="url(#glow)"
+          />
+          <circle cx={centroid[0]} cy={centroid[1]} r={2} />
+          <line
+            x1={centroid[0]}
+            y1={centroid[1]}
+            x2={inflexionPoint[0]}
+            y2={inflexionPoint[1]}
+            stroke={"white"}
+            fill={"white"}
+          />
+          <line
+            x1={inflexionPoint[0]}
+            y1={inflexionPoint[1]}
+            x2={labelPosX}
+            y2={inflexionPoint[1]}
+            stroke={"white"}
+            fill={"white"}
+          />
+          <text
+            x={labelPosX + (isRightLabel ? 2 : -2)}
+            y={inflexionPoint[1]}
+            textAnchor={textAnchor}
+            dominantBaseline="middle"
+            fontSize={14}
+            fill={"white"}
+          >
+            {label}
+          </text>
+          <text
+            x={labelPosX + (isRightLabel ? 2 : -2)}
+            y={inflexionPoint[1] + verticalOffset}
+            textAnchor={textAnchor}
+            dominantBaseline="middle"
+            fontSize={14}
+            fill={"white"}
+          >
+            {percentageOfPortfolio}%
+          </text>
+        </g>
+      </Link>
     );
   });
 
   return (
-    <Box sx={{position:'relative'}}>
+    <Box sx={{ position: "relative" }}>
       {showOthers && (
-        <Button onClick={() => setShowOthers(false)} sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0
-        }}>
+        <Button
+          onClick={() => setShowOthers(false)}
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+          }}
+        >
           Back to Main View
         </Button>
       )}

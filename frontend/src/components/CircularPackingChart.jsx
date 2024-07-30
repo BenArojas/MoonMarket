@@ -3,7 +3,7 @@ import * as d3 from "d3";
 import { useTheme } from "@mui/material";
 import CustomTooltip from "@/components/CustomToolTip";
 
-export const CircularPacking = ({ width, height, data }) => {
+export const CircularPacking = ({ width, height, data, setShownStock }) => {
     const svgRef = useRef(null);
     const circleRefs = useRef([]);
     const textRefs = useRef([]);
