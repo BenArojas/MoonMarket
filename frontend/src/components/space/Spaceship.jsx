@@ -112,7 +112,6 @@ function Spaceship({
 
   const renderHologram = () => {
     if (isActive && showHologram) {
-      console.log(data)
       return ReactDOM.createPortal(
         <div className={styles.hologramWrapper}>
           <motion.div

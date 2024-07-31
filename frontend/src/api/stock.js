@@ -40,6 +40,22 @@ export async function getHistoricalData(ticker, token) {
   }
 }
 
+export async function getIntradyData(ticker, token) {
+  if (isValidStockTicker(ticker) === false) {
+    return false;
+  } else {
+    const data = await axios.get(
+      `http://localhost:8000/stocks/intrady_chart/${ticker}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return data.data;
+  }
+}
+
 function isValidStockTicker(ticker) {
   // Check if ticker is a string and has length between 1 and 5
   if (typeof ticker === "string" && ticker.length >= 1 && ticker.length <= 5) {

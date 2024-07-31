@@ -8,7 +8,6 @@ import AvatarGroup from "@mui/material/AvatarGroup";
 import SearchFriends from "@/components/SearchFriends";
 
 function FriendsSideBar({ friends }) {
-  console.log(friends);
   const { firstLetter } = useContext(FirstLetter);
 
   return (

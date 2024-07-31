@@ -146,45 +146,6 @@ export function processDonutData(stocksList, stocksInfo) {
   return stocks;
 }
 
-// export function processTableData(stocksList, stocksInfo) {
-//   // console.log("stocksList", stocksList);
-//   // console.log("stocksInfo", stocksInfo);
-//   let totalPortfolioValue = 0;
-//   stocksInfo.forEach((res, i) => {
-//     const holding = stocksList[i];
-//     const value = holding.quantity * res.price;
-//     totalPortfolioValue += value;
-//   });
-//   let tableData = [];
-//   stocksList.forEach((stock, i) => {
-//     const value = stock.quantity * stocksInfo[i].price;
-//     const ticker = stock.ticker;
-//     const name = stocksInfo[i].name;
-//     const avg_bought_price = stock.avg_bought_price;
-//     const priceChange = stocksInfo[i].price - avg_bought_price;
-//     const priceChangePercentage = Math.round(
-//       ((stocksInfo[i].price - avg_bought_price) / avg_bought_price) * 100
-//     );
-//     const percentageOfPortfolio = Math.round(
-//       (value / totalPortfolioValue) * 100
-//     );
-
-//     tableData.push({
-//       ticker: ticker,
-//       name: name,
-//       value: value,
-//       priceChange: priceChange,
-//       priceChangePercentage: priceChangePercentage,
-//       sharePrice: stocksInfo[i].price,
-//       earnings: stocksInfo[i].earnings,
-//       quantity: stock.quantity,
-//       percentageOfPortfolio: percentageOfPortfolio,
-//     });
-//   });
-//   tableData.sort((a, b) => b.value - a.value);
-
-//   return tableData;
-// }
 
 export function processCircularData(stocksList, stocksInfo) {
   let children = [];
@@ -295,4 +256,23 @@ export function lastUpdateDate(data) {
     minute: "2-digit",
   });
   return { formattedDate };
+}
+
+
+export function transformData(historicalData) {
+  return historicalData
+    .map(item => ({
+      time: new Date(item.date).getTime() / 1000, // Convert to Unix timestamp
+      value: item.close
+    }))
+    .sort((a, b) => a.time - b.time); // Sort in ascending order
+}
+
+export function transformSnapshotData(historicalData) {
+  return historicalData
+    .map(item => ({
+      time: new Date(item.timestamp).getTime() / 1000, // Convert to Unix timestamp
+      value: item.value
+    }))
+    .sort((a, b) => a.time - b.time); // Sort in ascending order
 }

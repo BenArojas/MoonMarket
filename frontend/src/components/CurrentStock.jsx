@@ -1,94 +1,67 @@
 import { createChart, ColorType } from "lightweight-charts";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Box, Card, Stack, Typography, useTheme, Button } from "@mui/material";
-import {getHistoricalData} from '@/api/stock'
+import { getHistoricalData } from "@/api/stock";
+import { addUserPurchase, addUserSale } from "@/api/user";
+import { transactionSchema } from "@/schemas/transaction";
+import { zodResolver } from "@hookform/resolvers/zod";
+import SharesDialog from "@/components/SharesDialog.jsx";
+import { CurrentStockChart } from "@/components/CurrentStockChart.jsx";
 
 function transformData(historicalData) {
-    return historicalData
-      .map(item => ({
-        time: new Date(item.date).getTime() / 1000, // Convert to Unix timestamp
-        value: item.close
-      }))
-      .sort((a, b) => a.time - b.time); // Sort in ascending order
+  return historicalData
+    .map((item) => ({
+      time: new Date(item.date).getTime() / 1000, // Convert to Unix timestamp
+      value: item.close,
+    }))
+    .sort((a, b) => a.time - b.time); // Sort in ascending order
+}
+
+export default function CurrentStockCard({
+  props,
+  stockData,
+  stockTicker,
+  token,
+}) {
+  const transformedData = transformData(stockData);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const [dialog, setDialog] = useState({
+    title: "",
+    text: "",
+    labelText: "",
+    function: "",
+    buttonText: "",
+    ticker: stockTicker,
+    token: token,
+  });
+
+  function handleClose() {
+    setDialogOpen(false);
   }
 
-export const CurrentStockChart = (props) => {
-  const theme = useTheme();
-  const {
-    data,
-    colors: {
-      backgroundColor = "transparent",
-      lineColor = theme.palette.primary.main,
-      textColor = theme.palette.text.primary,
-      areaTopColor = theme.palette.primary.main,
-      areaBottomColor = "transparent",
-    } = {},
-  } = props;
-
-  const chartContainerRef = useRef();
-
-  useEffect(() => {
-    const handleResize = () => {
-      chart.applyOptions({ width: chartContainerRef.current.clientWidth });
-    };
-
-    const chart = createChart(chartContainerRef.current, {
-      layout: {
-        background: { type: ColorType.Solid, color: backgroundColor },
-        textColor,
-        attributionLogo: false,
-      },
-      grid: {
-        horzLines: {
-          color: theme.palette.text.disabled,
-          visible: false,
-        },
-        vertLines: {
-          color: theme.palette.text.disabled,
-          visible: false,
-        },
-      },
-
-      width: chartContainerRef.current.clientWidth,
-      height: 250,
-    });
-    chart.timeScale().fitContent();
-
-    const newSeries = chart.addAreaSeries({
-      lineColor,
-      topColor: areaTopColor,
-      bottomColor: areaBottomColor,
-      lineType: 0,
-    });
-    newSeries.setData(data);
-
-    window.addEventListener("resize", handleResize);
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-
-      chart.remove();
-    };
-  }, [
-    data,
-    backgroundColor,
-    lineColor,
-    textColor,
-    areaTopColor,
-    areaBottomColor,
-  ]);
-
-  return <div ref={chartContainerRef} />;
-};
-
-
-
-export default function CurrentStockCard({props, stockData}) {
-    console.log(stockData)
-    const ticker = stockData.symbol
-    const historicalData = stockData.historical
-    const transformedData = transformData(historicalData);
-
+  const handleBuyClick = () => {
+    setDialogOpen(true);
+    setDialog((prevDialog) => ({
+      ...prevDialog,
+      title: "Add shares",
+      text: "To add shares of the stock, please enter how many shares of the stock you bought and at which price.",
+      labelText: "Enter bought price",
+      function: addUserPurchase,
+      buttonText: "Add",
+    }));
+  };
+  const handleSellClick = () => {
+    setDialogOpen(true);
+    setDialog((prevDialog) => ({
+      ...prevDialog,
+      title: "Sell shares",
+      text: "To sell shares of the stock, please enter how many shares of the stock you sold and at which price.",
+      labelText: "Enter sold price",
+      function: addUserSale,
+      buttonText: "Sell",
+    }));
+  };
 
   return (
     <Card
@@ -111,27 +84,26 @@ export default function CurrentStockCard({props, stockData}) {
           gap: 6,
         }}
       >
-        <Typography variant="h5">{ticker}</Typography>
-        <Box sx={{ shrink: 0 }}>
-          <Typography variant="overline" color="GrayText">
-            High (24h)
-          </Typography>
-          <Typography variant="body2">22.9</Typography>
-        </Box>
-        <Box sx={{ shrink: 0 }}>
-          <Typography variant="overline" color="GrayText">
-            Low (24h)
-          </Typography>
-          <Typography variant="body2">20.45</Typography>
-        </Box>
+        <Typography variant="h5">{stockTicker}</Typography>
         <Box sx={{ display: "flex", gap: 2, ml: "auto" }}>
-          <Button variant="contained" color="error">
+          <Button variant="contained" color="error" onClick={handleSellClick}>
             Sell
           </Button>
-          <Button variant="contained">Buy</Button>
+          <Button variant="contained" onClick={handleBuyClick}>
+            Buy
+          </Button>
         </Box>
       </Box>
       <CurrentStockChart {...props} data={transformedData}></CurrentStockChart>
+      {dialogOpen && (
+        <SharesDialog
+          handleClose={handleClose}
+          open={dialogOpen}
+          dialog={dialog}
+          addUserPurchase={addUserPurchase}
+          addUserSale={addUserSale}
+        />
+      )}
     </Card>
   );
 }

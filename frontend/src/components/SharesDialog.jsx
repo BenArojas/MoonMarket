@@ -7,7 +7,6 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
 import "@/styles/portfolio.css";
 import TextField from "@mui/material/TextField";
 import { transactionSchema } from "@/schemas/transaction";
@@ -20,7 +19,6 @@ function SharesDialog({
   addUserPurchase,
   addUserSale,
 }) {
-  const navigate = useNavigate();
   const [serverError, setServerError] = useState(null);
   const {
     register,
@@ -28,9 +26,6 @@ function SharesDialog({
     setError,
     formState: { errors },
   } = useForm({
-    defaultValues: {
-      price: dialog.stock.price.toFixed(2),
-    },
     resolver: zodResolver(transactionSchema),
     criteriaMode: "all",
   });
@@ -41,19 +36,18 @@ function SharesDialog({
       if (dialog.function === addUserPurchase) {
         const response = await dialog.function(
           data.price,
-          dialog.stock.ticker,
+          dialog.ticker,
           data.quantity,
           dialog.token
         );
       } else if (dialog.function === addUserSale) {
         const response = await dialog.function(
-          dialog.stock.ticker,
+          dialog.ticker,
           data.quantity,
           data.price,
           dialog.token
         );
       }
-      navigate("/portfolio");
     } catch (error) {
       if (error.response.status > 200) {
         setServerError("ERROR! " + error.response.data.detail);

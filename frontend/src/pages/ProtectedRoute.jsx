@@ -10,7 +10,6 @@ import { useRefreshToken } from "@/contexts/RefreshTokenProvider";
 import { useEffect, Suspense } from "react";
 import "@/styles/global.css";
 export const loader = (token) => async () => {
-  console.log("loader activated");
   const userName = await getUserName(token);
   const friendRequests = await getFriendRequest(token);
 
@@ -78,24 +77,3 @@ export const ProtectedRoute = () => {
   );
 };
 
-// export const action = async ({ request }) => {
-//   const formData = await request.formData();
-//   const { _action, ...rest } = Object.fromEntries(formData);
-//   console.log(_action, rest);
-//   const { requestId, token } = rest;
-//   if (_action === "accept") {
-//     const result = await answerFriendRequest(
-//       requestId.toString(),
-//       "accept",
-//       token.toString()
-//     );
-//   }
-//   if (_action === "reject") {
-//     const result = await answerFriendRequest(
-//       requestId.toString(),
-//       "reject",
-//       token.toString()
-//     );
-//   }
-//   return json({});
-// };

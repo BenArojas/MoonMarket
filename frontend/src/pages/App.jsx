@@ -1,4 +1,8 @@
-import { updateStockPrice, getHistoricalData } from "@/api/stock";
+import {
+  updateStockPrice,
+  getHistoricalData,
+  getIntradyData,
+} from "@/api/stock";
 import { getUserData } from "@/api/user";
 import useGraphData from "@/hooks/useGraphData";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -16,9 +20,10 @@ import { postSnapshot, getPortfolioSnapshots } from "@/api/portfolioSnapshot";
 import { SnapshotChart } from "@/components/SnapShotChart";
 import GraphMenu from "@/components/GraphMenu";
 import IconButton from "@mui/material/IconButton";
-import { ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowUp, ArrowDown, Shrink } from "lucide-react";
 import GraphCardSkeleton from "@/Skeletons/GraphCardSkeleton";
 import CurrentStockCard from "@/components/CurrentStock";
+import { backgrounds } from "polished";
 
 export const action = async ({ request }) => {
   const formData = await request.formData();
@@ -62,55 +67,46 @@ export const loader =
     const url = new URL(request.url);
     const defaultStockTicker = "MARA";
     const stockTicker = url.searchParams.get("selected") || defaultStockTicker;
-    const stockData = await getHistoricalData(stockTicker, token);
-    console.log(stockData);
+    const stockData = await getIntradyData(stockTicker, token);
     const userData = await getUserData(token);
-    return { userData, stockData };
+    const dailyTimeFrame = await getPortfolioSnapshots(token);
+    console.log(dailyTimeFrame);
+    return { userData, stockData, stockTicker, dailyTimeFrame };
   };
 
 function App() {
   const { percentageChange, setPercentageChange } =
     useContext(PercentageChange);
-  const trendColor = percentageChange > 0 ? "primary" : "error";
   const [selectedGraph, setSelectedGraph] = useState("Treemap");
   const { token } = useAuth();
-  const fetcher = useFetcher();
-  const { userData: data, stockData } = useLoaderData();
-  //add that dailty data to the chart
+  const {
+    userData: data,
+    stockData,
+    stockTicker,
+    dailyTimeFrame,
+  } = useLoaderData();
   const [stockTickers, visualizationData, value, moneySpent, isDataProcessed] =
     useGraphData(data, selectedGraph);
   const { formattedDate } = lastUpdateDate(data);
   const incrementalChange = value - moneySpent;
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [shownStock, setshownStock] = useState(null);
-  console.log(shownStock);
 
   useEffect(() => {
     const newPercentageChange = (incrementalChange / moneySpent) * 100;
     setPercentageChange(newPercentageChange);
   }, [incrementalChange, value]);
 
-  useEffect(() => {
-    // This effect will run when the fetcher's data changes
-    if (fetcher.data) {
-      // Increment the refreshTrigger to cause a re-fetch of snapshot data
-      setRefreshTrigger((prev) => prev + 1);
-    }
-  }, [fetcher.data]);
-
   return (
     <Box
-      id="app"
       sx={{
-        display: "flex",
+        display: "grid",
+        gridTemplateColumns: "1000px auto",
         padding: 2,
-        marginX: 4,
+        gap: 4,
+        marginX: 9,
       }}
     >
       <Box
-        className="graph"
         sx={{
-          margin: "auto",
           display: "flex",
           flexDirection: "column",
         }}
@@ -128,10 +124,10 @@ function App() {
             isDataProcessed={isDataProcessed}
             selectedGraph={selectedGraph}
             visualizationData={visualizationData}
-            setShownStock={setshownStock}
           />
         )}
       </Box>
+      <Box sx={{width:600, ml:'auto'}}>
       <Stack spacing={2}>
         <SnapshotChart
           formattedDate={formattedDate}
@@ -142,22 +138,65 @@ function App() {
           value={value}
           width={550}
           height={250}
-          refreshTrigger={refreshTrigger}
+          dailyTimeFrameData={dailyTimeFrame}
         />
-        {/* <SnapshotChart
-            formattedDate={formattedDate}
-            stockTickers={stockTickers}
-            incrementalChange={incrementalChange}
-            percentageChange={percentageChange}
-            token={token}
-            value={value}
-            width={550}
-            height={250}
-            refreshTrigger={refreshTrigger}
-          /> */}
-        <CurrentStockCard stockData={stockData} />
+        <CurrentStockCard
+          stockData={stockData}
+          token={token}
+          stockTicker={stockTicker}
+        />
       </Stack>
+      </Box>
     </Box>
+    // <Box
+    //   id="app"
+    //   sx={{
+    //     display: "flex",
+    //     padding: 2,
+    //     marginX: 4,
+    //   }}
+    // >
+    //   <Box
+    //     sx={{
+    //       display: "flex",
+    //       flexDirection: "column",
+    //     }}
+    //   >
+    //     {data.holdings.length > 0 ? (
+    //       <GraphMenu
+    //         selectedGraph={selectedGraph}
+    //         setSelectedGraph={setSelectedGraph}
+    //       />
+    //     ) : null}
+    //     {data.holdings.length === 0 ? (
+    //       <NewUserNoHoldings />
+    //     ) : (
+    //       <DataGraph
+    //         isDataProcessed={isDataProcessed}
+    //         selectedGraph={selectedGraph}
+    //         visualizationData={visualizationData}
+    //       />
+    //     )}
+    //   </Box>
+    //   <Stack spacing={2} >
+    //     <SnapshotChart
+    //       formattedDate={formattedDate}
+    //       stockTickers={stockTickers}
+    //       incrementalChange={incrementalChange}
+    //       percentageChange={percentageChange}
+    //       token={token}
+    //       value={value}
+    //       width={550}
+    //       height={250}
+    //       dailyTimeFrameData={dailyTimeFrame}
+    //     />
+    //     <CurrentStockCard
+    //       stockData={stockData}
+    //       token={token}
+    //       stockTicker={stockTicker}
+    //     />
+    //   </Stack>
+    // </Box>
   );
 }
 

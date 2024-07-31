@@ -11,7 +11,6 @@ const StyledTextField = styled(TextField)({
   '& .MuiInputBase-input': {
     '&:-webkit-autofill': {
       WebkitBoxShadow: '0 0 0 1000px transparent inset',
-      WebkitTextFillColor: 'inherit',
       caretColor: 'inherit',
       transition: 'background-color 5000s ease-in-out 0s',
     },

@@ -5,7 +5,7 @@ from util.current_user import current_user
 from models.user import User
 from decouple import config
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 
 router = APIRouter(prefix="/stocks", tags=["Stock"])
 BASE_URL = 'https://financialmodelingprep.com/api/v3/'
@@ -48,6 +48,27 @@ def get_historical_data(symbol:str):
         except requests.RequestException as e:
             print(f"Error with API key {key}: {str(e)}")
     # If all API keys fail
+    return {"error": "Unable to fetch data with any of the provided API keys"}
+
+@router.get("/intrady_chart/{symbol}")
+def get_intrady_chart(symbol:str):
+    api_keys = [ config("FMP_FIRST_API_KEY"), config("FMP_SECOND_API_KEY"), config("FMP_THIRD_API_KEY"), config("FMP_FOURTH_API_KEY")]
+    for key in api_keys:
+        try:
+            current_date = datetime.now()
+            current_date_formatted = current_date.strftime("%Y-%m-%d")
+            one_month_ago = current_date - timedelta(days=30)  # Approximation for a month
+            # Format one month ago date as yyyy-mm-dd
+            one_month_ago_formatted = one_month_ago.strftime("%Y-%m-%d")
+            endpoint = f'historical-chart/5min/{symbol}?from={one_month_ago_formatted}&to={current_date_formatted}'
+            url = f"{BASE_URL}{endpoint}&apikey={key}"
+            response = requests.get(url)
+            response.raise_for_status()  # Raises an HTTPError for bad responses
+            monthly_intrady_data = response.json()
+            return monthly_intrady_data
+        except requests.RequestException as e:
+            print(f"Error with API key {key}: {str(e)}")
+     # If all API keys fail
     return {"error": "Unable to fetch data with any of the provided API keys"}
 
 @router.get("/quote/{symbol}")

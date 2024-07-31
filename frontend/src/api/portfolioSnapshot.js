@@ -15,9 +15,10 @@ export async function postSnapshot(value, token) {
 
 
 export async function getPortfolioSnapshots(token) {
-    return await axios.get('http://localhost:8000/PortfolioSnapshot/daily_snapshots', {
+    const data = await axios.get('http://localhost:8000/PortfolioSnapshot/daily_snapshots', {
         headers: {
             'Authorization': `Bearer ${token}`,
         },
     })
+    return data.data
 }

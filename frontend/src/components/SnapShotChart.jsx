@@ -1,6 +1,5 @@
 import PortfolioValue from "@/components/AnimatedNumber";
 import { LineChart } from "@/components/LineGraph";
-import useSnapshotData from "@/hooks/useSnapshotData";
 import GraphCardSkeleton from "@/Skeletons/GraphCardSkeleton";
 import SyncIcon from "@mui/icons-material/Sync";
 import { Box, Card, Stack, Typography } from "@mui/material";
@@ -9,29 +8,30 @@ import Tooltip from "@mui/material/Tooltip";
 import { ArrowUp, ArrowDown } from "lucide-react";
 import { useMemo } from "react";
 import { useFetcher } from "react-router-dom";
+import { transformSnapshotData } from "@/utils/dataProcessing";
+import { CurrentStockChart } from "@/components/CurrentStockChart.jsx";
 
 export const SnapshotChart = ({
   width,
   height,
-  refreshTrigger,
   incrementalChange,
   value,
   percentageChange,
   token,
   formattedDate,
   stockTickers,
+  dailyTimeFrameData,
 }) => {
-  const dailySnapshots = useSnapshotData(refreshTrigger);
   const fetcher = useFetcher();
   const trendColor = percentageChange > 0 ? "primary" : "error";
+  const transformedData = transformSnapshotData(dailyTimeFrameData);
 
   const chartData = useMemo(() => {
-    if (dailySnapshots == null) {
+    if (dailyTimeFrameData == null) {
       return [];
     }
-    return dailySnapshots.slice(0, 6).reverse();
-  }, [dailySnapshots]);
-  // console.log(chartData)
+    return dailyTimeFrameData.slice(0, 6).reverse();
+  }, [dailyTimeFrameData]);
 
   return (
     <div>
@@ -65,7 +65,7 @@ export const SnapshotChart = ({
                 flexDirection: "row",
                 gap: 2,
                 alignItems: "center",
-                ml:'auto'
+                ml: "auto",
               }}
             >
               <Box sx={{ display: "flex" }}>
@@ -109,9 +109,10 @@ export const SnapshotChart = ({
               )}
             </Box>
           </Box>
-          {chartData.length === 0 ? null : (
+          {/* {chartData.length === 0 ? null : (
             <LineChart width={width} height={height} data={chartData} />
-          )}
+          )} */}
+          <CurrentStockChart data={transformedData} />
         </Card>
       ) : (
         <GraphCardSkeleton />
