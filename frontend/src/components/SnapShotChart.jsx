@@ -1,19 +1,16 @@
 import PortfolioValue from "@/components/AnimatedNumber";
-import { LineChart } from "@/components/LineGraph";
+import { CurrentStockChart } from "@/components/CurrentStockChart.jsx";
 import GraphCardSkeleton from "@/Skeletons/GraphCardSkeleton";
+import { transformSnapshotData } from "@/utils/dataProcessing";
 import SyncIcon from "@mui/icons-material/Sync";
 import { Box, Card, Stack, Typography } from "@mui/material";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
-import { ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowDown, ArrowUp } from "lucide-react";
 import { useMemo } from "react";
 import { useFetcher } from "react-router-dom";
-import { transformSnapshotData } from "@/utils/dataProcessing";
-import { CurrentStockChart } from "@/components/CurrentStockChart.jsx";
 
 export const SnapshotChart = ({
-  width,
-  height,
   incrementalChange,
   value,
   percentageChange,
@@ -26,12 +23,12 @@ export const SnapshotChart = ({
   const trendColor = percentageChange > 0 ? "primary" : "error";
   const transformedData = transformSnapshotData(dailyTimeFrameData);
 
-  const chartData = useMemo(() => {
-    if (dailyTimeFrameData == null) {
-      return [];
-    }
-    return dailyTimeFrameData.slice(0, 6).reverse();
-  }, [dailyTimeFrameData]);
+  // const chartData = useMemo(() => {
+  //   if (dailyTimeFrameData == null) {
+  //     return [];
+  //   }
+  //   return dailyTimeFrameData.slice(0, 6).reverse();
+  // }, [dailyTimeFrameData]);
 
   return (
     <div>
@@ -112,7 +109,7 @@ export const SnapshotChart = ({
           {/* {chartData.length === 0 ? null : (
             <LineChart width={width} height={height} data={chartData} />
           )} */}
-          <CurrentStockChart data={transformedData} />
+          <CurrentStockChart data={transformedData} enableAdvancedFeatures={true}/>
         </Card>
       ) : (
         <GraphCardSkeleton />

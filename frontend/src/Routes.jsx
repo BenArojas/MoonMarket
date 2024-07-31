@@ -4,9 +4,8 @@ import {
   ProtectedRoute,
   loader as ProtectedRouteLoader,
 } from "@/pages/ProtectedRoute";
-import App, { action as appAction, loader as appLoader } from "@/pages/App";
+import Portfolio, { action as portfolioAction, loader as portfolioLoader } from "@/pages/Portfolio";
 import ErrorPage from "@/pages/ErrorPage";
-import StockPage, { loader as stockPageLoader } from "@/pages/StockPage";
 import StockItem, { loader as stockItemLoader } from "@/pages/StockItem";
 import Login from "@/pages/Login";
 import Logout from "@/pages/Logout";
@@ -44,10 +43,10 @@ const Routes = () => {
       children: [
         {
           path: "/portfolio",
-          element: <App />,
+          element: <Portfolio />,
           errorElement: <ErrorPage />,
-          loader: appLoader(token),
-          action: appAction,
+          loader: portfolioLoader(token),
+          action: portfolioAction,
         },
         {
           path: "/profile",
@@ -67,14 +66,6 @@ const Routes = () => {
           element: <Space />,
           loader: spaceLoader(token),
           errorElement: <ErrorPage />,
-        },
-        {
-          path: "portfolio/:stockTicker",
-          element: <StockPage />,
-          errorElement: <ErrorPage />,
-          loader: async ({ params }) => {
-            return stockPageLoader(params.stockTicker, token);
-          },
         },
         {
           path: "/logout",
