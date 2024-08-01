@@ -14,15 +14,13 @@ import useGraphData from "@/hooks/useGraphData";
 import { PercentageChange } from "@/pages/ProtectedRoute";
 import { lastUpdateDate } from "@/utils/dataProcessing";
 import { Box, Stack } from "@mui/material";
-import { useContext, useEffect, useState } from "react";
-import { useLoaderData } from "react-router-dom";
-import useHoldingsData from "@/hooks/useHoldingsData";
+import { useContext, useEffect, useState, Suspense } from "react";
+import { useLoaderData, Await, defer } from "react-router-dom";
 
 export const action = async ({ request }) => {
   const formData = await request.formData();
   const tickers = formData.get("tickers").split(",");
   const token = formData.get("token");
-  const value = formData.get("value");
 
   if (!tickers || tickers.length === 0) {
     console.warn("No tickers available for price update.");
@@ -56,7 +54,7 @@ export const loader =
   (token) =>
   async ({ request }) => {
     const url = new URL(request.url);
-    const defaultStockTicker = "MARA";
+    const defaultStockTicker = "BTCUSD";
     const stockTicker = url.searchParams.get("selected") || defaultStockTicker;
     const stockData = await getIntradyData(stockTicker, token);
     const userData = await getUserData(token);

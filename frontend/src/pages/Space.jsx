@@ -3,12 +3,12 @@ import Starfield from "react-starfield";
 import "@/styles/space.css";
 import Moon from "@/components/space/Moon";
 import SpaceshipsFleet from "@/components/space/SpaceshipsFleet";
-import { getFriends } from "@/api/friend";
+import { getFriendsAndUserHoldings } from "@/api/friend";
 import { Await, defer, useLoaderData } from "react-router-dom";
 import FriendsSideBar from "@/components/FriendsSideBar";
 
 export const loader = (token) => async () => {
-  const friends = getFriends(token);
+  const friends = getFriendsAndUserHoldings(token);
   return defer({ friends });
 };
 

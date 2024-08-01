@@ -64,7 +64,23 @@ async def handle_friend_request(
 
     return {"message": message}
 
-@router.get("/get_friends", response_model=List[FriendInfo])
+@router.get("/get_friendList")
+async def get_friendList(current_user: User = Depends(current_user)):
+    friend_list = []
+    for user_id in current_user.friends:
+        user = await User.get(user_id)
+        if not user:
+            continue
+        friend_detail = {
+            "id":user_id,
+            "username": user.username,
+            "email": user.email,
+        }
+        friend_list.append(friend_detail)
+    return friend_list
+    
+
+@router.get("/get_friends_and_user_holdings", response_model=List[FriendInfo])
 async def get_all_friends(current_user: User = Depends(current_user)):
     friend_info_list = []
     stock_cache = {}
@@ -74,6 +90,7 @@ async def get_all_friends(current_user: User = Depends(current_user)):
         user = await User.get(user_id)
         if not user:
             continue
+        
 
         # Calculate portfolio value change percentage
         user_purchases = await get_user_transactions_by_type("purchase", user)
@@ -129,6 +146,7 @@ async def get_all_friends(current_user: User = Depends(current_user)):
         friend_info = FriendInfo(
             id=user.id,
             username=user.username,
+            email=user.email,
             portfolio_value_change_percentage=portfolio_percentage_change,
             holdings=holdings_info
         )

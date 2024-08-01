@@ -1,33 +1,17 @@
+import { searchUser } from '@/api/user';
 import AddFriend from "@/components/AddFriend";
-import AddIcon from "@mui/icons-material/Add";
-import Avatar from "@mui/material/Avatar";
-import Button from "@mui/material/Button";
-import IconButton from "@mui/material/IconButton";
+import { useAuth } from "@/contexts/AuthProvider";
+import { Box, Button } from "@mui/material";
 import Input from "@mui/material/Input";
-import Popover from "@mui/material/Popover";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import React, { useState } from "react";
+import { useState } from "react";
 import Test from "/RealMoon.png";
-import { searchUser } from '@/api/user'
-import { useAuth } from "@/contexts/AuthProvider";
 
 function SearchFriends() {
   const { token } = useAuth();
   const [friend,setFriend] = useState({})
   const [error,setError] = useState()
-
-  const [anchorEl, setAnchorEl] = React.useState(null);
-  const handleClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-  const handleClose = () => {
-    setAnchorEl(null);
-    setFriend({})
-    setSearchInput(null);
-  };
-
-
   const [searchInput, setSearchInput] = useState("");
   const handleInputChange = (event) => {
     setSearchInput(event.target.value);
@@ -45,31 +29,11 @@ function SearchFriends() {
       }
     }
   };
-  const open = Boolean(anchorEl);
-  const id = open ? "simple-popover" : undefined;
+
   return (
     <>
-      <IconButton onClick={handleClick}>
-        <Avatar>
-          <AddIcon />
-        </Avatar>
-      </IconButton>
-      <Popover
-        PaperProps={{
-          sx: { p: 2 },
-        }}
-        id={id}
-        open={open}
-        anchorEl={anchorEl}
-        onClose={handleClose}
-        anchorOrigin={{
-          vertical: "center",
-          horizontal: "right",
-        }}
-        transformOrigin={{
-          vertical: "top",
-          horizontal: "left",
-        }}
+    
+      <Box
       >
         <Typography sx={{ textAlign: "center" }}>
           Search for friends to add.
@@ -86,7 +50,7 @@ function SearchFriends() {
         <Stack spacing={2}>
           {error? <p>{error}</p>: friend.username && <AddFriend src={Test} username={friend.username} email={friend.email} token={token}/>}
         </Stack>
-      </Popover>
+      </Box>
     </>
   );
 }

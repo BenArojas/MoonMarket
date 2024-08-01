@@ -19,11 +19,9 @@ router = APIRouter(prefix="/PortfolioSnapshot", tags=["Stock"])
 async def create_snapshot(value: float , user: User = Depends(current_user)):
     israel_tz = pytz.timezone('Asia/Jerusalem')
     israel_time = datetime.now(israel_tz)
-    print(f"Timestamp before insert: {israel_time}")
     snapshot = PortfolioSnapshot(timestamp=israel_time, value=value, userId=user.id)
     await snapshot.insert()
     retrieved_snapshot = await PortfolioSnapshot.get(snapshot.id)
-    print(f"Timestamp after retrieval: {retrieved_snapshot.timestamp}")
     return {"message": "Snapshot created successfully"}
 
 # @router.get("/daily_snapshots")

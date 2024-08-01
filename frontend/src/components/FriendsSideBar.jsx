@@ -1,14 +1,10 @@
+import { Divider } from "@mui/material";
 import Avatar from "@mui/material/Avatar";
 import Stack from "@mui/material/Stack";
-import { useContext } from "react";
-import { FirstLetter } from "@/pages/ProtectedRoute";
-import { Divider } from "@mui/material";
-import AvatarGroup from "@mui/material/AvatarGroup";
 
 import SearchFriends from "@/components/SearchFriends";
 
 function FriendsSideBar({ friends }) {
-  const { firstLetter } = useContext(FirstLetter);
 
   return (
     <Stack
@@ -18,12 +14,12 @@ function FriendsSideBar({ friends }) {
       justifyContent={"flex-start"}
     >
       <div>
-        <SearchFriends />
+        {/* <SearchFriends /> */}
         <Divider flexItem sx={{ m: 0 }} />
       </div>
       {friends && friends.length > 0 ? (
           friends.map((friend) => (
-            <Avatar key={friend.id} sx={{border:'2px solid #077e5d'}}>
+            <Avatar key={friend.id} sx={{border:'2px solid white'}}>
               {friend.username.charAt(0).toUpperCase()}
             </Avatar>))): null}
     </Stack>

@@ -3,21 +3,30 @@ import React, { useEffect } from "react";
 import "@/styles/profile.css";
 import { TabsDemo } from "@/components/ProfileTabs";
 import { Suspense } from "react";
-import { useLoaderData, Await, defer, useOutletContext } from "react-router-dom";
+import {
+  useLoaderData,
+  Await,
+  defer,
+  useOutletContext,
+} from "react-router-dom";
 import { getUserData } from "@/api/user";
 import TabsSkeleton from "@/Skeletons/TabsSkeleton";
+import { getFriendList } from "@/api/friend";
 
 export const loader = (token) => async () => {
-  const user = getUserData(token);
-  
-  // const user = response.data;
-  return defer({ user });
-}
+  const userPromise = getUserData(token);
+  const friendListPromise = getFriendList(token);
+
+  return defer({
+    user: userPromise,
+    friendList: friendListPromise,
+  });
+};
 
 function Profile() {
   // todo: add private details card and money stuff card
   const data = useLoaderData();
-  const friendRequests = useOutletContext()
+  const friendRequests = useOutletContext();
 
   return (
     <div>
@@ -40,12 +49,12 @@ function Profile() {
       <Divider />
       <Suspense fallback={<TabsSkeleton />}>
         <Await
-          resolve={data.user}
-          errorElement={<p>Error loading package location!</p>}
+          resolve={Promise.all([data.user, data.friendList])}
+          errorElement={<p>Error loading </p>}
         >
-          {(res) => (
+          {([user, friendList]) => (
             <>
-              {res.length === 0 ? (
+              {user.length === 0 ? (
                 <TabsSkeleton />
               ) : (
                 <Box
@@ -54,13 +63,14 @@ function Profile() {
                     justifyContent: "center",
                     alignItems: "center",
                     margin: "auto",
-                    minHeight: "50vh", // Adjust as needed to center vertically within the view
+                    minHeight: "50vh",
                   }}
                 >
                   <TabsDemo
-                    username={res.username}
-                    current_balance={res.current_balance}
+                    username={user.username}
+                    current_balance={user.current_balance}
                     friendRequests={friendRequests}
+                    friendList={friendList}
                   />
                 </Box>
               )}

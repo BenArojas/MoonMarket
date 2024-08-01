@@ -1,6 +1,6 @@
 from fastapi import Depends, APIRouter
 from typing import List
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from beanie import PydanticObjectId
 
 class HoldingInfo(BaseModel):
@@ -11,5 +11,6 @@ class HoldingInfo(BaseModel):
 class FriendInfo(BaseModel):
     id: PydanticObjectId
     username: str
+    email: EmailStr
     portfolio_value_change_percentage: float
     holdings: List[HoldingInfo]

@@ -7,7 +7,6 @@ from datetime import datetime
 class Stock(Document):
     name: Annotated[str, Indexed(unique=True)]
     ticker: Annotated[str, Indexed(unique=True)]
-    description: str
     price: float
     earnings: Optional[datetime] = None
     
@@ -17,7 +16,6 @@ class Stock(Document):
             "example": {
                 "name": "Apple",
                 "ticker": "AAPL",
-                "description": "Apple is a technology company",
                 "price": 100.0,
                 "earnings": "2024-04-30T08:24:12"
             }

@@ -9,6 +9,8 @@ import { useAuth } from "../contexts/AuthProvider";
 import { useRefreshToken } from "@/contexts/RefreshTokenProvider";
 import { useEffect, Suspense } from "react";
 import "@/styles/global.css";
+
+
 export const loader = (token) => async () => {
   const userName = await getUserName(token);
   const friendRequests = await getFriendRequest(token);

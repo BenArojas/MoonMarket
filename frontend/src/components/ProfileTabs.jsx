@@ -13,10 +13,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEffect, useRef } from "react";
 import { Form, useNavigation } from "react-router-dom";
 import { updateUsername, changePassword, addDeposit } from "@/api/user";
-import { Stack, Typography, Avatar, Divider } from "@mui/material";
+import {
+  Stack,
+  Typography,
+  Avatar,
+  Divider,
+  Badge,
+  Box,
+  Button,
+} from "@mui/material";
 import { useAuth } from "@/contexts/AuthProvider";
 import { answerFriendRequest } from "@/api/friend";
-import { Badge, Box, Button } from "@mui/material";
+import SearchFriends from "@/components/SearchFriends";
 
 export async function action({ request }) {
   let formData = await request.formData();
@@ -76,7 +84,7 @@ function FriendRequestCard({ request, token }) {
       <Stack direction={"column"} spacing={1}>
         <Typography variant="body2">{request.from_user.id}</Typography>
         <Stack spacing={2} direction={"row"}>
-          <Box component={Form} method="post" sx={{width:'50%'}}>
+          <Box component={Form} method="post" sx={{ width: "50%" }}>
             <input
               type="hidden"
               readOnly
@@ -85,7 +93,7 @@ function FriendRequestCard({ request, token }) {
             />
             <input type="hidden" name="token" value={token} />
             <Button
-            sx={{width:'100%'}}
+              sx={{ width: "100%" }}
               variant="contained"
               name="intent"
               value="accept"
@@ -94,7 +102,7 @@ function FriendRequestCard({ request, token }) {
               Add
             </Button>
           </Box>
-          <Box component={Form} method="post" sx={{width:'50%'}}>
+          <Box component={Form} method="post" sx={{ width: "50%" }}>
             <input
               type="hidden"
               readOnly
@@ -103,7 +111,7 @@ function FriendRequestCard({ request, token }) {
             />
             <input type="hidden" name="token" value={token} />
             <Button
-               sx={{width:'100%'}}
+              sx={{ width: "100%" }}
               variant="text"
               name="intent"
               value="reject"
@@ -117,7 +125,12 @@ function FriendRequestCard({ request, token }) {
     </Stack>
   );
 }
-export function TabsDemo({ username, current_balance, friendRequests }) {
+export function TabsDemo({
+  username,
+  current_balance,
+  friendRequests,
+  friendList,
+}) {
   const password = useRef(null);
   const money = useRef(null);
   const { token } = useAuth();
@@ -134,11 +147,12 @@ export function TabsDemo({ username, current_balance, friendRequests }) {
   }, [state, password, money]);
 
   return (
-    <Tabs defaultValue="profile" className="w-[550px]">
-      <TabsList className="grid w-full grid-cols-4 bg-zinc-700">
+    <Tabs defaultValue="profile" className="w-[650px]">
+      <TabsList className="grid w-full grid-cols-5 bg-zinc-700">
         <TabsTrigger value="profile">Profile</TabsTrigger>
         <TabsTrigger value="password">Settings</TabsTrigger>
         <TabsTrigger value="money">Money</TabsTrigger>
+        <TabsTrigger value="friends">Friends</TabsTrigger>
         <Badge badgeContent={friendRequests.length} color="primary">
           <TabsTrigger value="Friend_requests">Friend Requests</TabsTrigger>
         </Badge>
@@ -221,6 +235,39 @@ export function TabsDemo({ username, current_balance, friendRequests }) {
               </Button>
             </CardFooter>
           </Form>
+        </Card>
+      </TabsContent>
+      <TabsContent value="friends">
+        <Card>
+          <CardHeader>
+            <CardTitle>Friends</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <SearchFriends />
+            <Stack direction="column" spacing={3}>
+              <Typography variant="h6">Friend List:</Typography>
+              {friendList.map((friend) => {
+                return (
+                  <Stack
+                    key={friend.id}
+                    direction="row"
+                    justifyContent="space-between"
+                    spacing={2}
+                    alignItems="center"
+                  >
+                    <Avatar
+                      alt="Remy Sharp"
+                      src={
+                        "https://plus.unsplash.com/premium_photo-1683121366070-5ceb7e007a97?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                      }
+                    />
+                      <Typography>{friend.username}</Typography>
+                      <Typography>{friend.email}</Typography>
+                  </Stack>
+                );
+              })}
+            </Stack>
+          </CardContent>
         </Card>
       </TabsContent>
       <TabsContent value="Friend_requests">

@@ -65,21 +65,6 @@ function Transactions() {
           )}
         </Await>
       </Suspense>
-      {/* {data.length === 0 ? (
-        <Box
-          sx={{
-            textAlign: "center",
-            marginTop: "5em",
-          }}
-        >
-          Nothing in this portfolio yet.<br></br>
-          Add investments to see performance and track returns
-        </Box>
-      ) : (
-        <Container>
-          <CustomizedTables data={data} />
-        </Container>
-      )} */}
     </div>
   );
 }

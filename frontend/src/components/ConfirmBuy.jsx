@@ -1,13 +1,9 @@
-import TradeStocksForm from "@/components/TradeStocksForm";
 import "@/styles/portfolio.css";
-import { Typography } from "@mui/material";
-import Button from "@mui/material/Button";
+import { Box, Typography } from "@mui/material";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
-import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
-import React, { useState } from "react";
-import { Box } from "@mui/material";
+import React from "react";
 
 
 export default function ConfirmBuyDialog({ setisBought,open,ticker, quantity, price, totalCost }) {

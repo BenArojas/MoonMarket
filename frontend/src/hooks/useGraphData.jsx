@@ -30,8 +30,6 @@ function useGraphData(data, selectedGraph) {
     if (data && stocksInfo.length > 0) {
       async function processData() {
         setIsDataProcessed(false);
-        console.log("stocks info: " , stocksInfo)
-        console.log("stock list: " , stockList)
         const { tickers, sum, totalSpent } = await getPortfolioStats(stockList, stocksInfo);
 
         setStockTickers(tickers);

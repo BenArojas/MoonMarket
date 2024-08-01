@@ -1,26 +1,25 @@
-import React, { useEffect, useState, useRef } from "react";
-import "@/styles/App.css";
+import { getHistoricalData, getStockData } from "@/api/stock";
+import { addStockToPortfolio } from "@/api/user";
+import CandleStickChart from "@/components/CandleSticksChart";
 import ConfirmBuyDialog from "@/components/ConfirmBuy.jsx";
-import Card from "@mui/material/Card";
 import { useAuth } from "@/contexts/AuthProvider";
-import { Box, Divider, Typography } from "@mui/material";
-import { useLoaderData } from "react-router-dom";
-import { getStockData, getHistoricalData } from "@/api/stock";
-import Button from "@mui/material/Button";
-import LoadingImage from "@/components/LoadingImage";
+import { transactionSchema } from "@/schemas/transaction";
+import "@/styles/App.css";
 import "@/styles/global.css";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Box, Typography } from "@mui/material";
+import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import FormControl from "@mui/material/FormControl";
+import Input from "@mui/material/Input";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
-import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
-import CandleStickChart from "@/components/CandleSticksChart";
-import Input from "@mui/material/Input";
-import { transactionSchema } from "@/schemas/transaction";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
-import { addStockToPortfolio } from "@/api/user";
-import { Height } from "@mui/icons-material";
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { useLoaderData } from "react-router-dom";
+import SearchBar from "@/components/SearchBar.jsx";
 
 export async function loader(ticker, token) {
   const stock = await getStockData(ticker, token);
@@ -69,7 +68,6 @@ function StockItem() {
       const portfolioStock = {
         name: stock.name,
         ticker: symbol,
-        description: "",
         price: stock.price,
       };
       // Only include earnings if it's not null
@@ -139,7 +137,7 @@ function StockItem() {
           <Typography variant="body2">{stock?.changesPercentage}%</Typography>
         </Box>
         <Box sx={{ ml: "auto" }}>
-          <FormControl>
+          {/* <FormControl>
             <InputLabel id="demo-simple-select-label">Age</InputLabel>
             <Select
               labelId="demo-simple-select-label"
@@ -156,7 +154,8 @@ function StockItem() {
               <MenuItem value={20}>Twenty</MenuItem>
               <MenuItem value={30}>Thirty</MenuItem>
             </Select>
-          </FormControl>
+          </FormControl> */}
+          <SearchBar/>
         </Box>
       </Box>
 

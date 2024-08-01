@@ -1,9 +1,9 @@
 import axios from "axios";
-
+const baseUrl = "http://localhost:8000"
 export async function sendFriendRequest(username, token) {
   try {
     const response = await axios.post(
-      `http://localhost:8000/friend/send_friend_request/${username}`,
+      `${baseUrl}/friend/send_friend_request/${username}`,
       {},
       {
         headers: {
@@ -20,7 +20,7 @@ export async function sendFriendRequest(username, token) {
 export async function getFriendRequest(token) {
   try {
     const response = await axios.get(
-      `http://localhost:8000/friend/pending_friend_requests`,
+      `${baseUrl}/friend/pending_friend_requests`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -36,7 +36,7 @@ export async function getFriendRequest(token) {
 export async function answerFriendRequest(requestId, action, token) {
   try {
     const response = await axios.post(
-      `http://localhost:8000/friend/handle_friend_request/${requestId}`,
+      `${baseUrl}/friend/handle_friend_request/${requestId}`,
       { action }, // Send action in the request body
       {
         headers: {
@@ -52,9 +52,22 @@ export async function answerFriendRequest(requestId, action, token) {
   }
 }
 
-export async function getFriends(token) {
+export async function getFriendsAndUserHoldings(token) {
   try {
-    const response = await axios.get(`http://localhost:8000/friend/get_friends`, {
+    const response = await axios.get(`${baseUrl}/friend/get_friends_and_user_holdings`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+}
+
+export async function getFriendList(token) {
+  try {
+    const response = await axios.get(`${baseUrl}/friend/get_friendList`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
