@@ -22,6 +22,7 @@ export const SnapshotChart = ({
   const fetcher = useFetcher();
   const trendColor = percentageChange > 0 ? "primary" : "error";
   const transformedData = transformSnapshotData(dailyTimeFrameData);
+  // console.log(transformedData);
 
   // const chartData = useMemo(() => {
   //   if (dailyTimeFrameData == null) {
@@ -109,7 +110,7 @@ export const SnapshotChart = ({
           {/* {chartData.length === 0 ? null : (
             <LineChart width={width} height={height} data={chartData} />
           )} */}
-          <CurrentStockChart data={transformedData} enableAdvancedFeatures={true}/>
+          <CurrentStockChart data={transformedData} enableAdvancedFeatures={true} />
         </Card>
       ) : (
         <GraphCardSkeleton />

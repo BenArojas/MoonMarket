@@ -16,6 +16,7 @@ import { lastUpdateDate } from "@/utils/dataProcessing";
 import { Box, Stack } from "@mui/material";
 import { useContext, useEffect, useState } from "react";
 import { useLoaderData } from "react-router-dom";
+import useHoldingsData from "@/hooks/useHoldingsData";
 
 export const action = async ({ request }) => {
   const formData = await request.formData();
@@ -44,8 +45,6 @@ export const action = async ({ request }) => {
         console.error(`Failed to update ${tickers[index]}:`, result.reason);
       }
     });
-    const addPortfolioSnapshot = await postSnapshot(parseFloat(value), token);
-
     return results;
   } catch (error) {
     console.error("Error updating stock prices:", error);
@@ -62,7 +61,6 @@ export const loader =
     const stockData = await getIntradyData(stockTicker, token);
     const userData = await getUserData(token);
     const dailyTimeFrame = await getPortfolioSnapshots(token);
-    console.log(dailyTimeFrame);
     return { userData, stockData, stockTicker, dailyTimeFrame };
   };
 
@@ -86,6 +84,10 @@ function Portfolio() {
     const newPercentageChange = (incrementalChange / moneySpent) * 100;
     setPercentageChange(newPercentageChange);
   }, [incrementalChange, value]);
+
+  useEffect(() => {
+    postSnapshot(parseFloat(value), token);
+  },[value])
 
   return (
     <Box
