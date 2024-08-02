@@ -23,6 +23,7 @@ export default function CurrentStockCard({
   stockTicker,
   token,
 }) {
+
   const transformedData = transformData(stockData);
   const [dialogOpen, setDialogOpen] = useState(false);
 

@@ -1,21 +1,32 @@
 import { getPortfolioSnapshots, postSnapshot } from "@/api/portfolioSnapshot";
-import {
-  getIntradyData,
-  updateStockPrice
-} from "@/api/stock";
+import { getIntradyData, updateStockPrice } from "@/api/stock";
 import { getUserData } from "@/api/user";
-import CurrentStockCard from "@/components/CurrentStock";
-import DataGraph from "@/components/DataGraph";
 import GraphMenu from "@/components/GraphMenu";
 import NewUserNoHoldings from "@/components/NewUserNoHoldings";
-import { SnapshotChart } from "@/components/SnapShotChart";
 import { useAuth } from "@/contexts/AuthProvider";
 import useGraphData from "@/hooks/useGraphData";
 import { PercentageChange } from "@/pages/ProtectedRoute";
 import { lastUpdateDate } from "@/utils/dataProcessing";
-import { Box, Stack } from "@mui/material";
-import { useContext, useEffect, useState, Suspense } from "react";
+import { Box, Stack, CircularProgress } from "@mui/material";
+import React, { useContext, useEffect, useState, lazy, Suspense } from "react";
 import { useLoaderData, Await, defer } from "react-router-dom";
+
+// Lazy load components
+const DataGraph = lazy(() => import("@/components/DataGraph"));
+const SnapshotChart = lazy(() => import("@/components/SnapShotChart"));
+const CurrentStockCard = lazy(() => import("@/components/CurrentStock"));
+
+import { ErrorBoundary } from 'react-error-boundary';
+
+function ErrorFallback({ error }) {
+  return (
+    <div role="alert">
+      <p>Something went wrong:</p>
+      <pre style={{ color: 'red' }}>{error.message}</pre>
+    </div>
+  )
+}
+
 
 export const action = async ({ request }) => {
   const formData = await request.formData();
@@ -59,7 +70,7 @@ export const loader = (token) => async ({ request }) => {
     userData: getUserData(token),
     stockData: getIntradyData(stockTicker, token),
     dailyTimeFrame: getPortfolioSnapshots(token),
-    stockTicker: stockTicker,
+    stockTicker,
   });
 };
 
@@ -70,106 +81,129 @@ function Portfolio() {
   const data = useLoaderData();
 
   return (
-    <Box sx={{
-      display: "grid",
-      gridTemplateColumns: "1000px auto",
-      padding: 2,
-      gap: 4,
-      marginX: 9,
-    }}>
-      <Suspense fallback={<div>Loading...</div>}>
-        <Await 
-          resolve={Promise.all([data.userData, data.stockData, data.dailyTimeFrame])}
-          errorElement={<p>Error loading data</p>}
-        >
-          {([userData, stockData, dailyTimeFrame]) => (
-            <PortfolioContent 
-              userData={userData}
-              stockData={stockData}
-              dailyTimeFrame={dailyTimeFrame}
-              stockTicker={data.stockTicker}
-              selectedGraph={selectedGraph}
-              setSelectedGraph={setSelectedGraph}
-              percentageChange={percentageChange}
-              setPercentageChange={setPercentageChange}
-              token={token}
-            />
-          )}
-        </Await>
-      </Suspense>
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: "1000px auto",
+        padding: 2,
+        gap: 4,
+        marginX: 9,
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <ErrorBoundary FallbackComponent={ErrorFallback}>
+          <Suspense fallback={<CircularProgress />}>
+            <Await resolve={data.userData}>
+              {(userData) => (
+                <PortfolioContent
+                  userData={userData}
+                  selectedGraph={selectedGraph}
+                  setSelectedGraph={setSelectedGraph}
+                  token={token}
+                  percentageChange={percentageChange}
+                />
+              )}
+            </Await>
+          </Suspense>
+        </ErrorBoundary>
+      </Box>
+      <Box sx={{ width: 600, ml: 'auto' }}>
+        <Stack spacing={2}>
+          <ErrorBoundary FallbackComponent={ErrorFallback}>
+            <Suspense fallback={<CircularProgress />}>
+              <Await resolve={Promise.all([data.dailyTimeFrame, data.userData])}>
+                {([dailyTimeFrame, userData]) => (
+                  <SnapshotChartWrapper
+                    dailyTimeFrame={dailyTimeFrame}
+                    token={token}
+                    userData={userData}
+                    percentageChange={percentageChange}
+                    setPercentageChange={setPercentageChange}
+                  />
+                )}
+              </Await>
+            </Suspense>
+          </ErrorBoundary>
+          <ErrorBoundary FallbackComponent={ErrorFallback}>
+            <Suspense fallback={<CircularProgress />}>
+              <Await resolve={data.stockData}>
+                {(stockData) => (
+                  <CurrentStockCard
+                    stockData={stockData}
+                    token={token}
+                    stockTicker={data.stockTicker}
+                  />
+                )}
+              </Await>
+            </Suspense>
+          </ErrorBoundary>
+        </Stack>
+      </Box>
     </Box>
   );
 }
 
-function PortfolioContent({ 
-  userData, 
-  stockData, 
-  dailyTimeFrame, 
-  stockTicker, 
-  selectedGraph, 
-  setSelectedGraph, 
-  percentageChange, 
-  setPercentageChange, 
-  token 
-}) {
-  const [stockTickers, visualizationData, value, moneySpent, isDataProcessed] = useGraphData(userData, selectedGraph);
-  const { formattedDate } = lastUpdateDate(userData);
-  const incrementalChange = value - moneySpent;
-
-  useEffect(() => {
-    const newPercentageChange = (incrementalChange / moneySpent) * 100;
-    setPercentageChange(newPercentageChange);
-  }, [incrementalChange, value]);
+function PortfolioContent({ userData, selectedGraph, setSelectedGraph, token }) {
+  const { visualizationData, value, isDataProcessed } = useGraphData(userData, selectedGraph);
 
   useEffect(() => {
     postSnapshot(parseFloat(value), token);
-  }, [value])
+  }, [value, token]);
+
+  if (userData.holdings.length === 0) {
+    return <NewUserNoHoldings />;
+  }
 
   return (
     <>
-      <Box sx={{
-        display: "flex",
-        flexDirection: "column",
-      }}>
-        {userData.holdings.length > 0 ? (
-          <GraphMenu
-            selectedGraph={selectedGraph}
-            setSelectedGraph={setSelectedGraph}
-          />
-        ) : null}
-        {userData.holdings.length === 0 ? (
-          <NewUserNoHoldings />
-        ) : (
-          <DataGraph
-            isDataProcessed={isDataProcessed}
-            selectedGraph={selectedGraph}
-            visualizationData={visualizationData}
-          />
-        )}
-      </Box>
-      <Box sx={{width:600, ml:'auto'}}>
-        <Stack spacing={2}>
-          <SnapshotChart
-            formattedDate={formattedDate}
-            stockTickers={stockTickers}
-            incrementalChange={incrementalChange}
-            percentageChange={percentageChange}
-            token={token}
-            value={value}
-            width={550}
-            height={250}
-            dailyTimeFrameData={dailyTimeFrame}
-          />
-          <CurrentStockCard
-            stockData={stockData}
-            token={token}
-            stockTicker={stockTicker}
-          />
-        </Stack>
-      </Box>
+      <GraphMenu
+        selectedGraph={selectedGraph}
+        setSelectedGraph={setSelectedGraph}
+      />
+      <DataGraph
+        isDataProcessed={isDataProcessed}
+        selectedGraph={selectedGraph}
+        visualizationData={visualizationData}
+      />
     </>
   );
 }
 
-export default Portfolio;
+function SnapshotChartWrapper({ dailyTimeFrame, token, userData, percentageChange, setPercentageChange }) {
+  const graphData = useGraphData(userData, "Treemap");
+  const { stockTickers, value, moneySpent } = graphData;
+  const formattedDate = lastUpdateDate(userData);
+  const incrementalChange = value - moneySpent;
 
+  useEffect(() => {
+    if (moneySpent !== 0) {
+      const newPercentageChange = (incrementalChange / moneySpent) * 100;
+      setPercentageChange(newPercentageChange);
+    }
+  }, [incrementalChange, moneySpent]);
+
+
+  // Check if we have valid data
+
+
+  return (
+    <SnapshotChart
+      formattedDate={formattedDate}
+      stockTickers={stockTickers}
+      incrementalChange={incrementalChange}
+      percentageChange={percentageChange}
+      token={token}
+      value={value}
+      width={550}
+      height={250}
+      dailyTimeFrameData={dailyTimeFrame}
+    />
+  );
+}
+
+export default Portfolio;

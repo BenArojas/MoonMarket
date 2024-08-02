@@ -255,7 +255,7 @@ export function lastUpdateDate(data) {
     hour: "2-digit",
     minute: "2-digit",
   });
-  return { formattedDate };
+  return formattedDate;
 }
 
 

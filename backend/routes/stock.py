@@ -60,7 +60,8 @@ def get_intrady_chart(symbol:str):
             one_month_ago = current_date - timedelta(days=30)  # Approximation for a month
             # Format one month ago date as yyyy-mm-dd
             one_month_ago_formatted = one_month_ago.strftime("%Y-%m-%d")
-            endpoint = f'historical-chart/5min/{symbol}?from={one_month_ago_formatted}&to={current_date_formatted}'
+            endpoint = f'historical-chart/15min/{symbol}?from={one_month_ago_formatted}&to={current_date_formatted}'
+            print(endpoint)
             url = f"{BASE_URL}{endpoint}&apikey={key}"
             response = requests.get(url)
             response.raise_for_status()  # Raises an HTTPError for bad responses
