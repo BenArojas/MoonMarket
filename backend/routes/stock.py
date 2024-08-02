@@ -52,7 +52,7 @@ def get_historical_data(symbol:str):
 
 @router.get("/intrady_chart/{symbol}")
 def get_intrady_chart(symbol:str):
-    api_keys = [ config("FMP_FIRST_API_KEY"), config("FMP_SECOND_API_KEY"), config("FMP_THIRD_API_KEY"), config("FMP_FOURTH_API_KEY")]
+    api_keys = [ config("FMP_FIRST_API_KEY"), config("FMP_SECOND_API_KEY"), config("FMP_THIRD_API_KEY")]
     for key in api_keys:
         try:
             current_date = datetime.now()

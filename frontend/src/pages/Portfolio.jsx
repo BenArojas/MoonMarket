@@ -50,32 +50,70 @@ export const action = async ({ request }) => {
   }
 };
 
-export const loader =
-  (token) =>
-  async ({ request }) => {
-    const url = new URL(request.url);
-    const defaultStockTicker = "BTCUSD";
-    const stockTicker = url.searchParams.get("selected") || defaultStockTicker;
-    const stockData = await getIntradyData(stockTicker, token);
-    const userData = await getUserData(token);
-    const dailyTimeFrame = await getPortfolioSnapshots(token);
-    return { userData, stockData, stockTicker, dailyTimeFrame };
-  };
+export const loader = (token) => async ({ request }) => {
+  const url = new URL(request.url);
+  const defaultStockTicker = "BTCUSD";
+  const stockTicker = url.searchParams.get("selected") || defaultStockTicker;
+
+  return defer({
+    userData: getUserData(token),
+    stockData: getIntradyData(stockTicker, token),
+    dailyTimeFrame: getPortfolioSnapshots(token),
+    stockTicker: stockTicker,
+  });
+};
 
 function Portfolio() {
-  const { percentageChange, setPercentageChange } =
-    useContext(PercentageChange);
+  const { percentageChange, setPercentageChange } = useContext(PercentageChange);
   const [selectedGraph, setSelectedGraph] = useState("Treemap");
   const { token } = useAuth();
-  const {
-    userData: data,
-    stockData,
-    stockTicker,
-    dailyTimeFrame,
-  } = useLoaderData();
-  const [stockTickers, visualizationData, value, moneySpent, isDataProcessed] =
-    useGraphData(data, selectedGraph);
-  const { formattedDate } = lastUpdateDate(data);
+  const data = useLoaderData();
+
+  return (
+    <Box sx={{
+      display: "grid",
+      gridTemplateColumns: "1000px auto",
+      padding: 2,
+      gap: 4,
+      marginX: 9,
+    }}>
+      <Suspense fallback={<div>Loading...</div>}>
+        <Await 
+          resolve={Promise.all([data.userData, data.stockData, data.dailyTimeFrame])}
+          errorElement={<p>Error loading data</p>}
+        >
+          {([userData, stockData, dailyTimeFrame]) => (
+            <PortfolioContent 
+              userData={userData}
+              stockData={stockData}
+              dailyTimeFrame={dailyTimeFrame}
+              stockTicker={data.stockTicker}
+              selectedGraph={selectedGraph}
+              setSelectedGraph={setSelectedGraph}
+              percentageChange={percentageChange}
+              setPercentageChange={setPercentageChange}
+              token={token}
+            />
+          )}
+        </Await>
+      </Suspense>
+    </Box>
+  );
+}
+
+function PortfolioContent({ 
+  userData, 
+  stockData, 
+  dailyTimeFrame, 
+  stockTicker, 
+  selectedGraph, 
+  setSelectedGraph, 
+  percentageChange, 
+  setPercentageChange, 
+  token 
+}) {
+  const [stockTickers, visualizationData, value, moneySpent, isDataProcessed] = useGraphData(userData, selectedGraph);
+  const { formattedDate } = lastUpdateDate(userData);
   const incrementalChange = value - moneySpent;
 
   useEffect(() => {
@@ -85,31 +123,21 @@ function Portfolio() {
 
   useEffect(() => {
     postSnapshot(parseFloat(value), token);
-  },[value])
+  }, [value])
 
   return (
-    <Box
-      sx={{
-        display: "grid",
-        gridTemplateColumns: "1000px auto",
-        padding: 2,
-        gap: 4,
-        marginX: 9,
-      }}
-    >
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        {data.holdings.length > 0 ? (
+    <>
+      <Box sx={{
+        display: "flex",
+        flexDirection: "column",
+      }}>
+        {userData.holdings.length > 0 ? (
           <GraphMenu
             selectedGraph={selectedGraph}
             setSelectedGraph={setSelectedGraph}
           />
         ) : null}
-        {data.holdings.length === 0 ? (
+        {userData.holdings.length === 0 ? (
           <NewUserNoHoldings />
         ) : (
           <DataGraph
@@ -120,27 +148,28 @@ function Portfolio() {
         )}
       </Box>
       <Box sx={{width:600, ml:'auto'}}>
-      <Stack spacing={2}>
-        <SnapshotChart
-          formattedDate={formattedDate}
-          stockTickers={stockTickers}
-          incrementalChange={incrementalChange}
-          percentageChange={percentageChange}
-          token={token}
-          value={value}
-          width={550}
-          height={250}
-          dailyTimeFrameData={dailyTimeFrame}
-        />
-        <CurrentStockCard
-          stockData={stockData}
-          token={token}
-          stockTicker={stockTicker}
-        />
-      </Stack>
+        <Stack spacing={2}>
+          <SnapshotChart
+            formattedDate={formattedDate}
+            stockTickers={stockTickers}
+            incrementalChange={incrementalChange}
+            percentageChange={percentageChange}
+            token={token}
+            value={value}
+            width={550}
+            height={250}
+            dailyTimeFrameData={dailyTimeFrame}
+          />
+          <CurrentStockCard
+            stockData={stockData}
+            token={token}
+            stockTicker={stockTicker}
+          />
+        </Stack>
       </Box>
-    </Box>
+    </>
   );
 }
 
 export default Portfolio;
+
