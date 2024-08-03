@@ -77,6 +77,7 @@ export const DonutChart = ({ width, height, data }) => {
 
     return (
       <Link
+      key={grp.data.name}
         to={{
           search: grp.data.name === "Others" ? "" : `selected=${ticker}`,
         }}

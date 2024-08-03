@@ -76,7 +76,6 @@ export const loader = (token) => async ({ request }) => {
 
 function Portfolio() {
   const { percentageChange, setPercentageChange } = useContext(PercentageChange);
-  const [selectedGraph, setSelectedGraph] = useState("Treemap");
   const { token } = useAuth();
   const data = useLoaderData();
 
@@ -102,8 +101,6 @@ function Portfolio() {
               {(userData) => (
                 <PortfolioContent
                   userData={userData}
-                  selectedGraph={selectedGraph}
-                  setSelectedGraph={setSelectedGraph}
                   token={token}
                   percentageChange={percentageChange}
                 />
@@ -148,7 +145,8 @@ function Portfolio() {
   );
 }
 
-function PortfolioContent({ userData, selectedGraph, setSelectedGraph, token }) {
+function PortfolioContent({ userData, token }) {
+  const [selectedGraph, setSelectedGraph] = useState("Treemap");
   const { visualizationData, value, isDataProcessed } = useGraphData(userData, selectedGraph);
 
   useEffect(() => {
@@ -174,7 +172,7 @@ function PortfolioContent({ userData, selectedGraph, setSelectedGraph, token }) 
   );
 }
 
-function SnapshotChartWrapper({ dailyTimeFrame, token, userData, percentageChange, setPercentageChange }) {
+const SnapshotChartWrapper = ({ dailyTimeFrame, token, userData, percentageChange, setPercentageChange }) => {
   const graphData = useGraphData(userData, "Treemap");
   const { stockTickers, value, moneySpent } = graphData;
   const formattedDate = lastUpdateDate(userData);
@@ -186,10 +184,6 @@ function SnapshotChartWrapper({ dailyTimeFrame, token, userData, percentageChang
       setPercentageChange(newPercentageChange);
     }
   }, [incrementalChange, moneySpent]);
-
-
-  // Check if we have valid data
-
 
   return (
     <SnapshotChart

@@ -9,8 +9,9 @@ import Tooltip from "@mui/material/Tooltip";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { useMemo } from "react";
 import { useFetcher } from "react-router-dom";
+import React from "react";
 
-const SnapshotChart = ({
+const SnapshotChart = React.memo(({
   incrementalChange,
   value,
   percentageChange,
@@ -109,7 +110,7 @@ const SnapshotChart = ({
       </Card>
     </div>
   );
-};
+});
 
 
 export default SnapshotChart;
