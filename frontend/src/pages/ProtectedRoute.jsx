@@ -22,14 +22,20 @@ export const PercentageChange = createContext(0);
 export const FirstLetter = createContext();
 
 export const ProtectedRoute = () => {
-  const { token } = useAuth();
+  const { token, refreshToken , tokenExpiry } = useAuth();
   const { initializeTokenRefresh } = useRefreshToken();
 
   useEffect(() => {
-    if (token) {
-      initializeTokenRefresh(token, "PT20M");
+    let refreshTimeout;
+    if (refreshToken && tokenExpiry) {
+      refreshTimeout = initializeTokenRefresh(refreshToken, tokenExpiry);
     }
-  }, [token, initializeTokenRefresh]);
+    return () => {
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
+    };
+  }, [refreshToken, tokenExpiry, initializeTokenRefresh]);
 
   const data = useLoaderData();
   const [percentageChange, setPercentageChange] = useState(0);

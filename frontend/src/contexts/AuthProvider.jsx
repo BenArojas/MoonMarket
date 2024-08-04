@@ -1,82 +1,76 @@
 import axios from "axios";
 import { createContext, useContext, useMemo, useReducer } from "react";
 
-// Create the authentication context
 const AuthContext = createContext();
 
-// Define the possible actions for the authReducer
 const ACTIONS = {
-  setToken: "setToken",
-  clearToken: "clearToken",
+  setTokens: "setTokens",
+  clearTokens: "clearTokens",
 };
 
-// Reducer function to handle authentication state changes
 const authReducer = (state, action) => {
   switch (action.type) {
-    case ACTIONS.setToken:
-      // Set the authentication token in axios headers and local storage
-      // axios.defaults.headers.common["Authorization"] = "Bearer " + action.payload;
-      localStorage.setItem("token", action.payload);
+    case ACTIONS.setTokens:
+      localStorage.setItem("token", action.payload.token);
+      localStorage.setItem("refreshToken", action.payload.refreshToken);
+      localStorage.setItem("tokenExpiry", action.payload.tokenExpiry);
 
-      // Update the state with the new token
-      return { ...state, token: action.payload };
+      return {
+        ...state,
+        token: action.payload.token,
+        refreshToken: action.payload.refreshToken,
+        tokenExpiry: action.payload.tokenExpiry,
+      };
 
-    case ACTIONS.clearToken:
-      // Clear the authentication token from axios headers and local storage
-      delete axios.defaults.headers.common["Authorization"];
+    case ACTIONS.clearTokens:
       localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("tokenExpiry");
 
-      // Update the state by removing the token
-      return { ...state, token: null };
-
-    // Handle other actions (if any)
+      return { ...state, token: null, refreshToken: null, tokenExpiry: null };
 
     default:
       console.error(
         `You passed an action.type: ${action.type} which doesn't exist`
       );
+      return state;
   }
 };
 
-// Initial state for the authentication context
 const initialData = {
   token: localStorage.getItem("token"),
+  refreshToken: localStorage.getItem("refreshToken"),
+  tokenExpiry: localStorage.getItem("tokenExpiry"),
 };
 
-// AuthProvider component to provide the authentication context to children
 const AuthProvider = ({ children }) => {
-  // Use reducer to manage the authentication state
   const [state, dispatch] = useReducer(authReducer, initialData);
 
-  // Function to set the authentication token
-  const setToken = (newToken) => {
-    // Dispatch the setToken action to update the state
-    dispatch({ type: ACTIONS.setToken, payload: newToken });
+  const setTokens = (token, refreshToken, tokenExpiry) => {
+    dispatch({
+      type: ACTIONS.setTokens,
+      payload: { token, refreshToken, tokenExpiry },
+    });
   };
 
-  // Function to clear the authentication token
-  const clearToken = () => {
-    // Dispatch the clearToken action to update the state
-    dispatch({ type: ACTIONS.clearToken });
+  const clearTokens = () => {
+    dispatch({ type: ACTIONS.clearTokens });
   };
 
-  // Memoized value of the authentication context
   const contextValue = useMemo(
     () => ({
       ...state,
-      setToken,
-      clearToken,
+      setTokens,
+      clearTokens,
     }),
     [state]
   );
 
-  // Provide the authentication context to the children components
   return (
     <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
   );
 };
 
-// Custom hook to easily access the authentication context
 export const useAuth = () => {
   return useContext(AuthContext);
 };

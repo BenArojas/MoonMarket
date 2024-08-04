@@ -6,14 +6,14 @@ import { Button } from '@mui/material';
 
 const ErrorPage = () => {
   const error = useRouteError();
-  const { clearToken } = useAuth();
+  const { clearTokens } = useAuth();
   const navigate = useNavigate();
 
   // Log the error object to the console for debugging
 
 
   const handleClick =  () => {
-    clearToken(); // Clear the authentication token
+    clearTokens(); // Clear the authentication token
     navigate('/login', { replace: true });
   };
   return (

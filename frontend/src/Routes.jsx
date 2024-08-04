@@ -22,15 +22,6 @@ import "./styles/global.css";
 const Routes = () => {
   const { token } = useAuth();
 
-  // const boundAction = async (args) => {
-  //   try {
-  //     const result = await profileAction(args, token);
-  //     return result;
-  //   } catch (error) {
-  //     console.error("Error in boundAction:", error);
-  //     throw error;
-  //   }
-  // };
 
   // Combine and conditionally include routes based on authentication status
   const router = createBrowserRouter([

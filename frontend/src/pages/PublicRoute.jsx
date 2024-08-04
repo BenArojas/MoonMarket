@@ -3,7 +3,6 @@ import { useAuth } from "../contexts/AuthProvider";
 
 
 
-
 export const PublicRoute = () => {
     const { token } = useAuth();
     

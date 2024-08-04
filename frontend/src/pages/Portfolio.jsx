@@ -145,7 +145,7 @@ function Portfolio() {
                 )}
               </Await>
             </Suspense>
-            {/* <GrapthSkeleton /> */}
+           
           </ErrorBoundary>
           <ErrorBoundary FallbackComponent={ErrorFallback}>
             <Suspense fallback={<GraphSkeleton />}>
@@ -159,7 +159,7 @@ function Portfolio() {
                 )}
               </Await>
             </Suspense>
-            {/* <GrapthSkeleton /> */}
+          
           </ErrorBoundary>
         </Stack>
       </Box>
