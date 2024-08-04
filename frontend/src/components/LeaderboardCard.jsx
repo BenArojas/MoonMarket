@@ -28,7 +28,7 @@ export default function LeaderboardCard({ Number, stock, changeCount }) {
         }}
       >
         <Box
-          className="Content"
+          id="Content"
           sx={{
             backgroundColor: "transparent",
             flex: 1,
@@ -41,23 +41,14 @@ export default function LeaderboardCard({ Number, stock, changeCount }) {
             margin: "auto",
             position: "relative",
             width: "100%",
-            "&::before": {
-              content: '""',
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: "100%",
-              background:
-                Number === 1
-                  ? "linear-gradient(to top, rgba(255, 212, 59, 0.3) 0%, rgba(255, 212, 59, 0.1) 100%)"
-                  : Number === 2
-                    ? "linear-gradient(to top, rgba(116, 192, 252, 0.3) 0%, rgba(116, 192, 252, 0.1) 100%)"
-                    : Number === 3
-                      ? "linear-gradient(to top, rgba(192, 192, 192, 0.3) 0%, rgba(192, 192, 192, 0.1) 100%)"
-                      : "none",
-              zIndex: -1,
-            },
+            background:
+            Number === 1
+              ? "linear-gradient(to top, rgba(255, 212, 59, 0.3) 0%, rgba(255, 212, 59, 0.1) 100%)"
+              : Number === 2
+                ? "linear-gradient(to top, rgba(116, 192, 252, 0.3) 0%, rgba(116, 192, 252, 0.1) 100%)"
+                : Number === 3
+                  ? "linear-gradient(to top, rgba(192, 192, 192, 0.3) 0%, rgba(192, 192, 192, 0.1) 100%)"
+                  : "none",
           }}
         >
           <FontAwesomeIcon

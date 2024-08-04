@@ -36,24 +36,32 @@ BASE_URL = 'https://financialmodelingprep.com/api/v3/'
 
 @router.get("/historical_data/{symbol}", response_description="stock details from api")
 def get_historical_data(symbol:str):
-    api_keys = [ config("FMP_FIRST_API_KEY"), config("FMP_SECOND_API_KEY"), config("FMP_THIRD_API_KEY"), config("FMP_FOURTH_API_KEY")]
-    for key in api_keys:
+    # api_keys = [ config("FMP_FIRST_API_KEY"), config("FMP_SECOND_API_KEY"), config("FMP_THIRD_API_KEY"), config("FMP_FOURTH_API_KEY")]
+    # for key in api_keys:
+    count = 1
+    api_key  = config(f"FMP_{count}_API_KEY")
+    while api_key:
         try:
             endpoint = f'historical-price-full/{symbol}'
-            url = f"{BASE_URL}{endpoint}?apikey={key}"
+            url = f"{BASE_URL}{endpoint}?apikey={api_key}"
             response = requests.get(url)
             response.raise_for_status()  # Raises an HTTPError for bad responses
             historical_stock_price = response.json()
             return historical_stock_price  # Return the data if successful
         except requests.RequestException as e:
-            print(f"Error with API key {key}: {str(e)}")
+            print(f"Error with API key {api_key}: {str(e)}")
+        count += 1
+        api_key = config(f"FMP_{count}_API_KEY")
     # If all API keys fail
     return {"error": "Unable to fetch data with any of the provided API keys"}
 
 @router.get("/intrady_chart/{symbol}")
 def get_intrady_chart(symbol:str):
-    api_keys = [ config("FMP_FIRST_API_KEY"), config("FMP_SECOND_API_KEY"), config("FMP_THIRD_API_KEY")]
-    for key in api_keys:
+    # api_keys = [ config("FMP_FIRST_API_KEY"), config("FMP_SECOND_API_KEY"), config("FMP_THIRD_API_KEY")]
+    # for key in api_keys:
+    count = 1
+    api_key  = config(f"FMP_{count}_API_KEY")
+    while api_key:
         try:
             current_date = datetime.now()
             current_date_formatted = current_date.strftime("%Y-%m-%d")
@@ -62,29 +70,46 @@ def get_intrady_chart(symbol:str):
             one_month_ago_formatted = one_month_ago.strftime("%Y-%m-%d")
             endpoint = f'historical-chart/15min/{symbol}?from={one_month_ago_formatted}&to={current_date_formatted}'
             print(endpoint)
-            url = f"{BASE_URL}{endpoint}&apikey={key}"
+            url = f"{BASE_URL}{endpoint}&apikey={api_key}"
             response = requests.get(url)
             response.raise_for_status()  # Raises an HTTPError for bad responses
             monthly_intrady_data = response.json()
             return monthly_intrady_data
         except requests.RequestException as e:
-            print(f"Error with API key {key}: {str(e)}")
+            print(f"Error with API key {api_key}: {str(e)}")
+        count += 1
+        api_key = config(f"FMP_{count}_API_KEY")
      # If all API keys fail
     return {"error": "Unable to fetch data with any of the provided API keys"}
 
 @router.get("/quote/{symbol}")
 def get_stock_quote(symbol:str):
-    api_keys = [ config("FMP_FIRST_API_KEY"), config("FMP_SECOND_API_KEY"), config("FMP_THIRD_API_KEY"), config("FMP_FOURTH_API_KEY")]
-    for key in api_keys:
+    
+    # api_keys = [ config("FMP_FIRST_API_KEY"), config("FMP_SECOND_API_KEY"), config("FMP_THIRD_API_KEY"), config("FMP_FOURTH_API_KEY")]
+    count = 1
+    api_key  = config(f"FMP_{count}_API_KEY")
+    while api_key:
         try:
             endpoint = f'quote/{symbol}'
-            url = f"{BASE_URL}{endpoint}?apikey={key}"
+            url = f"{BASE_URL}{endpoint}?apikey={api_key}"
             response = requests.get(url)
             response.raise_for_status()  # Raises an HTTPError for bad responses
             stock_quote = response.json()[0]
             return stock_quote
         except requests.RequestException as e:
-            print(f"Error with API key {key}: {str(e)}")
+            print(f"Error with API key {api_key}: {str(e)}")
+        count += 1
+        api_key = config(f"FMP_{count}_API_KEY")
+    # for key in api_keys:
+    #     try:
+    #         endpoint = f'quote/{symbol}'
+    #         url = f"{BASE_URL}{endpoint}?apikey={key}"
+    #         response = requests.get(url)
+    #         response.raise_for_status()  # Raises an HTTPError for bad responses
+    #         stock_quote = response.json()[0]
+    #         return stock_quote
+    #     except requests.RequestException as e:
+    #         print(f"Error with API key {key}: {str(e)}")
     # If all API keys fail
     return {"error": "Unable to fetch data with any of the provided API keys"}
 
@@ -107,17 +132,21 @@ async def get_stock(ticker: str,  user: User = Depends(current_user)):
         return stock
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Stock with ticker {ticker} does not exist")
 
-@router.get("/historicalPrice/{ticker}")
-async def get_historicalPrice(ticker: str, user: User =Depends(current_user)):
-    api_keys = [ config("FMP_FIRST_API_KEY"), config("FMP_SECOND_API_KEY")]
-    for key in api_keys:
-        try:
-            endpoint = f'/historical-price-full/{ticker}?apikey={key}'
-            url = BASE_URL + endpoint
-            response = requests.get(url)
-        except Exception as e:
-            return {"error": str(e)}
-    
+# @router.get("/historicalPrice/{ticker}")
+# async def get_historicalPrice(ticker: str, user: User =Depends(current_user)):
+#     # api_keys = [ config("FMP_FIRST_API_KEY"), config("FMP_SECOND_API_KEY")]
+#     # for key in api_keys:
+#     count = 1
+#     api_key  = config(f"FMP_{count}_API_KEY")
+#     while api_key:
+#         try:
+#             endpoint = f'/historical-price-full/{ticker}?apikey={api_key}'
+#             url = BASE_URL + endpoint
+#             response = requests.get(url)
+#         except Exception as e:
+#             return {"error": str(e)}
+#         count += 1
+#         api_key = config(f"FMP_{count}_API_KEY")
 
 @router.post("/add_stock")
 async def add_stock(stock_data: Stock):
@@ -133,16 +162,22 @@ async def add_stock(stock_data: Stock):
 
 @router.put("/update_stock_price/{ticker}")
 async def update_stock_price(ticker: str, user: User = Depends(current_user)):
-    api_keys = [ config("FMP_FIRST_API_KEY"), config("FMP_SECOND_API_KEY")]
+    # api_keys = [ config("FMP_FIRST_API_KEY"), config("FMP_SECOND_API_KEY")]
     price = None
-    for key in api_keys:
+    # for key in api_keys:
+    count = 1
+    api_key  = config(f"FMP_{count}_API_KEY")
+    while api_key:
         try:
-            url = f"https://financialmodelingprep.com/api/v3/quote-short/{ticker}?apikey={key}"
+            url = f"https://financialmodelingprep.com/api/v3/quote-short/{ticker}?apikey={api_key}"
             response = requests.get(url).json()
             price = response[0]['price']
             break  # Exit the loop once you get the price
         except Exception as e:
-            print(f"Error with API key {key}: {str(e)}")  # Print the error and continue with the next key
+            print(f"Error with API key {api_key}: {str(e)}")  # Print the error and continue with the next key
+        count += 1
+        api_key = config(f"FMP_{count}_API_KEY")
+        
     if price is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="All API keys failed")
     try:

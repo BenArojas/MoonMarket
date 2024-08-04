@@ -95,7 +95,7 @@ const SnapshotChart = React.memo(({
                   title={`last updated at: ${formattedDate}. Click to refresh Stocks price`}
                   placement="top"
                 >
-                  <IconButton type="submit" sx={{ shrink: 0 }}>
+                  <IconButton type="submit" sx={{ shrink: 0 }} name="intent" value="UpdatePrices">
                     <SyncIcon />
                   </IconButton>
                 </Tooltip>

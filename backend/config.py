@@ -3,7 +3,7 @@ from decouple import config
 
 class CommonSettings(BaseSettings):
     APP_NAME: str = "MOON MARKET"
-    DEBUG_MODE: bool = False
+    DEBUG_MODE: bool = True
 
 class ServerSettings(BaseSettings):
     HOST: str = "localhost"

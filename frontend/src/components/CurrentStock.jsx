@@ -18,7 +18,6 @@ function transformData(historicalData) {
 }
 
 export default function CurrentStockCard({
-  props,
   stockData,
   stockTicker,
   token,
@@ -95,7 +94,7 @@ export default function CurrentStockCard({
           </Button>
         </Box>
       </Box>
-      <CurrentStockChart {...props} data={transformedData} colors={{
+      <CurrentStockChart  data={transformedData} colors={{
             lineColor : '#2962FF',
             areaTopColor : '#2962FF',
         }}/>

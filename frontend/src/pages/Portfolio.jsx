@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthProvider";
 import useGraphData from "@/hooks/useGraphData";
 import { PercentageChange } from "@/pages/ProtectedRoute";
 import { lastUpdateDate } from "@/utils/dataProcessing";
-import { Box, Stack, CircularProgress } from "@mui/material";
+import { Box, Stack, CircularProgress, Card } from "@mui/material";
 import React, { useContext, useEffect, useState, lazy, Suspense } from "react";
 import { useLoaderData, Await, defer } from "react-router-dom";
 
@@ -16,17 +16,32 @@ const DataGraph = lazy(() => import("@/components/DataGraph"));
 const SnapshotChart = lazy(() => import("@/components/SnapShotChart"));
 const CurrentStockCard = lazy(() => import("@/components/CurrentStock"));
 
-import { ErrorBoundary } from 'react-error-boundary';
+function GraphSkeleton() {
+  return (
+    <Card
+      sx={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
+      <CircularProgress />
+    </Card>
+  );
+}
+
+import { ErrorBoundary } from "react-error-boundary";
 
 function ErrorFallback({ error }) {
   return (
     <div role="alert">
       <p>Something went wrong:</p>
-      <pre style={{ color: 'red' }}>{error.message}</pre>
+      <pre style={{ color: "red" }}>{error.message}</pre>
     </div>
-  )
+  );
 }
-
 
 export const action = async ({ request }) => {
   const formData = await request.formData();
@@ -48,9 +63,7 @@ export const action = async ({ request }) => {
     const results = await Promise.allSettled(promises);
 
     results.forEach((result, index) => {
-      if (result.status === "fulfilled") {
-        // console.log(`Successfully updated ${tickers[index]}:`, result.value);
-      } else {
+      if (result.status !== "fulfilled") {
         console.error(`Failed to update ${tickers[index]}:`, result.reason);
       }
     });
@@ -61,21 +74,24 @@ export const action = async ({ request }) => {
   }
 };
 
-export const loader = (token) => async ({ request }) => {
-  const url = new URL(request.url);
-  const defaultStockTicker = "BTCUSD";
-  const stockTicker = url.searchParams.get("selected") || defaultStockTicker;
+export const loader =
+  (token) =>
+  async ({ request }) => {
+    const url = new URL(request.url);
+    const defaultStockTicker = "BTCUSD";
+    const stockTicker = url.searchParams.get("selected") || defaultStockTicker;
 
-  return defer({
-    userData: getUserData(token),
-    stockData: getIntradyData(stockTicker, token),
-    dailyTimeFrame: getPortfolioSnapshots(token),
-    stockTicker,
-  });
-};
+    return defer({
+      userData: getUserData(token),
+      stockData: getIntradyData(stockTicker, token),
+      dailyTimeFrame: getPortfolioSnapshots(token),
+      stockTicker,
+    });
+  };
 
 function Portfolio() {
-  const { percentageChange, setPercentageChange } = useContext(PercentageChange);
+  const { percentageChange, setPercentageChange } =
+    useContext(PercentageChange);
   const { token } = useAuth();
   const data = useLoaderData();
 
@@ -87,6 +103,7 @@ function Portfolio() {
         padding: 2,
         gap: 4,
         marginX: 9,
+        height: "100%",
       }}
     >
       <Box
@@ -96,7 +113,7 @@ function Portfolio() {
         }}
       >
         <ErrorBoundary FallbackComponent={ErrorFallback}>
-          <Suspense fallback={<CircularProgress />}>
+          <Suspense fallback={<GraphSkeleton />}>
             <Await resolve={data.userData}>
               {(userData) => (
                 <PortfolioContent
@@ -107,13 +124,16 @@ function Portfolio() {
               )}
             </Await>
           </Suspense>
+          {/* <GrapthSkeleton /> */}
         </ErrorBoundary>
       </Box>
-      <Box sx={{ width: 600, ml: 'auto' }}>
-        <Stack spacing={2}>
+      <Box sx={{ width: 600, ml: "auto" }}>
+        <Stack spacing={2} sx={{ height: "100%" }}>
           <ErrorBoundary FallbackComponent={ErrorFallback}>
-            <Suspense fallback={<CircularProgress />}>
-              <Await resolve={Promise.all([data.dailyTimeFrame, data.userData])}>
+            <Suspense fallback={<GraphSkeleton />}>
+              <Await
+                resolve={Promise.all([data.dailyTimeFrame, data.userData])}
+              >
                 {([dailyTimeFrame, userData]) => (
                   <SnapshotChartWrapper
                     dailyTimeFrame={dailyTimeFrame}
@@ -125,9 +145,10 @@ function Portfolio() {
                 )}
               </Await>
             </Suspense>
+            {/* <GrapthSkeleton /> */}
           </ErrorBoundary>
           <ErrorBoundary FallbackComponent={ErrorFallback}>
-            <Suspense fallback={<CircularProgress />}>
+            <Suspense fallback={<GraphSkeleton />}>
               <Await resolve={data.stockData}>
                 {(stockData) => (
                   <CurrentStockCard
@@ -138,6 +159,7 @@ function Portfolio() {
                 )}
               </Await>
             </Suspense>
+            {/* <GrapthSkeleton /> */}
           </ErrorBoundary>
         </Stack>
       </Box>
@@ -147,7 +169,10 @@ function Portfolio() {
 
 function PortfolioContent({ userData, token }) {
   const [selectedGraph, setSelectedGraph] = useState("Treemap");
-  const { visualizationData, value, isDataProcessed } = useGraphData(userData, selectedGraph);
+  const { visualizationData, value, isDataProcessed } = useGraphData(
+    userData,
+    selectedGraph
+  );
 
   useEffect(() => {
     postSnapshot(parseFloat(value), token);
@@ -172,7 +197,13 @@ function PortfolioContent({ userData, token }) {
   );
 }
 
-const SnapshotChartWrapper = ({ dailyTimeFrame, token, userData, percentageChange, setPercentageChange }) => {
+const SnapshotChartWrapper = ({
+  dailyTimeFrame,
+  token,
+  userData,
+  percentageChange,
+  setPercentageChange,
+}) => {
   const graphData = useGraphData(userData, "Treemap");
   const { stockTickers, value, moneySpent } = graphData;
   const formattedDate = lastUpdateDate(userData);
@@ -198,6 +229,6 @@ const SnapshotChartWrapper = ({ dailyTimeFrame, token, userData, percentageChang
       dailyTimeFrameData={dailyTimeFrame}
     />
   );
-}
+};
 
 export default Portfolio;

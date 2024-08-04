@@ -1,5 +1,5 @@
-import LeaderboardCard from "@/components/LeaderboardCard";
 import LeaderBoardsTable from "@/components/LeaderboardTable";
+import TopLeaders from "@/components/TopLeaders";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { Box } from "@mui/material";
@@ -11,7 +11,6 @@ import PaginationItem from "@mui/material/PaginationItem";
 import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import * as React from "react";
-import TopLeaders from "@/components/TopLeaders";
 
 export default function Leaderboards({ data, width, height}) {
   const [category, setCategory] = React.useState("positionSize");
