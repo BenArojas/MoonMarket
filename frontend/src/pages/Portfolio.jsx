@@ -76,18 +76,18 @@ export const action = async ({ request }) => {
 
 export const loader =
   (token) =>
-  async ({ request }) => {
-    const url = new URL(request.url);
-    const defaultStockTicker = "BTCUSD";
-    const stockTicker = url.searchParams.get("selected") || defaultStockTicker;
+    async ({ request }) => {
+      const url = new URL(request.url);
+      const defaultStockTicker = "BTCUSD";
+      const stockTicker = url.searchParams.get("selected") || defaultStockTicker;
 
-    return defer({
-      userData: getUserData(token),
-      stockData: getIntradyData(stockTicker, token),
-      dailyTimeFrame: getPortfolioSnapshots(token),
-      stockTicker,
-    });
-  };
+      return defer({
+        userData: getUserData(token),
+        stockData: getIntradyData(stockTicker, token),
+        dailyTimeFrame: getPortfolioSnapshots(token),
+        stockTicker,
+      });
+    };
 
 function Portfolio() {
   const { percentageChange, setPercentageChange } =
@@ -110,6 +110,7 @@ function Portfolio() {
         sx={{
           display: "flex",
           flexDirection: "column",
+          overflow: "hidden",
         }}
       >
         <ErrorBoundary FallbackComponent={ErrorFallback}>
@@ -127,7 +128,7 @@ function Portfolio() {
           {/* <GrapthSkeleton /> */}
         </ErrorBoundary>
       </Box>
-      <Box sx={{ width: 600, ml: "auto" }}>
+      <Box sx={{ width: 600, ml: "auto", overflow:'hidden' }}>
         <Stack spacing={2} sx={{ height: "100%" }}>
           <ErrorBoundary FallbackComponent={ErrorFallback}>
             <Suspense fallback={<GraphSkeleton />}>
@@ -145,8 +146,8 @@ function Portfolio() {
                 )}
               </Await>
             </Suspense>
-           
           </ErrorBoundary>
+
           <ErrorBoundary FallbackComponent={ErrorFallback}>
             <Suspense fallback={<GraphSkeleton />}>
               <Await resolve={data.stockData}>
@@ -159,7 +160,6 @@ function Portfolio() {
                 )}
               </Await>
             </Suspense>
-          
           </ErrorBoundary>
         </Stack>
       </Box>
@@ -169,10 +169,7 @@ function Portfolio() {
 
 function PortfolioContent({ userData, token }) {
   const [selectedGraph, setSelectedGraph] = useState("Treemap");
-  const { visualizationData, value, isDataProcessed } = useGraphData(
-    userData,
-    selectedGraph
-  );
+  const { visualizationData, value, isDataProcessed } = useGraphData(userData, selectedGraph, token);
 
   useEffect(() => {
     postSnapshot(parseFloat(value), token);
@@ -204,8 +201,8 @@ const SnapshotChartWrapper = ({
   percentageChange,
   setPercentageChange,
 }) => {
-  const graphData = useGraphData(userData, "Treemap");
-  const { stockTickers, value, moneySpent } = graphData;
+
+  const { stockTickers, value, moneySpent } = useGraphData(userData, "Treemap", token);
   const formattedDate = lastUpdateDate(userData);
   const incrementalChange = value - moneySpent;
 

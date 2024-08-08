@@ -1,5 +1,5 @@
 
-export async function getPortfolioStats(stocksList, stocksInfo) {
+export function getPortfolioStats(stocksList, stocksInfo) {
   let tickers = [];
   let sum = 0;
   let totalSpent = 0;
@@ -7,12 +7,10 @@ export async function getPortfolioStats(stocksList, stocksInfo) {
   for (let i = 0; i < stocksInfo.length; i++) {
     const res = stocksInfo[i];
     const holding = stocksList[i];
-    const stock_avg_price = holding.avg_bought_price;
     const value = holding.quantity * res.price;
     sum += value;
     totalSpent += holding.avg_bought_price * holding.quantity;
-    const ticker = holding.ticker;
-    tickers.push(ticker);
+    tickers.push(holding.ticker);
   }
 
   return { tickers, sum, totalSpent };

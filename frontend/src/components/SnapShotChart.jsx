@@ -1,15 +1,10 @@
-import PortfolioValue from "@/components/AnimatedNumber";
 import { CurrentStockChart } from "@/components/CurrentStockChart.jsx";
 import GraphCardSkeleton from "@/Skeletons/GraphCardSkeleton";
 import { transformSnapshotData } from "@/utils/dataProcessing";
-import SyncIcon from "@mui/icons-material/Sync";
-import { Box, Card, Stack, Typography } from "@mui/material";
-import IconButton from "@mui/material/IconButton";
-import Tooltip from "@mui/material/Tooltip";
-import { ArrowDown, ArrowUp } from "lucide-react";
-import { useMemo } from "react";
+import {  Card} from "@mui/material";
 import { useFetcher } from "react-router-dom";
 import React from "react";
+import PortfolioStats from '@/components/PortfolioStats'
 
 const SnapshotChart = React.memo(({
   incrementalChange,
@@ -21,9 +16,6 @@ const SnapshotChart = React.memo(({
   dailyTimeFrameData,
 }) => {
 
-
-  const fetcher = useFetcher();
-  const trendColor = percentageChange > 0 ? "primary" : "error";
   const transformedData = transformSnapshotData(dailyTimeFrameData);
 
 
@@ -40,72 +32,7 @@ const SnapshotChart = React.memo(({
           backgroundColor: "transparent",
         }}
       >
-        <Box
-          className="stats"
-          sx={{
-            display: "flex",
-            flexDirection: "row",
-            alignItems: "center",
-            p: 1,
-          }}
-        >
-          <Stack>
-            <Typography variant="h5">Portfolio Value</Typography>
-            <PortfolioValue value={value} />
-          </Stack>
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "row",
-              gap: 2,
-              alignItems: "center",
-              ml: "auto",
-            }}
-          >
-            <Box sx={{ display: "flex" }}>
-              <Typography color={trendColor}>
-                {percentageChange > 0 ? <ArrowUp /> : <ArrowDown />}
-              </Typography>
-              <Typography
-                variant="body1"
-                color={trendColor}
-                sx={{ fontWeight: "bold" }}
-              >
-                {percentageChange.toFixed(2).toLocaleString("en-US")}%
-              </Typography>
-            </Box>
-
-            <Typography
-              variant="body1"
-              color={trendColor}
-              sx={{ fontWeight: "bold" }}
-            >
-              {incrementalChange.toLocaleString("en-US")}$
-            </Typography>
-            {value === 0 ? null : (
-              <fetcher.Form method="post">
-                <input
-                  type="hidden"
-                  name="tickers"
-                  value={stockTickers.join(",")}
-                />
-                <input type="hidden" name="token" value={token} />
-                <input type="hidden" name="value" value={value} />
-                <Tooltip
-                  title={`last updated at: ${formattedDate}. Click to refresh Stocks price`}
-                  placement="top"
-                >
-                  <IconButton type="submit" sx={{ shrink: 0 }} name="intent" value="UpdatePrices">
-                    <SyncIcon />
-                  </IconButton>
-                </Tooltip>
-              </fetcher.Form>
-            )}
-          </Box>
-        </Box>
-        {/* {chartData.length === 0 ? null : (
-            <LineChart width={width} height={height} data={chartData} />
-          )} */}
+        <PortfolioStats formattedDate={formattedDate} incrementalChange={incrementalChange} percentageChange={percentageChange} stockTickers={stockTickers} token={token} value={value}/>
         <CurrentStockChart data={transformedData} enableAdvancedFeatures={true} />
       </Card>
     </div>

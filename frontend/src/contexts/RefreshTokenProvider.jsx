@@ -19,10 +19,10 @@ const RefreshTokenProvider = ({ children }) => {
     const duration = parseISO8601Duration(expiresIn);
     const delay = duration - 60000; // Refresh 1 minute before expiration
 
-    return setTimeout(() => refreshToken(refreshToken), delay);
+    return setTimeout(() => refreshTokenFunction(refreshToken), delay);
   }, [parseISO8601Duration]);
 
-  const refreshToken = useCallback(async (refreshToken) => {
+  const refreshTokenFunction = useCallback(async (refreshToken) => {
     console.log("refreshing jwt key...");
     try {
       const response = await refreshJwtKey(refreshToken);
@@ -45,10 +45,10 @@ const RefreshTokenProvider = ({ children }) => {
 
   const contextValue = useMemo(
     () => ({
-      refreshToken,
+      refreshTokenFunction,
       initializeTokenRefresh,
     }),
-    [refreshToken, initializeTokenRefresh]
+    [refreshTokenFunction, initializeTokenRefresh]
   );
 
   return (

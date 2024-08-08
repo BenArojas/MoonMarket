@@ -1,58 +1,27 @@
-import { useAuth } from "@/contexts/AuthProvider";
-import "@/styles/App.css";
-import "@/styles/portfolio.css";
+import { useMemo } from "react";
 import {
   processTreemapData,
-  getPortfolioStats,
   processDonutData,
   processCircularData,
   processLeaderboardsData,
+  getPortfolioStats
 } from "@/utils/dataProcessing.js";
-import { useEffect, useMemo, useReducer } from "react";
 import useHoldingsData from "@/hooks/useHoldingsData";
 
-const initialState = {
-  stockTickers: [],
-  value: 0,
-  moneySpent: 0,
-  isDataProcessed: false,
-};
-
-function reducer(state, action) {
-  switch (action.type) {
-    case 'SET_DATA':
-      return { ...state, ...action.payload, isDataProcessed: true };
-    default:
-      return state;
-  }
-}
-
-function useGraphData(data, selectedGraph) {
-  const { token } = useAuth();
-  const stockList = data.holdings;
+function useGraphData(userData, selectedGraph, token) {
+  const stockList = userData.holdings;
   const stocksInfo = useHoldingsData(stockList, token);
-  
-  const [state, dispatch] = useReducer(reducer, initialState);
 
-  useEffect(() => {
-    if (data && stocksInfo.length > 0) {
-      async function processData() {
-        const { tickers, sum, totalSpent } = await getPortfolioStats(stockList, stocksInfo);
-        dispatch({ 
-          type: 'SET_DATA', 
-          payload: { 
-            stockTickers: tickers, 
-            value: sum, 
-            moneySpent: totalSpent 
-          } 
-        });
-      }
-      processData();
+  const portfolioStats = useMemo(() => {
+    if (stockList.length > 0 && stocksInfo.length > 0) {
+      return getPortfolioStats(stockList, stocksInfo);
     }
-  }, [data, stocksInfo, stockList]);
+    return { tickers: [], sum: 0, totalSpent: 0 };
+  }, [stockList, stocksInfo]);
 
   const visualizationData = useMemo(() => {
-    if (!state.isDataProcessed) return null;
+    if (stockList.length === 0 || stocksInfo.length === 0) return null;
+
     switch (selectedGraph) {
       case "Treemap":
         return processTreemapData(stockList, stocksInfo);
@@ -65,15 +34,15 @@ function useGraphData(data, selectedGraph) {
       default:
         return processTreemapData(stockList, stocksInfo);
     }
-  }, [selectedGraph, stockList, stocksInfo, state.isDataProcessed]);
+  }, [selectedGraph, stockList, stocksInfo]);
 
-  return useMemo(() => ({
-    stockTickers: state.stockTickers,
+  return {
+    stockTickers: portfolioStats.tickers,
     visualizationData,
-    value: state.value,
-    moneySpent: state.moneySpent,
-    isDataProcessed: state.isDataProcessed,
-  }), [state, visualizationData]);
+    value: portfolioStats.sum,
+    moneySpent: portfolioStats.totalSpent,
+    isDataProcessed: stockList.length > 0 && stocksInfo.length > 0
+  };
 }
 
 export default useGraphData;
