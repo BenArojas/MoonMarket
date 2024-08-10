@@ -4,7 +4,7 @@ import {
   ProtectedRoute,
   loader as ProtectedRouteLoader,
 } from "@/pages/ProtectedRoute";
-import Portfolio, { action as portfolioAction, loader as portfolioLoader } from "@/pages/Portfolio";
+import Portfolio from "@/pages/Portfolio";
 import ErrorPage from "@/pages/ErrorPage";
 import StockItem, { loader as stockItemLoader } from "@/pages/StockItem";
 import Login from "@/pages/Login";
@@ -36,8 +36,6 @@ const Routes = () => {
           path: "/portfolio",
           element: <Portfolio />,
           errorElement: <ErrorPage />,
-          loader: portfolioLoader(token),
-          action: portfolioAction,
         },
         {
           path: "/profile",

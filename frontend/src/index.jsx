@@ -7,6 +7,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import AuthProvider from "@/contexts/AuthProvider.jsx";
 import RefreshTokenProvider from "@/contexts/RefreshTokenProvider.jsx";
 import { darkTheme } from "./theme";
+import {ReactQueryDevtools} from '@tanstack/react-query-devtools'
+
 
 const queryClient = new QueryClient();
 
@@ -22,6 +24,7 @@ root.render(
         </RefreshTokenProvider>
       </AuthProvider>
     </ThemeProvider>
+    <ReactQueryDevtools />
   </QueryClientProvider>
   // </React.StrictMode>
 );
