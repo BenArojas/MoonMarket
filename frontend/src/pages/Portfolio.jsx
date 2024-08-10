@@ -10,11 +10,10 @@ import { lastUpdateDate } from "@/utils/dataProcessing";
 import { Box, Stack, CircularProgress, Card } from "@mui/material";
 import React, { useContext, useEffect, useState, lazy, Suspense } from "react";
 import { useLoaderData, Await, defer } from "react-router-dom";
+import DataGraph from "@/components/DataGraph"
+import SnapshotChart from "@/components/SnapShotChart"
+import CurrentStockCard from "@/components/CurrentStock"
 
-// Lazy load components
-const DataGraph = lazy(() => import("@/components/DataGraph"));
-const SnapshotChart = lazy(() => import("@/components/SnapShotChart"));
-const CurrentStockCard = lazy(() => import("@/components/CurrentStock"));
 
 function GraphSkeleton() {
   return (
@@ -118,6 +117,7 @@ function Portfolio() {
             <Await resolve={data.userData}>
               {(userData) => (
                 <PortfolioContent
+                  key={userData.id} // Add a unique key prop
                   userData={userData}
                   token={token}
                   percentageChange={percentageChange}
@@ -128,7 +128,7 @@ function Portfolio() {
           {/* <GrapthSkeleton /> */}
         </ErrorBoundary>
       </Box>
-      <Box sx={{ width: 600, ml: "auto", overflow:'hidden' }}>
+      <Box sx={{ width: 600, ml: "auto", overflow: 'hidden' }}>
         <Stack spacing={2} sx={{ height: "100%" }}>
           <ErrorBoundary FallbackComponent={ErrorFallback}>
             <Suspense fallback={<GraphSkeleton />}>
@@ -137,6 +137,7 @@ function Portfolio() {
               >
                 {([dailyTimeFrame, userData]) => (
                   <SnapshotChartWrapper
+                    key={userData.id} // Add a unique key prop
                     dailyTimeFrame={dailyTimeFrame}
                     token={token}
                     userData={userData}
@@ -153,6 +154,7 @@ function Portfolio() {
               <Await resolve={data.stockData}>
                 {(stockData) => (
                   <CurrentStockCard
+                    key={stockData.id} // Add a unique key prop
                     stockData={stockData}
                     token={token}
                     stockTicker={data.stockTicker}

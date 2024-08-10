@@ -61,31 +61,31 @@ function PortfolioStats({ value, percentageChange, stockTickers, incrementalChan
                 >
                     {incrementalChange.toLocaleString("en-US")}$
                 </Typography>
-                {value === 0 ? null : (
-                    <Form
-                        method="post"
-                        onSubmit={(e) => {
-                            e.preventDefault();
-                            fetcher.submit(e.currentTarget);
-                        }}
+
+                <Form
+                    method="post"
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        fetcher.submit(e.currentTarget);
+                    }}
+                >
+                    <input
+                        type="hidden"
+                        name="tickers"
+                        value={stockTickers.join(",")}
+                    />
+                    <input type="hidden" name="token" value={token} />
+                    <input type="hidden" name="value" value={value} />
+                    <Tooltip
+                        title={`last updated at: ${formattedDate}. Click to refresh Stocks price`}
+                        placement="top"
                     >
-                        <input
-                            type="hidden"
-                            name="tickers"
-                            value={stockTickers.join(",")}
-                        />
-                        <input type="hidden" name="token" value={token} />
-                        <input type="hidden" name="value" value={value} />
-                        <Tooltip
-                            title={`last updated at: ${formattedDate}. Click to refresh Stocks price`}
-                            placement="top"
-                        >
-                            <IconButton type="submit" sx={{ shrink: 0 }} name="intent" value="UpdatePrices" disabled={isLoading}>
-                                {isLoading ? <CircularProgress size={24} /> : <SyncIcon />}
-                            </IconButton>
-                        </Tooltip>
-                    </Form>
-                )}
+                        <IconButton type="submit" sx={{ shrink: 0 }} name="intent" value="UpdatePrices" disabled={isLoading}>
+                            {isLoading ? <CircularProgress size={24} /> : <SyncIcon />}
+                        </IconButton>
+                    </Tooltip>
+                </Form>
+
             </Box>
         </Box>
     )
