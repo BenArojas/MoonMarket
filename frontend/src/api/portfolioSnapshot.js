@@ -1,12 +1,8 @@
 import axios from "axios";
 const baseUrl = "http://localhost:8000"
 
-export async function postSnapshot(value, token) {
-    const numericValue = Number(value);
-    if (isNaN(numericValue)) {
-        throw new Error("Value must be a valid number");
-    }
-    return await axios.post(`${baseUrl}/PortfolioSnapshot/snapshot`, null, {
+export function postSnapshot({value, token}) {
+    return axios.post(`${baseUrl}/PortfolioSnapshot/snapshot`, null, {
         params: { value },
         headers: {
             'Authorization': `Bearer ${token}`,

@@ -12,7 +12,7 @@ import React, { useContext, useEffect, useState, lazy, Suspense } from "react";
 import DataGraph from "@/components/DataGraph";
 import SnapshotChart from "@/components/SnapShotChart";
 import CurrentStockCard from "@/components/CurrentStock";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 
 function GraphSkeleton() {
@@ -64,6 +64,7 @@ function Portfolio() {
     queryFn: () => getPortfolioSnapshots(token),
   });
 
+
   useEffect(() => {
     queryClient.invalidateQueries(["stockData", selectedTicker, token]);
   }, [selectedTicker, token, queryClient]);
@@ -97,7 +98,7 @@ function Portfolio() {
       <Box sx={{ width: 600, ml: "auto", overflow: "hidden" }}>
         <Stack spacing={2} sx={{ height: "100%" }}>
           <ErrorBoundary FallbackComponent={ErrorFallback}>
-            {dailyTimeFrameLoading ? (
+            {(dailyTimeFrameLoading || userDataLoading) ? (
               <GraphSkeleton />
             ) : (
               <SnapshotChartWrapper
@@ -132,6 +133,28 @@ function PortfolioContent({ userData, token }) {
     selectedGraph,
     token
   );
+  console.log(value, typeof (value));
+
+
+  const queryClient = useQueryClient()
+  const postSnapshotMutation = useMutation({
+    mutationFn: postSnapshot,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries(["dailyTimeFrame"]) // Invalidate the dailyTimeFrame query when the snapshot is posted
+      console.log("posted a snapshot", data)
+    },
+    onError: (error) => {
+      console.error("Error posting a snapshot", error);
+    }
+  })
+
+
+
+  useEffect(() => {
+    if (value != 0 && token) {
+      postSnapshotMutation.mutate({ value: value, token: token });
+    }
+  }, [value]);
 
   if (userData.holdings.length === 0) {
     return <NewUserNoHoldings />;
@@ -143,6 +166,7 @@ function PortfolioContent({ userData, token }) {
         selectedGraph={selectedGraph}
         setSelectedGraph={setSelectedGraph}
       />
+      {postSnapshotMutation.error?.message}
       <DataGraph
         isDataProcessed={isDataProcessed}
         selectedGraph={selectedGraph}
