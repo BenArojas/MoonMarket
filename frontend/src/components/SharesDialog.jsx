@@ -40,6 +40,7 @@ function SharesDialog({
           data.quantity,
           dialog.token
         );
+        handleClose()
       } else if (dialog.function === addUserSale) {
         const response = await dialog.function(
           dialog.ticker,
@@ -47,6 +48,7 @@ function SharesDialog({
           data.price,
           dialog.token
         );
+        handleClose()
       }
     } catch (error) {
       if (error.response.status > 200) {
@@ -56,9 +58,6 @@ function SharesDialog({
     }
   };
 
-  // useEffect(() => {
-  //   console.log(dialog)
-  // },[])
 
   return (
     <React.Fragment>
