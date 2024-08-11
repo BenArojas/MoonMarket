@@ -1,32 +1,33 @@
-
-import { useNavigate, Form } from "react-router-dom";
+import { useNavigate, Form, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthProvider";
 import { useState } from "react";
 import { loginUser, refreshJwtKey } from "@/api/user";
 import { useForm } from "react-hook-form";
 import { TextField, Box, Card, Typography, Button } from "@mui/material";
-import WebsiteName from '@/components/WebsiteName';
-import { styled } from '@mui/material/styles';
+import WebsiteName from "@/components/WebsiteName";
+import { styled } from "@mui/material/styles";
+import { padding } from "polished";
+import { image } from "d3";
 
 const StyledTextField = styled(TextField)({
-  '& .MuiInputBase-input': {
-    '&:-webkit-autofill': {
-      WebkitBoxShadow: '0 0 0 1000px transparent inset',
-      WebkitTextFillColor: 'white',
-      caretColor: 'white',
-      transition: 'background-color 5000s ease-in-out 0s',
+  "& .MuiInputBase-input": {
+    "&:-webkit-autofill": {
+      WebkitBoxShadow: "0 0 0 1000px transparent inset",
+      WebkitTextFillColor: "white",
+      caretColor: "white",
+      transition: "background-color 5000s ease-in-out 0s",
     },
-    '&:-webkit-autofill:hover': {
-      WebkitTextFillColor: 'white',
-      caretColor: 'white',
+    "&:-webkit-autofill:hover": {
+      WebkitTextFillColor: "white",
+      caretColor: "white",
     },
-    '&:-webkit-autofill:focus': {
-      WebkitTextFillColor: 'white',
-      caretColor: 'white',
+    "&:-webkit-autofill:focus": {
+      WebkitTextFillColor: "white",
+      caretColor: "white",
     },
-    '&:-webkit-autofill:active': {
-      WebkitTextFillColor: 'white',
-      caretColor: 'white',
+    "&:-webkit-autofill:active": {
+      WebkitTextFillColor: "white",
+      caretColor: "white",
     },
   },
 });
@@ -50,7 +51,8 @@ const Login = () => {
   const onSubmit = async (data) => {
     try {
       const response = await loginUser(data.email, data.password);
-      const { access_token, refresh_token, access_token_expires } = response.data;
+      const { access_token, refresh_token, access_token_expires } =
+        response.data;
       handleLogin(access_token, refresh_token, access_token_expires);
     } catch (error) {
       if (error.response && error.response.data) {
@@ -62,47 +64,95 @@ const Login = () => {
     }
   };
 
-
   return (
     <Box
       sx={{
+        background: "linear-gradient(to right, #062621 40%, #24201f 48%)",
+        padding: "1rem",
         height: "100vh",
-        display: "grid",
-        placeItems: "center",
-        backgroundImage: "url(https://i.redd.it/exu4qasg7tr61.png)",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        backgroundSize: "cover",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
       }}
     >
       <Card
-        component={Form}
-        onSubmit={handleSubmit(onSubmit)}
-        method="post"
-        action="/login"
-        sx={{ padding: 4, display: "flex", flexDirection: "column", gap: 4 }}
+        sx={{
+          display: "flex",
+          width: 1200,
+          height: 600,
+          boxShadow: "0px 0px 0px 8px rgba(0, 0, 0, 0.3)",
+        }}
       >
-        <WebsiteName/>
-        {error && <div style={{ color: "white" }}>{error}</div>}
-        <StyledTextField 
-          {...register("email", {
-            required: true,
-          })}
-          type="email"
-          placeholder="Email"
-        />
+        <Box
+          sx={{
+            width: "80%",
+            backgroundImage:
+              "url(https://img.freepik.com/free-photo/business-concept-with-graphic-holography_23-2149160929.jpg?t=st=1723109904~exp=1723113504~hmac=4a0303ca742cd1760585a04733fe0a5886666f71a92d02092bf384f30a5916af&w=996)",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+            backgroundSize: "cover",
+          }}
+        >
+          <Typography variant="h4" sx={{p:4}}>Moon Market</Typography>
+        </Box>
+        <Box
+          sx={{
+            width: "100%",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: "#24201f",
+            gap: 8,
+          }}
+        >
+          <Box
+            component={Form}
+            onSubmit={handleSubmit(onSubmit)}
+            method="post"
+            action="/login"
+            sx={{
+              padding: 4,
+              display: "flex",
+              flexDirection: "column",
+              gap: 4,
+              width: 350,
+            }}
+          >
+            <Typography variant="h5">Login to your account</Typography>
+            {error && <div style={{ color: "white" }}>{error}</div>}
+            <StyledTextField
+              {...register("email", {
+                required: true,
+              })}
+              type="email"
+              placeholder="Email"
+            />
 
-        <TextField
-          {...register("password", {
-            required: true,
-          })}
-          type="password"
-          placeholder="Password"
-        />
+            <TextField
+              {...register("password", {
+                required: true,
+              })}
+              type="password"
+              placeholder="Password"
+            />
 
-        <Button variant="contained" type="submit">
-          Login
-        </Button>
+            <Button variant="contained" type="submit">
+              Login
+            </Button>
+          </Box>
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Typography color="Gray">Don't have an account yet?</Typography>
+            <Link
+              to={"/register"}
+              style={{
+                color: "white",
+              }}
+            >
+              Create an account
+            </Link>
+          </Box>
+        </Box>
       </Card>
     </Box>
   );

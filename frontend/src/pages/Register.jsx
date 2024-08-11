@@ -1,122 +1,172 @@
-
-import { useNavigate, Form } from "react-router-dom";
+import { useNavigate, Form, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthProvider";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { TextField, Box, Card, Typography, Button } from "@mui/material";
-import WebsiteName from '@/components/WebsiteName';
-import { RegisterUser } from '@/api/user'
+import WebsiteName from "@/components/WebsiteName";
+import { RegisterUser } from "@/api/user";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { userRegisterSchema } from "@/schemas/user";
 
 const ErrorMessage = ({ errors, name }) => {
-    if (!errors[name]) return null;
-    return <Typography color="error">{errors[name].message}</Typography>;
+  if (!errors[name]) return null;
+  return <Typography color="error">{errors[name].message}</Typography>;
 };
 
 function Register() {
-    const navigate = useNavigate();
-    const {
-        register,
-        handleSubmit,
-        formState: { errors },
-    } = useForm({
-        resolver: zodResolver(userRegisterSchema),
-        criteriaMode: 'all'
-    });
+  const navigate = useNavigate();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(userRegisterSchema),
+    criteriaMode: "all",
+  });
 
-    const onSubmit = async (data) => {
-        if (data.password === data.confirmPassword) {
-            const user = {
-                email: data.email,
-                username: data.username,
-                password: data.password,
-                deposits: [{
-                    amount: parseFloat(data.initialDeposit),
-                    date: new Date().toISOString() // Current date and time in ISO format
-                }]
-            }
-            try {
-                const response = await RegisterUser(user)
-                if (response.status === 200) {
-                    navigate("/login", { replace: true });
-                }
-                // console.log(response)
-            }
-            catch (error) {
-                console.log("An error occurred while registering");
-            }
+  const onSubmit = async (data) => {
+    if (data.password === data.confirmPassword) {
+      const user = {
+        email: data.email,
+        username: data.username,
+        password: data.password,
+        deposits: [
+          {
+            amount: parseFloat(data.initialDeposit),
+            date: new Date().toISOString(), // Current date and time in ISO format
+          },
+        ],
+      };
+      try {
+        const response = await RegisterUser(user);
+        if (response.status === 200) {
+          navigate("/login", { replace: true });
         }
+        // console.log(response)
+      } catch (error) {
+        console.log("An error occurred while registering");
+      }
     }
+  };
 
-
-    return (
+  return (
+    <Box
+      sx={{
+        background: "linear-gradient(to right, #205462 40%, #24201f 52%)",
+        padding: "1rem",
+        height: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
+      <Card
+        component={Form}
+        onSubmit={handleSubmit(onSubmit)}
+        method="post"
+        action="/register"
+        sx={{
+          display: "flex",
+          width: 1200,
+          height: 600,
+          boxShadow: "0px 0px 0px 8px rgba(0, 0, 0, 0.3)",
+        }}
+      >
         <Box
-            sx={{
-                height: "100vh",
-                display: "grid",
-                placeItems: "center",
-                backgroundImage: "url(https://i.redd.it/exu4qasg7tr61.png)",
-                backgroundPosition: "center",
-                backgroundRepeat: "no-repeat",
-                backgroundSize: "cover",
-            }}
+          sx={{
+            width: "80%",
+            backgroundImage:
+              "url(https://img.freepik.com/free-photo/business-concept-with-graphic-holography_23-2149160927.jpg?t=st=1723367957~exp=1723371557~hmac=9b8af411fa66477b9d93543b034b10e036cf27a4c723ce0aafef9c8ae02b1924&w=1380)",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+            backgroundSize: "cover",
+          }}
         >
-            <Card
-                component={Form}
-                onSubmit={handleSubmit(onSubmit)}
-                method="post"
-                action="/register"
-                sx={{ padding: 4, display: "flex", flexDirection: "column", gap: 3, width: '400px' }}
-            >
-                <WebsiteName />
-                <TextField
-                    {...register("email", {
-                        required: true,
-                    })}
-                    type="email"
-                    placeholder="Email"
-                />
-                <ErrorMessage errors={errors} name="email" />
-                <TextField
-                    {...register("username", {
-                        required: true,
-                    })}
-                    type="name"
-                    placeholder="Username"
-                />
-                <ErrorMessage errors={errors} name="username" />
-                <TextField
-                    {...register("password", {
-                        required: true,
-                    })}
-                    type="password"
-                    placeholder="Password"
-                />
-                <ErrorMessage errors={errors} name="password" />
-                <TextField
-                    {...register("confirmPassword", {
-                        required: true,
-                    })}
-                    type="password"
-                    placeholder="Confirm Password"
-                />
-                <ErrorMessage errors={errors} name="confirmPassword" />
-                <TextField
-                    {...register("initialDeposit", {
-                        required: true,
-                    })}
-                    placeholder="Initial Deposit"
-                />
-                <ErrorMessage errors={errors} name="initialDeposit" />
-
-                <Button variant="contained" type="submit">
-                    Register
-                </Button>
-            </Card>
+          <Typography variant="h4" sx={{ p: 4 }}>
+            Moon Market
+          </Typography>
         </Box>
-    );
-};
+        <Box
+          sx={{
+            width: "100%",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: 3,
+            background: '#24201f'
+          }}
+        >
+          <Box
+            sx={{
+              padding: 4,
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+              width: 350,
+            }}
+          >
+            <Typography variant="h5">Sign up</Typography>
+            <TextField
+              {...register("email", {
+                required: true,
+              })}
+              type="email"
+              placeholder="Email"
+            />
+            <ErrorMessage errors={errors} name="email" />
+            <TextField
+              {...register("username", {
+                required: true,
+              })}
+              type="name"
+              placeholder="Username"
+            />
+            <ErrorMessage errors={errors} name="username" />
+            <TextField
+              {...register("password", {
+                required: true,
+              })}
+              type="password"
+              placeholder="Password"
+            />
+            <ErrorMessage errors={errors} name="password" />
+            <TextField
+              {...register("confirmPassword", {
+                required: true,
+              })}
+              type="password"
+              placeholder="Confirm Password"
+            />
+            <ErrorMessage errors={errors} name="confirmPassword" />
+            <TextField
+              {...register("initialDeposit", {
+                required: true,
+              })}
+              placeholder="Initial Deposit"
+            />
+            <ErrorMessage errors={errors} name="initialDeposit" />
+            <Button variant="contained" type="submit">
+              Register
+            </Button>
+          </Box>
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Typography sx={{ color: "grey" }}>
+              Already have an account?
+            </Typography>
+            <Link
+              to={"/login"}
+              style={{
+                color: "white",
+              }}
+            >
+              Login
+            </Link>
+          </Box>
+        </Box>
+      </Card>
+    </Box>
+  );
+}
 
-
-export default Register
+export default Register;
