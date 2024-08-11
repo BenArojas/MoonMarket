@@ -52,7 +52,7 @@ function Register() {
   return (
     <Box
       sx={{
-        background: "linear-gradient(to right, #205462 40%, #24201f 52%)",
+        background: "linear-gradient(to right, #205462 35%, #24201f 55%)",
         padding: "1rem",
         height: "100vh",
         display: "flex",
@@ -74,15 +74,14 @@ function Register() {
       >
         <Box
           sx={{
-            width: "80%",
-            backgroundImage:
-              "url(https://img.freepik.com/free-photo/business-concept-with-graphic-holography_23-2149160927.jpg?t=st=1723367957~exp=1723371557~hmac=9b8af411fa66477b9d93543b034b10e036cf27a4c723ce0aafef9c8ae02b1924&w=1380)",
+            width: "100%",
+            backgroundImage: `url('/register_stocks.jpg')`,
             backgroundPosition: "center",
             backgroundRepeat: "no-repeat",
             backgroundSize: "cover",
           }}
         >
-          <Typography variant="h4" sx={{ p: 4 }}>
+          <Typography variant="h3" sx={{ p: 4 }}>
             Moon Market
           </Typography>
         </Box>

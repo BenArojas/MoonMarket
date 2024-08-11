@@ -14,6 +14,7 @@ function RocketSideBar() {
     const clampedPercentage = Math.max(0, Math.min(percentageChange, 90));
     return `${clampedPercentage}%`;
   };
+  
   return (
     <div>
       <ShootingStars />

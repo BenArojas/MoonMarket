@@ -58,7 +58,7 @@ function PortfolioStats({ value, percentageChange, stockTickers, incrementalChan
                         color={trendColor}
                         sx={{ fontWeight: "bold" }}
                     >
-                        {percentageChange.toFixed(2).toLocaleString("en-US")}%
+                        {percentageChange?.toFixed(2).toLocaleString("en-US")}%
                     </Typography>
                 </Box>
 

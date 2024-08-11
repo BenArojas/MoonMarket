@@ -6,8 +6,7 @@ import { useForm } from "react-hook-form";
 import { TextField, Box, Card, Typography, Button } from "@mui/material";
 import WebsiteName from "@/components/WebsiteName";
 import { styled } from "@mui/material/styles";
-import { padding } from "polished";
-import { image } from "d3";
+
 
 const StyledTextField = styled(TextField)({
   "& .MuiInputBase-input": {
@@ -67,7 +66,7 @@ const Login = () => {
   return (
     <Box
       sx={{
-        background: "linear-gradient(to right, #062621 40%, #24201f 48%)",
+        background: "linear-gradient(to right, #062621 35%, #24201f 55%)",
         padding: "1rem",
         height: "100vh",
         display: "flex",
@@ -85,15 +84,16 @@ const Login = () => {
       >
         <Box
           sx={{
-            width: "80%",
-            backgroundImage:
-              "url(https://img.freepik.com/free-photo/business-concept-with-graphic-holography_23-2149160929.jpg?t=st=1723109904~exp=1723113504~hmac=4a0303ca742cd1760585a04733fe0a5886666f71a92d02092bf384f30a5916af&w=996)",
+            width: "100%",
+            backgroundImage: `url('/login_stocks.jpg')`,
             backgroundPosition: "center",
             backgroundRepeat: "no-repeat",
             backgroundSize: "cover",
           }}
         >
-          <Typography variant="h4" sx={{p:4}}>Moon Market</Typography>
+          <Typography variant="h3" sx={{ p: 4 }}>
+            Moon Market
+          </Typography>
         </Box>
         <Box
           sx={{

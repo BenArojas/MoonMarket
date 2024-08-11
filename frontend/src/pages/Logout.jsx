@@ -1,20 +1,21 @@
-import { useNavigate, redirect } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthProvider";
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthProvider';
 
 const Logout = () => {
   const { clearTokens } = useAuth();
+  const navigate = useNavigate();
 
-  // Function to handle logout
-  const handleLogout = () => {
-    clearTokens(); // Clear the authentication token
-    redirect("/login", { replace: true }); // Navigate to the home page ("/") with replace option set to true
-  };
+  useEffect(() => {
+    const handleLogout = () => {
+      clearTokens(); // Clear the authentication token
+      navigate("/login", { replace: true }); // Navigate to the login page with replace option set to true
+    };
 
-  setTimeout(() => {
     handleLogout(); // Invoke the logout action
-  }, 500);
+  }, [clearTokens, navigate]); // Dependency array to avoid unnecessary re-renders
 
-  return <>Logout Page</>;
+  return <>Logging out...</>; // Provide a better user experience with some feedback
 };
 
 export default Logout;
