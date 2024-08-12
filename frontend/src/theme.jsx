@@ -6,7 +6,8 @@ export const darkTheme = createTheme({
   },
   palette: {
     background: {
-      default: "#2B2B2B",
+      default: "#0b0b0b"
+      // default: "#2B2B2B",
       // default: "#060817",
       // default:'#15202B'
     },

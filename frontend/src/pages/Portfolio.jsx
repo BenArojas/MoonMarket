@@ -57,6 +57,7 @@ function Portfolio() {
     queryKey: ["stockData", selectedTicker, token],
     queryFn: () => getIntradyData(selectedTicker, token),
     enabled: !!selectedTicker && !!token,
+    staleTime: 120 * 1000, 
   });
 
   const { data: dailyTimeFrame, isPending: dailyTimeFrameLoading } = useQuery({

@@ -1,25 +1,28 @@
 // ErrorPage.js
-import React from 'react';
+import React, {useEffect} from 'react';
 import { useNavigate, useRouteError } from 'react-router-dom';
 import { useAuth } from "@/contexts/AuthProvider";
-import { Button } from '@mui/material';
 
 const ErrorPage = () => {
   const error = useRouteError();
   const { clearTokens } = useAuth();
   const navigate = useNavigate();
 
-  // Log the error object to the console for debugging
-
-
-  const handleClick =  () => {
+  const handleLogout = () => {
     clearTokens(); // Clear the authentication token
-    navigate('/login', { replace: true });
+    navigate("/login", { replace: true }); // Navigate to the login page with replace option set to true
   };
+
+  useEffect(() => {
+    if(error?.response?.status === 401 ){
+      handleLogout(); // Invoke the logout action
+    }
+  }, [clearTokens, navigate, error]); // Dependency array to avoid unnecessary re-renders
+
   return (
     <div>
       <h1>Error</h1>
-      {error?.response?.status === 401 ? <div><p>seems like youre Unauthorized. please click the button to login.</p>  <Button onClick={handleClick}>Reauthorize</Button></div> :   <p>{error?.data || 'An unexpected error occurred.'}</p>}
+      {error?.data }
     </div>
   );
 };

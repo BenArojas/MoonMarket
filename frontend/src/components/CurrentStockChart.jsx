@@ -10,6 +10,7 @@ export const CurrentStockChart = (props) => {
 
   const {
     data,
+    trend,
     enableAdvancedFeatures = false,
     colors: {
       backgroundColor = "transparent",
@@ -52,24 +53,25 @@ export const CurrentStockChart = (props) => {
       },
     });
 
-    const greenStyle = {
-      lineColor: "rgb(4,153,129)",
-      topColor: "rgba(4,153,129, 0.4)",
-      bottomColor: "rgba(4,153,129, 0)",
-      lineWidth: 3,
-    };
-
-    const redStyle = {
-      lineColor: "rgb(239,83,80)",
-      topColor: "rgba(239,83,80, 0.4)",
-      bottomColor: "rgba(239,83,80, 0)",
-      lineWidth: 3,
-    };
 
     const fadeStyle = {
       lineColor: "rgb(40,98,255, 0.2)",
       topColor: "rgba(40,98,255, 0.05)",
       bottomColor: "rgba(40,98,255, 0)",
+    };
+
+    const positiveStyle = {
+      color: theme.palette.primary.main,
+      lineColor: theme.palette.primary.main,
+      topColor: theme.palette.primary.main,
+      bottomColor: "transparent",
+    };
+
+    const negativeStyle = {
+      color: 'red',
+      lineColor: 'red',
+      topColor: 'red',
+      bottomColor: "transparent",
     };
 
     const baseStyle = {
@@ -85,25 +87,20 @@ export const CurrentStockChart = (props) => {
 
     let series;
     if (enableAdvancedFeatures) {
-      const brushableAreaSeries = new BrushableAreaSeries({
-        lineColor: theme.palette.primary.main,
-        topColor: theme.palette.primary.main,
-        bottomColor: "transparent",
-      });
+      const style = trend === 'positive' ? positiveStyle : negativeStyle;
+
+      const brushableAreaSeries = new BrushableAreaSeries(style);
 
       series = chart.addCustomSeries(brushableAreaSeries, {
         priceLineVisible: false,
       });
       series.applyOptions({
-        color: theme.palette.primary.main,
-        lineColor: theme.palette.primary.main,
-        topColor: theme.palette.primary.main,
-        bottomColor: "transparent",
+        ...style,
         lineWidth: 2,
       });
 
       const tooltipPrimitive = new DeltaTooltipPrimitive({
-        lineColor,
+        lineColor: style.lineColor,
       });
       series.attachPrimitive(tooltipPrimitive);
 
@@ -111,7 +108,7 @@ export const CurrentStockChart = (props) => {
         if (activeRange === null) {
           series.applyOptions({
             brushRanges: [],
-            ...baseStyle,
+            ...(trend === 'positive' ? positiveStyle : negativeStyle),
           });
           return;
         }
@@ -122,17 +119,23 @@ export const CurrentStockChart = (props) => {
                 from: activeRange.from,
                 to: activeRange.to,
               },
-              style: activeRange.positive ? greenStyle : redStyle,
+              style: activeRange.positive ? positiveStyle : negativeStyle,
             },
           ],
-          ...fadeStyle,
+          ...(trend === 'positive' ? fadeStyle : {
+            lineColor: "rgba(239,83,80, 0.2)",
+            topColor: "rgba(239,83,80, 0.05)",
+            bottomColor: "rgba(239,83,80, 0)",
+          }),
         });
       });
     } else {
       series = chart.addAreaSeries();
-      series.applyOptions({...baseStyle,
+      series.applyOptions({
+        ...baseStyle,
         lineType: 2,
-        priceLineVisible: false,})
+        priceLineVisible: false,
+      })
 
       const tooltipPrimitive = new TooltipPrimitive();
       series.attachPrimitive(tooltipPrimitive);

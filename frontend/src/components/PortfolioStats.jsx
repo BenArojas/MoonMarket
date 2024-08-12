@@ -9,9 +9,8 @@ import { updateStockPrice } from '@/api/stock';
 
 
 
-function PortfolioStats({ value, percentageChange, stockTickers, incrementalChange, token, formattedDate }) {
-
-    const trendColor = percentageChange > 0 ? "primary" : "error";
+function PortfolioStats({ value, percentageChange, stockTickers, incrementalChange, token, formattedDate, trend }) {
+    const trendColor = trend === 'positive' ? "primary" : "error";
     const queryClient = useQueryClient();
 
     const updateStockPricesMutation = useMutation({
@@ -19,7 +18,7 @@ function PortfolioStats({ value, percentageChange, stockTickers, incrementalChan
             const promises = tickers.map((ticker) => updateStockPrice(ticker, token));
             return Promise.allSettled(promises);
         },
-        onSuccess:() => {
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['userData', token] });
         },
     });
@@ -89,11 +88,11 @@ function PortfolioStats({ value, percentageChange, stockTickers, incrementalChan
                         value="UpdatePrices"
                         onClick={handleUpdatePrices}
                     >
-                        {updateStockPricesMutation.isPending  ? <CircularProgress size={24} /> : <SyncIcon />}
+                        {updateStockPricesMutation.isPending ? <CircularProgress size={24} /> : <SyncIcon />}
                     </IconButton>
                 </Tooltip>
 
-            </Box>  
+            </Box>
         </Box>
     )
 }

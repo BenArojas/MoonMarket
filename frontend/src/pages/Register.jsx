@@ -81,9 +81,11 @@ function Register() {
             backgroundSize: "cover",
           }}
         >
-          <Typography variant="h3" sx={{ p: 4 }}>
-            Moon Market
-          </Typography>
+          <Box sx={{
+            width: 300, height: 300
+          }}>
+            <img src="/moonMarket-Photoroom.png"></img>
+          </Box>
         </Box>
         <Box
           sx={{
