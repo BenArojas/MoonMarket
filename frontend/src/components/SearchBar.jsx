@@ -29,7 +29,7 @@ function SearchBar() {
     // Check if ticker is a string and has length between 1 and 5
     if (
       typeof ticker === "string" &&
-      ticker.length >= 1 &&
+      ticker.length >= 2 &&
       ticker.length <= 5
     ) {
       // Check if ticker contains only alphabetic characters
@@ -50,6 +50,7 @@ function SearchBar() {
     e.preventDefault();
     if (isValidStockTicker(tickerInput)) {
       navigateToStockPage(tickerInput);
+      
     } else {
       // Handle invalid ticker input
       alert("Please enter a valid ticker");
@@ -67,8 +68,6 @@ function SearchBar() {
     <div className="search-bar">
       <div className="search-container">
         <form onSubmit={handleSubmit}>
-          {/* <CiSearch className="search-icon" />{" "} */}
-          {/* Place CiSearch component before the input */}
           <StyledTextField
             type="text"
             name="ticker"

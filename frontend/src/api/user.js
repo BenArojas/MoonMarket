@@ -45,7 +45,8 @@ export async function refreshJwtKey(token) {
   return response;
 }
 
-export async function addUserPurchase(price, ticker, quantity, token) {
+export async function addUserPurchase({price, ticker, quantity, token}) {
+  
   const response = await axios.post(
     `${baseUrl}/transaction/buy_stock`,
     null, // Set the request body to null if your API doesn't expect a request body
@@ -56,10 +57,11 @@ export async function addUserPurchase(price, ticker, quantity, token) {
       },
     }
   );
-  return response;
+  return response.data;
 }
 
-export async function addUserSale(ticker, quantity, price, token) {
+export async function addUserSale({ticker, quantity, price, token}) {
+  
   const response = await axios.post(
     `${baseUrl}/transaction/sell_stock`,
     null, // Set the request body to null if your API doesn't expect a request body
@@ -70,7 +72,7 @@ export async function addUserSale(ticker, quantity, price, token) {
       },
     }
   );
-  return response;
+  return response.data;
 }
 
 export async function addStockToPortfolio(

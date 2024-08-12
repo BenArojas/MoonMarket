@@ -17,7 +17,7 @@ export default function ConfirmBuyDialog({ setisBought,open,ticker, quantity, pr
             <Typography>Stock Ticker: {ticker}</Typography>
             <Typography>Quantity Purchased: {quantity}</Typography>
             <Typography>Purchase Price per Share: {price}</Typography>
-            <Typography>Total Cost: {totalCost}</Typography>
+            <Typography>Total Cost: {totalCost}$</Typography>
           </Box>
         </DialogContent>
       </Dialog>

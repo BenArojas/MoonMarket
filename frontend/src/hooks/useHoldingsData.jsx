@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { getStockFromPortfolio } from "@/api/stock";
 
-function useHoldingsData(holdingsList, token) {
+function useHoldingsData(holdingsList, token, userData) {
     const [holdingsData, setHoldingsData] = useState([])
     useEffect(() => {
         const getStocksData = async () => {
@@ -9,11 +9,17 @@ function useHoldingsData(holdingsList, token) {
                 getStockFromPortfolio(holding.ticker, token)
             );
             let results = await Promise.all(promises);
-            
-            setHoldingsData(results)
+
+            if (results.length === holdingsList.length) {
+                setHoldingsData(results);
+            }
         }
-        getStocksData()
-    }, [holdingsList])
+        if (holdingsList.length > 0) {
+            getStocksData();
+        } else {
+            setHoldingsData([]); // Reset holdings data if there are no holdings
+        }
+    }, [holdingsList, userData])
 
     return holdingsData
 }

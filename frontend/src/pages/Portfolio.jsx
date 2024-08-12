@@ -134,7 +134,6 @@ function PortfolioContent({ userData, token }) {
     selectedGraph,
     token
   );
-  console.log(value, typeof (value));
 
 
   const queryClient = useQueryClient()
@@ -142,13 +141,11 @@ function PortfolioContent({ userData, token }) {
     mutationFn: postSnapshot,
     onSuccess: (data) => {
       queryClient.invalidateQueries(["dailyTimeFrame"]) // Invalidate the dailyTimeFrame query when the snapshot is posted
-      console.log("posted a snapshot", data)
     },
     onError: (error) => {
       console.error("Error posting a snapshot", error);
     }
   })
-
 
 
   useEffect(() => {

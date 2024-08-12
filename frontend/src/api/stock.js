@@ -22,8 +22,12 @@ export async function getStockData(ticker, token) {
         },
       }
     );
-    return stock.data;
+    if(stock.data.length == 0) {
+    return null;
+  }else{
+    return stock.data[0];
   }
+}
 }
 
 export async function getHistoricalData(ticker, token) {

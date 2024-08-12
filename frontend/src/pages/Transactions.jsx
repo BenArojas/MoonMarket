@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { useLoaderData, Await, defer } from "react-router-dom";
 import CustomizedTables from "@/components/TransactionsTable";
 import SkeletonTable from "@/Skeletons/TableSkeleton";
+import ErrorPage from "./ErrorPage";
 
 
 export const loader = (token) => async () => {
@@ -42,7 +43,7 @@ function Transactions() {
       >
         <Await
           resolve={data.transactions}
-          errorElement={<p>Error loading package location!</p>}
+          errorElement={<ErrorPage/>}
         >
           {(res) => (
             <>

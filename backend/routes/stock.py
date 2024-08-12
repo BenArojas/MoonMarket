@@ -94,7 +94,7 @@ def get_stock_quote(symbol:str):
             url = f"{BASE_URL}{endpoint}?apikey={api_key}"
             response = requests.get(url)
             response.raise_for_status()  # Raises an HTTPError for bad responses
-            stock_quote = response.json()[0]
+            stock_quote = response.json()
             return stock_quote
         except requests.RequestException as e:
             print(f"Error with API key {api_key}: {str(e)}")

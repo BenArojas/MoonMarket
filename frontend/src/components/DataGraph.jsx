@@ -28,7 +28,7 @@ function DataGraph({ isDataProcessed, selectedGraph, visualizationData  }) {
     return <Skeleton />;
   }
 
-  if (!visualizationData ) {
+  if (!visualizationData || visualizationData.length === 0) {
     return <Skeleton />;
   }
 

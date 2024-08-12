@@ -10,7 +10,7 @@ import useHoldingsData from "@/hooks/useHoldingsData";
 
 function useGraphData(userData, selectedGraph, token) {
   const stockList = userData.holdings;
-  const stocksInfo = useHoldingsData(stockList, token);
+  const stocksInfo = useHoldingsData(stockList, token, userData);
 
   const portfolioStats = useMemo(() => {
     if (stockList.length > 0 && stocksInfo.length > 0) {
@@ -20,7 +20,7 @@ function useGraphData(userData, selectedGraph, token) {
   }, [stockList, stocksInfo]);
 
   const visualizationData = useMemo(() => {
-    if (stockList.length === 0 || stocksInfo.length === 0) return null;
+    if (stockList.length === 0 || stocksInfo.length !== stockList.length) return null;
 
     switch (selectedGraph) {
       case "Treemap":

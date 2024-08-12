@@ -3,14 +3,17 @@ export function getPortfolioStats(stocksList, stocksInfo) {
   let tickers = [];
   let sum = 0;
   let totalSpent = 0;
-
-  for (let i = 0; i < stocksInfo.length; i++) {
+  for (let i = 0; i < stocksList.length; i++) {
     const res = stocksInfo[i];
     const holding = stocksList[i];
-    const value = holding.quantity * res.price;
-    sum += value;
-    totalSpent += holding.avg_bought_price * holding.quantity;
-    tickers.push(holding.ticker);
+    
+    // Add null checks
+    if (holding && res) {
+      const value = holding.quantity * res.price;
+      sum += value;
+      totalSpent += holding.avg_bought_price * holding.quantity;
+      tickers.push(holding.ticker);
+    }
   }
 
   return { tickers, sum, totalSpent };
@@ -21,9 +24,14 @@ export function processTreemapData(stocksList, stocksInfo) {
   const negativeStocks = [];
   let sum = 0;
 
-  for (let i = 0; i < stocksInfo.length; i++) {
+  for (let i = 0; i < stocksList.length; i++) {
     const res = stocksInfo[i];
     const holding = stocksList[i];
+
+     // Add null checks
+     if (!res || !holding) continue;
+
+
     const stock_avg_price = holding.avg_bought_price;
     const value = holding.quantity * res.price;
     sum += value;
@@ -37,7 +45,7 @@ export function processTreemapData(stocksList, stocksInfo) {
         value: value,
         avgSharePrice: stock_avg_price.toFixed(2),
         quantity: holding.quantity,
-        last_price: Math.round(res.price),
+        last_price: res.price.toFixed(2),
         priceChangePercentage: Math.round(
           ((res.price - stock_avg_price) / stock_avg_price) * 100
         ),
@@ -156,7 +164,7 @@ export function processCircularData(stocksList, stocksInfo) {
     totalPortfolioValue += value;
   });
 
-  for (let i = 0; i < stocksInfo.length; i++) {
+  for (let i = 0; i < stocksList.length; i++) {
     const res = stocksInfo[i];
     const holding = stocksList[i];
     const value = holding.quantity * res.price;

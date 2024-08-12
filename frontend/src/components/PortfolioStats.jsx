@@ -25,6 +25,7 @@ function PortfolioStats({ value, percentageChange, stockTickers, incrementalChan
     const handleUpdatePrices = () => {
         updateStockPricesMutation.mutate(stockTickers);
     }
+    
     return (
         <Box
             className="stats"

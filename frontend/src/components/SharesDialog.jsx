@@ -16,9 +16,10 @@ function SharesDialog({
   handleClose,
   open,
   dialog,
-  addUserPurchase,
-  addUserSale,
+  buyShares,
+  sellShares,
 }) {
+
   const [serverError, setServerError] = useState(null);
   const {
     register,
@@ -33,31 +34,34 @@ function SharesDialog({
   const onSubmit = async (data, event) => {
     event.preventDefault();
     try {
-      if (dialog.function === addUserPurchase) {
-        const response = await dialog.function(
-          data.price,
-          dialog.ticker,
-          data.quantity,
-          dialog.token
-        );
-        handleClose()
-      } else if (dialog.function === addUserSale) {
-        const response = await dialog.function(
-          dialog.ticker,
-          data.quantity,
-          data.price,
-          dialog.token
-        );
-        handleClose()
+      if (dialog.function === 'buy') {
+        await buyShares.mutateAsync({
+          price: data.price,
+          ticker: dialog.ticker,
+          quantity: data.quantity,
+          token: dialog.token,
+        });
+      } else if (dialog.function === "sell") {
+        await sellShares.mutateAsync({
+          ticker: dialog.ticker,
+          quantity: data.quantity,
+          price: data.price,
+          token: dialog.token,
+        });
       }
+      else {
+        console.log("Unknown function", dialog.function);
+      }
+      handleClose();
     } catch (error) {
-      if (error.response.status > 200) {
+      console.error("Error in onSubmit:", error);
+      if (error.response && error.response.data) {
         setServerError("ERROR! " + error.response.data.detail);
+      } else {
+        setServerError("An unexpected error occurred");
       }
-      console.error("Error:", error);
     }
   };
-
 
   return (
     <React.Fragment>

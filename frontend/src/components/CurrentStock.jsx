@@ -1,12 +1,10 @@
 import { createChart, ColorType } from "lightweight-charts";
 import React, { useEffect, useRef, useState } from "react";
 import { Box, Card, Stack, Typography, useTheme, Button } from "@mui/material";
-import { getHistoricalData } from "@/api/stock";
 import { addUserPurchase, addUserSale } from "@/api/user";
-import { transactionSchema } from "@/schemas/transaction";
-import { zodResolver } from "@hookform/resolvers/zod";
 import SharesDialog from "@/components/SharesDialog.jsx";
 import { CurrentStockChart } from "@/components/CurrentStockChart.jsx";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 function transformData(historicalData) {
   return historicalData
@@ -22,9 +20,29 @@ export default function CurrentStockCard({
   stockTicker,
   token,
 }) {
-
   const transformedData = transformData(stockData);
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  const queryClient = useQueryClient()
+  const buyShares = useMutation({
+    mutationFn: addUserPurchase,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries(["userData"]) 
+    },
+    onError: (error) => {
+      console.error("Error posting transaction", error);
+    }
+  })
+
+  const sellShares = useMutation({
+    mutationFn: addUserSale,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries(["userData"]) 
+    },
+    onError: (error) => {
+      console.error("Error posting transaction", error);
+    }
+  })
 
   const [dialog, setDialog] = useState({
     title: "",
@@ -47,8 +65,9 @@ export default function CurrentStockCard({
       title: "Add shares",
       text: "To add shares of the stock, please enter how many shares of the stock you bought and at which price.",
       labelText: "Enter bought price",
-      function: addUserPurchase,
+      function: "buy",
       buttonText: "Add",
+      ticker: stockTicker,
     }));
   };
   const handleSellClick = () => {
@@ -58,8 +77,9 @@ export default function CurrentStockCard({
       title: "Sell shares",
       text: "To sell shares of the stock, please enter how many shares of the stock you sold and at which price.",
       labelText: "Enter sold price",
-      function: addUserSale,
+      function: "sell",
       buttonText: "Sell",
+      ticker: stockTicker,
     }));
   };
 
@@ -103,8 +123,8 @@ export default function CurrentStockCard({
           handleClose={handleClose}
           open={dialogOpen}
           dialog={dialog}
-          addUserPurchase={addUserPurchase}
-          addUserSale={addUserSale}
+          buyShares={buyShares}
+          sellShares={sellShares}
         />
       )}
     </Card>

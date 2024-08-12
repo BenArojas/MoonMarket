@@ -12,6 +12,7 @@ import {
 import { getUserData } from "@/api/user";
 import TabsSkeleton from "@/Skeletons/TabsSkeleton";
 import { getFriendList } from "@/api/friend";
+import ErrorPage from "./ErrorPage";
 
 export const loader = (token) => async () => {
   const userPromise = getUserData(token);
@@ -50,7 +51,7 @@ function Profile() {
       <Suspense fallback={<TabsSkeleton />}>
         <Await
           resolve={Promise.all([data.user, data.friendList])}
-          errorElement={<p>Error loading </p>}
+          errorElement={<ErrorPage/>}
         >
           {([user, friendList]) => (
             <>

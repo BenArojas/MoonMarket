@@ -15,7 +15,7 @@ import Input from "@mui/material/Input";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useLoaderData } from "react-router-dom";
@@ -58,9 +58,13 @@ function StockItem() {
     criteriaMode: "all",
   });
 
+  const queryClient = useQueryClient();
   const { mutateAsync: addStockMutation } = useMutation({
     mutationFn: ({ portfolioStock, price, quantity, token }) =>
       addStockToPortfolio(portfolioStock, price, quantity, token),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["userData"]) // Invalidate the dailyTimeFrame query when the snapshot is posted
+    },
   });
 
   const onSubmit = async (data) => {
@@ -93,139 +97,111 @@ function StockItem() {
   };
 
   return (
-    <Box
-      className="layoutContainer"
-      sx={{
-        display: "grid",
-        // flex: 1,
-        gridTemplateRows: "auto 1fr auto",
-        gap: 5,
-        margin: "auto",
-        width: "80%",
-      }}
-    >
-      <Box sx={{ display: "flex", gap: 5, alignItems: "center" }}>
-        <Typography variant="h4">{symbol}</Typography>
-        <Box sx={{ shrink: 0 }}>
-          <Typography variant="overline" color="GrayText">
-            Last Price
-          </Typography>
-          <Typography variant="body2">{stock?.price}</Typography>
-        </Box>
-        <Box sx={{ shrink: 0 }}>
-          <Typography variant="overline" color="GrayText">
-            Volume
-          </Typography>
-          <Typography variant="body2">{stock?.volume.toLocaleString("en-US")}</Typography>
-        </Box>
-        <Box sx={{ shrink: 0 }}>
-          <Typography variant="overline" color="GrayText">
-            High (24h)
-          </Typography>
-          <Typography variant="body2">{stock?.dayHigh}</Typography>
-        </Box>
-        <Box sx={{ shrink: 0 }}>
-          <Typography variant="overline" color="GrayText">
-            Low (24h)
-          </Typography>
-          <Typography variant="body2">{stock?.dayLow}</Typography>
-        </Box>
-        <Box sx={{ shrink: 0 }}>
-          <Typography variant="overline" color="GrayText">
-            Change (24h)
-          </Typography>
-          <Typography variant="body2">{stock?.changesPercentage}%</Typography>
-        </Box>
-        <Box sx={{ ml: "auto" }}>
-          {/* <FormControl>
-            <InputLabel id="demo-simple-select-label">Age</InputLabel>
-            <Select
-              labelId="demo-simple-select-label"
-              id="demo-simple-select"
-              value={age}
-              label="Age"
-              className=""
-              onChange={handleChange}
-              sx={{
-                width: 120,
-              }}
-            >
-              <MenuItem value={10}>Ten</MenuItem>
-              <MenuItem value={20}>Twenty</MenuItem>
-              <MenuItem value={30}>Thirty</MenuItem>
-            </Select>
-          </FormControl> */}
-          <SearchBar/>
-        </Box>
+    stock === null ? (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5, alignItems:'center' }}>
+        <SearchBar />
+        <Typography>Didn't find the ticker you submitted. please try another ticker</Typography>
       </Box>
-
-      
-      <CandleStickChart data={historical}/>
-      
-      <Card
+    ) : (
+      <Box
+        className="layoutContainer"
         sx={{
-          backgroundColor: "transparent",
-          p: 1,
-          width: "70%",
+          display: "grid",
+          gridTemplateRows: "auto 1fr auto",
+          gap: 5,
           margin: "auto",
+          width: "80%",
         }}
       >
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            // gap:6,
-            alignItems: "center",
-          }}
-          component={"form"}
-          onSubmit={handleSubmit(onSubmit)}
-        >
-          <Box sx={{ display: "flex", flexDirection: "Column", p: 1 }}>
-            <Typography>At Price</Typography>
-            <Input
-              placeholder="10.52"
-              {...register("price")}
-              value={price}
-              onChange={handleInputChange(setPrice)}
-            ></Input>
-            {errors.price?.message ?? null}
+        <Box sx={{ display: "flex", gap: 5, alignItems: "center" }}>
+          <Typography variant="h4">{symbol}</Typography>
+          <Box sx={{ shrink: 0 }}>
+            <Typography variant="overline" color="GrayText">Last Price</Typography>
+            <Typography variant="body2">{stock?.price}</Typography>
           </Box>
-          <Box sx={{ display: "flex", flexDirection: "Column" }}>
-            <Typography>Amount</Typography>
-            <Input
-              placeholder="0"
-              {...register("quantity")}
-              value={quantity}
-              onChange={handleInputChange(setQuantity)}
-            ></Input>
-            {errors.quantity?.message ?? null}
+          <Box sx={{ shrink: 0 }}>
+            <Typography variant="overline" color="GrayText">Volume</Typography>
+            <Typography variant="body2">{stock?.volume.toLocaleString("en-US")}</Typography>
           </Box>
-          <Box sx={{ display: "flex", flexDirection: "Column" }}>
-            <Typography>Total Price</Typography>
-            <Input
-              placeholder="0"
-              value={isNaN(totalPrice) ? "0" : totalPrice.toFixed(2)}
-              readOnly
-            ></Input>
+          <Box sx={{ shrink: 0 }}>
+            <Typography variant="overline" color="GrayText">High (24h)</Typography>
+            <Typography variant="body2">{stock?.dayHigh}</Typography>
           </Box>
-          <Box>
-            <Button variant="contained" type="submit">
-              Buy
-            </Button>
-            {isBought && (
-              <ConfirmBuyDialog
-                setisBought={setisBought}
-                open={isBought}
-                ticker={stock?.symbol}
-                price={price}
-                quantity={quantity}
-                totalCost={totalPrice.toFixed(2)}
-              />
-            )}
+          <Box sx={{ shrink: 0 }}>
+            <Typography variant="overline" color="GrayText">Low (24h)</Typography>
+            <Typography variant="body2">{stock?.dayLow}</Typography>
+          </Box>
+          <Box sx={{ shrink: 0 }}>
+            <Typography variant="overline" color="GrayText">Change (24h)</Typography>
+            <Typography variant="body2">{stock?.changesPercentage}%</Typography>
+          </Box>
+          <Box sx={{ ml: "auto" }}>
+            <SearchBar />
           </Box>
         </Box>
-      </Card>
-    </Box>
+        <CandleStickChart data={historical} />
+        <Card
+          sx={{
+            backgroundColor: "transparent",
+            p: 1,
+            width: "70%",
+            margin: "auto",
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+            component="form"
+            onSubmit={handleSubmit(onSubmit)}
+          >
+            <Box sx={{ display: "flex", flexDirection: "column", p: 1 }}>
+              <Typography>At Price</Typography>
+              <Input
+                placeholder="10.52"
+                {...register("price")}
+                value={price}
+                onChange={(e) => handleInputChange(setPrice)(e)}
+              />
+              {errors.price?.message}
+            </Box>
+            <Box sx={{ display: "flex", flexDirection: "column" }}>
+              <Typography>Amount</Typography>
+              <Input
+                placeholder="0"
+                {...register("quantity")}
+                value={quantity}
+                onChange={(e) => handleInputChange(setQuantity)(e)}
+              />
+              {errors.quantity?.message}
+            </Box>
+            <Box sx={{ display: "flex", flexDirection: "column" }}>
+              <Typography>Total Price</Typography>
+              <Input
+                placeholder="0"
+                value={isNaN(totalPrice) ? "0" : totalPrice.toFixed(2)}
+                readOnly
+              />
+            </Box>
+            <Box>
+              <Button variant="contained" type="submit">Buy</Button>
+              {isBought && (
+                <ConfirmBuyDialog
+                  setisBought={setisBought}
+                  open={isBought}
+                  ticker={stock?.symbol}
+                  price={price}
+                  quantity={quantity}
+                  totalCost={totalPrice.toFixed(2)}
+                />
+              )}
+            </Box>
+          </Box>
+        </Card>
+      </Box>
+    )
   );
 }
 
