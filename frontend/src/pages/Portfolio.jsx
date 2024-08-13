@@ -1,5 +1,5 @@
 import { getPortfolioSnapshots, postSnapshot } from "@/api/portfolioSnapshot";
-import { getIntradyData, updateStockPrice } from "@/api/stock";
+import { getIntradyData} from "@/api/stock";
 import { getUserData } from "@/api/user";
 import GraphMenu from "@/components/GraphMenu";
 import NewUserNoHoldings from "@/components/NewUserNoHoldings";
@@ -8,7 +8,7 @@ import useGraphData from "@/hooks/useGraphData";
 import { PercentageChange } from "@/pages/ProtectedRoute";
 import { lastUpdateDate } from "@/utils/dataProcessing";
 import { Box, Stack, CircularProgress, Card } from "@mui/material";
-import React, { useContext, useEffect, useState, lazy, Suspense } from "react";
+import React, { useContext, useEffect, useState} from "react";
 import DataGraph from "@/components/DataGraph";
 import SnapshotChart from "@/components/SnapShotChart";
 import CurrentStockCard from "@/components/CurrentStock";

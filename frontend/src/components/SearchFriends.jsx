@@ -6,7 +6,6 @@ import Input from "@mui/material/Input";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
-import Test from "/RealMoon.png";
 
 function SearchFriends() {
   const { token } = useAuth();
@@ -48,7 +47,7 @@ function SearchFriends() {
           <Button variant="outlined" onClick={handleSearchClick}>Search</Button>
         </Stack>
         <Stack spacing={2}>
-          {error? <p>{error}</p>: friend.username && <AddFriend src={Test} username={friend.username} email={friend.email} token={token}/>}
+          {error? <p>{error}</p>: friend.username && <AddFriend  username={friend.username} email={friend.email} token={token}/>}
         </Stack>
       </Box>
     </>

@@ -20,13 +20,3 @@ class Stock(Document):
                 "earnings": "2024-04-30T08:24:12"
             }
         }
-
-# class UpdateStockPrice(BaseModel):
-#     last_price: float | None = None
-
-#     class Config:
-#         json_schema_extra = {
-#             "example": {
-#                 "price": 100.0
-#             }
-#         }

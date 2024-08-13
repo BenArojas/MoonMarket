@@ -2,7 +2,7 @@ import { getUserTransactions } from "@/api/transaction";
 import { Divider, Typography, Container, Box } from "@mui/material";
 import { Suspense } from "react";
 import { useLoaderData, Await, defer } from "react-router-dom";
-import CustomizedTables from "@/components/TransactionsTable";
+import TransactionsTable from "@/components/TransactionsTable";
 import SkeletonTable from "@/Skeletons/TableSkeleton";
 import ErrorPage from "./ErrorPage";
 
@@ -59,7 +59,7 @@ function Transactions() {
                 </Box>
               ) : (
                 <Container>
-                  <CustomizedTables data={res} />
+                  <TransactionsTable data={res} />
                 </Container>
               )}
             </>

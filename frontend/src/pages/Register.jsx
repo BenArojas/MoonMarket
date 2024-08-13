@@ -1,9 +1,6 @@
 import { useNavigate, Form, Link } from "react-router-dom";
-import { useAuth } from "../contexts/AuthProvider";
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { TextField, Box, Card, Typography, Button } from "@mui/material";
-import WebsiteName from "@/components/WebsiteName";
 import { RegisterUser } from "@/api/user";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { userRegisterSchema } from "@/schemas/user";

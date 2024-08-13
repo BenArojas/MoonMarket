@@ -36,8 +36,6 @@ BASE_URL = 'https://financialmodelingprep.com/api/v3/'
 
 @router.get("/historical_data/{symbol}", response_description="stock details from api")
 def get_historical_data(symbol:str):
-    # api_keys = [ config("FMP_FIRST_API_KEY"), config("FMP_SECOND_API_KEY"), config("FMP_THIRD_API_KEY"), config("FMP_FOURTH_API_KEY")]
-    # for key in api_keys:
     count = 1
     api_key  = config(f"FMP_{count}_API_KEY")
     while api_key:
@@ -100,17 +98,7 @@ def get_stock_quote(symbol:str):
             print(f"Error with API key {api_key}: {str(e)}")
         count += 1
         api_key = config(f"FMP_{count}_API_KEY")
-    # for key in api_keys:
-    #     try:
-    #         endpoint = f'quote/{symbol}'
-    #         url = f"{BASE_URL}{endpoint}?apikey={key}"
-    #         response = requests.get(url)
-    #         response.raise_for_status()  # Raises an HTTPError for bad responses
-    #         stock_quote = response.json()[0]
-    #         return stock_quote
-    #     except requests.RequestException as e:
-    #         print(f"Error with API key {key}: {str(e)}")
-    # If all API keys fail
+   
     return {"error": "Unable to fetch data with any of the provided API keys"}
 
     
@@ -132,21 +120,6 @@ async def get_stock(ticker: str,  user: User = Depends(current_user)):
         return stock
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Stock with ticker {ticker} does not exist")
 
-# @router.get("/historicalPrice/{ticker}")
-# async def get_historicalPrice(ticker: str, user: User =Depends(current_user)):
-#     # api_keys = [ config("FMP_FIRST_API_KEY"), config("FMP_SECOND_API_KEY")]
-#     # for key in api_keys:
-#     count = 1
-#     api_key  = config(f"FMP_{count}_API_KEY")
-#     while api_key:
-#         try:
-#             endpoint = f'/historical-price-full/{ticker}?apikey={api_key}'
-#             url = BASE_URL + endpoint
-#             response = requests.get(url)
-#         except Exception as e:
-#             return {"error": str(e)}
-#         count += 1
-#         api_key = config(f"FMP_{count}_API_KEY")
 
 @router.post("/add_stock")
 async def add_stock(stock_data: Stock):

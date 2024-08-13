@@ -20,6 +20,14 @@ export default function LeaderBoardsTable({ data }) {
     );
   };
 
+  const formatEarnings = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    const month = date.toLocaleString("default", { month: "short" });
+    const day = date.getDate();
+    return `${month} ${day}`;
+  };
+
   const formatValue = (value, gainLoss) => {
     const gainLossNumber = parseFloat(gainLoss); // Convert gainLoss to a number
     const isPositive = gainLossNumber >= 0;

@@ -4,10 +4,10 @@ import Greetings from "@/components/Greetings";
 import Sidebar from "@/components/Sidebar";
 import { Box } from "@mui/material";
 import { createContext, useState } from "react";
-import { Navigate, Outlet, useLoaderData, defer } from "react-router-dom";
+import { Navigate, Outlet, useLoaderData} from "react-router-dom";
 import { useAuth } from "../contexts/AuthProvider";
 import { useRefreshToken } from "@/contexts/RefreshTokenProvider";
-import { useEffect, Suspense } from "react";
+import { useEffect} from "react";
 import "@/styles/global.css";
 
 

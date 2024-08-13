@@ -1,7 +1,7 @@
-import { Box, Divider, Typography, Container } from "@mui/material";
+import { Box, Divider, Typography} from "@mui/material";
 import React, { useEffect } from "react";
 import "@/styles/profile.css";
-import { TabsDemo } from "@/components/ProfileTabs";
+import { ProfileTabs } from "@/components/ProfileTabs";
 import { Suspense } from "react";
 import {
   useLoaderData,
@@ -67,7 +67,7 @@ function Profile() {
                     minHeight: "50vh",
                   }}
                 >
-                  <TabsDemo
+                  <ProfileTabs
                     username={user.username}
                     current_balance={user.current_balance}
                     friendRequests={friendRequests}

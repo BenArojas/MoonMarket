@@ -1,10 +1,9 @@
 import { useNavigate, Form, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthProvider";
 import { useState } from "react";
-import { loginUser, refreshJwtKey } from "@/api/user";
+import { loginUser } from "@/api/user";
 import { useForm } from "react-hook-form";
 import { TextField, Box, Card, Typography, Button } from "@mui/material";
-import WebsiteName from "@/components/WebsiteName";
 import { styled } from "@mui/material/styles";
 
 

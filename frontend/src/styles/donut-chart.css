@@ -17,7 +17,7 @@
 }
 
 
-@keyframes holographic-shimmer {
+/* @keyframes holographic-shimmer {
     0% {
       transform: scale(1);
     }
@@ -31,4 +31,4 @@
   
   .slice path {
     animation: holographic-shimmer 4s infinite;
-  }
+  } */

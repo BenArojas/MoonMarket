@@ -6,11 +6,10 @@ import TableCell, { tableCellClasses } from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
-import Paper from "@mui/material/Paper";
-import Box from "@mui/material/Box";
+import { TextField, Box, Paper, IconButton, Collapse } from '@mui/material'
+import FilterListIcon from "@mui/icons-material/FilterList";
 import TableFooter from "@mui/material/TableFooter";
 import TablePagination from "@mui/material/TablePagination";
-import IconButton from "@mui/material/IconButton";
 import FirstPageIcon from "@mui/icons-material/FirstPage";
 import KeyboardArrowLeft from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRight from "@mui/icons-material/KeyboardArrowRight";
@@ -101,22 +100,37 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
 }));
 
 
-export default function CustomizedTables({ data }) {
+export default function TransactionsTable({ data }) {
+
+  const transactionsData = data.sort((a, b) => new Date(b.transaction_date) - new Date(a.transaction_date));
+
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
+  const [tickerFilter, setTickerFilter] = React.useState('');
+  const [typeFilter, setTypeFilter] = React.useState('');
+  const [showFilters, setShowFilters] = React.useState(false);
 
-  const formatEarnings = (dateString) => {
+  const toggleFilters = () => {
+    setShowFilters(!showFilters);
+  };
+
+  const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
     const month = date.toLocaleString('default', { month: 'short' });
     const day = date.getDate();
     const year = date.getFullYear();
     return `${month} ${day}, ${year}`;
-};
+  };
+
+  const filteredData = transactionsData.filter(transaction =>
+    transaction.ticker.toLowerCase().includes(tickerFilter.toLowerCase()) &&
+    transaction.type.toLowerCase().includes(typeFilter.toLowerCase())
+  );
 
   // Avoid a layout jump when reaching the last page with empty rows.
   const emptyRows =
-    page > 0 ? Math.max(0, (1 + page) * rowsPerPage - data.length) : 0;
+    page > 0 ? Math.max(0, (1 + page) * rowsPerPage - filteredData.length) : 0;
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -129,69 +143,92 @@ export default function CustomizedTables({ data }) {
 
 
   return (
-    <TableContainer component={Paper} sx={{ marginTop: "3em" }}>
-      <Table sx={{ minWidth: 500 }} aria-label="custom pagination table">
-        <TableHead>
-          <TableRow>
-            <StyledTableCell>Ticker</StyledTableCell>
-            <StyledTableCell align="right">Type</StyledTableCell>
-            <StyledTableCell align="right">Description</StyledTableCell>
-            <StyledTableCell align="right">Position price</StyledTableCell>
-            <StyledTableCell align="right">Date</StyledTableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {(rowsPerPage > 0
-            ? data.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-            : data
-          ).map((transaction) => (
-            <StyledTableRow key={transaction._id}>
-              <StyledTableCell component="th" scope="row" style={{ width: 60 }}>
-                {transaction.ticker}
-              </StyledTableCell>
-              <StyledTableCell style={{ width: 80 }} align="right">
-                {transaction.type}
-              </StyledTableCell>
-              <StyledTableCell style={{ width: 160 }} align="right">
-                {transaction.text}
-              </StyledTableCell>
-              <StyledTableCell style={{ width: 100 }} align="right">
-                {(transaction.price*transaction.quantity).toFixed(2)}$
-              </StyledTableCell>
-              <StyledTableCell style={{ width: 160 }} align="right">
-                {formatEarnings(transaction.transaction_date)}
-              </StyledTableCell>
-            </StyledTableRow>
-          ))}
-          {emptyRows > 0 && (
-            <StyledTableRow style={{ height: 53 * emptyRows }}>
-              <TableCell colSpan={5} />
-            </StyledTableRow>
-          )}
-        </TableBody>
-        <TableFooter>
-          <TableRow>
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 20, { label: "All", value: -1 }]}
-              colSpan={5}
-              count={data.length}
-              rowsPerPage={rowsPerPage}
-              page={page}
-              slotProps={{
-                select: {
-                  inputProps: {
-                    "aria-label": "rows per page",
-                  },
-                  native: true,
-                },
-              }}
-              onPageChange={handleChangePage}
-              onRowsPerPageChange={handleChangeRowsPerPage}
-              ActionsComponent={TablePaginationActions}
+    <>
+      <Box sx={{ display: 'flex', marginBottom: 3, marginTop: 3, gap:3, }}>
+        <IconButton onClick={toggleFilters} aria-label="filter list">
+          <FilterListIcon />
+        </IconButton>
+        <Collapse in={showFilters}>
+          <Box sx={{  display:'flex' }}>
+            <TextField
+              label="Filter by Ticker"
+              value={tickerFilter}
+              onChange={(e) => setTickerFilter(e.target.value)}
+              sx={{ marginRight: 2 }}
             />
-          </TableRow>
-        </TableFooter>
-      </Table>
-    </TableContainer>
+            <TextField
+              label="Filter by Type"
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+            />
+          </Box>
+        </Collapse>
+      </Box>
+
+      <TableContainer component={Paper} sx={{}}>
+        <Table sx={{ minWidth: 500 }} aria-label="custom pagination table">
+          <TableHead>
+            <TableRow>
+              <StyledTableCell>Ticker</StyledTableCell>
+              <StyledTableCell align="right">Type</StyledTableCell>
+              <StyledTableCell align="right">Description</StyledTableCell>
+              <StyledTableCell align="right">Position price</StyledTableCell>
+              <StyledTableCell align="right">Date</StyledTableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {(rowsPerPage > 0
+              ? filteredData.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+              : filteredData
+            ).map((transaction) => (
+              <StyledTableRow key={transaction._id}>
+                <StyledTableCell component="th" scope="row" style={{ width: 60 }}>
+                  {transaction.ticker}
+                </StyledTableCell>
+                <StyledTableCell style={{ width: 80 }} align="right">
+                  {transaction.type}
+                </StyledTableCell>
+                <StyledTableCell style={{ width: 160 }} align="right">
+                  {transaction.text}
+                </StyledTableCell>
+                <StyledTableCell style={{ width: 100 }} align="right">
+                  {(transaction.price * transaction.quantity).toFixed(2)}$
+                </StyledTableCell>
+                <StyledTableCell style={{ width: 160 }} align="right">
+                  {formatDate(transaction.transaction_date)}
+                </StyledTableCell>
+              </StyledTableRow>
+            ))}
+            {emptyRows > 0 && (
+              <StyledTableRow style={{ height: 53 * emptyRows }}>
+                <TableCell colSpan={5} />
+              </StyledTableRow>
+            )}
+          </TableBody>
+          <TableFooter>
+            <TableRow>
+              <TablePagination
+                rowsPerPageOptions={[5, 10, 20, { label: "All", value: -1 }]}
+                colSpan={5}
+                count={filteredData.length}
+                rowsPerPage={rowsPerPage}
+                page={page}
+                slotProps={{
+                  select: {
+                    inputProps: {
+                      "aria-label": "rows per page",
+                    },
+                    native: true,
+                  },
+                }}
+                onPageChange={handleChangePage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+                ActionsComponent={TablePaginationActions}
+              />
+            </TableRow>
+          </TableFooter>
+        </Table>
+      </TableContainer>
+    </>
   );
 }

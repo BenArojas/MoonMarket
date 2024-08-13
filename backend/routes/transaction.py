@@ -51,17 +51,7 @@ async def buy_stock_shares(price: float, ticker: str, quantity: int, user: User 
         transaction_date=datetime.now())
     await transaction.insert()
     user.transactions.append(transaction.id)
-    # transaction = await Transaction.create_Transaction(
-    #     user_id=str(user.id),  # Assuming user_id is stored as a string
-    #     title="Stock purchase",
-    #     text=text,
-    #     log_type="purchase",
-    #     ticker=ticker,
-    #     name=stock.name,
-    #     price=price,
-    #     quantity=quantity,
-    #     transaction_date=datetime.now()
-    # )
+    
     # Save the updated user document back to the database
     await user.save()
 
@@ -113,17 +103,6 @@ async def sell_stock_shares(ticker: str, quantity: int, price: float, user: User
         transaction_date=datetime.now())
     await transaction.insert()
     user.transactions.append(transaction.id)
-    # sale_transaction = await Transaction.create_Transaction(
-    #     user_id=str(user.id),  # Assuming user_id is stored as a string
-    #     title="Stock sale",
-    #     text=text,
-    #     log_type="sale",
-    #     ticker=ticker,
-    #     name=stock.name,
-    #     price=price,
-    #     quantity=quantity,
-    #     transaction_date=datetime.now()
-    # )
 
     # Save the updated user document back to the database
     await user.save()

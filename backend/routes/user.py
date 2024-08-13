@@ -57,23 +57,6 @@ async def get_all_friends(current_user: User = Depends(current_user)):
     return friends
     
 
-
-
-@router.get("/user_portfolio_change")
-async def get_user_portfolio_change(user: User = Depends(current_user)):
-    # % change = ((Current Portfolio Value (Market Value + Cash from Sales)−Initial Portfolio Value)/Initial Portfolio value ) X 100
-    #Initial portfolio value = Amount of Money spent on buying shares
-    user_purchases =await get_user_transactions_by_type("purchase", user)
-    initial_portfolio_value = sum(transaction['price'] * transaction['quantity'] for transaction in user_purchases)
-    # Cash from sales = Amount of Money earmed by selling shares
-    user_sales = await get_user_transactions_by_type("sale", user)
-    cash_from_sales = sum(transaction['price'] * transaction['quantity'] for transaction in user_sales)
-    # need to get Current holdings Value
-    holdings_value = 0
-    current_portfolio_value = holdings_value+ cash_from_sales
-    Portfolio_percentage_change = ((current_portfolio_value-initial_portfolio_value)/initial_portfolio_value) * 100
-    return Portfolio_percentage_change
-
 @router.post("/add_deposit")
 async def add_deposit(deposit:Deposit, user:User = Depends(current_user)):
     """Add deposit to user account."""

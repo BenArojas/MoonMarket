@@ -29,7 +29,6 @@ const Routes = () => {
       path: "/",
       element: <ProtectedRoute />,
       loader: ProtectedRouteLoader(token),
-      // action: ProtectedRouteAction,
       errorElement: <ErrorPage />,
       children: [
         {
