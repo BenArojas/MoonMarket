@@ -6,9 +6,11 @@ import Avatar from "@mui/material/Avatar";
 import ShowChartSharpIcon from "@mui/icons-material/ShowChartSharp";
 import FolderIcon from "@mui/icons-material/Folder";
 import AlertDialogSlide from "@/components/stockDialog/StockDialog";
+import { useTheme } from "@mui/material";
 
 export default function LeaderboardCard({ Number, stock, changeCount }) {
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const theme = useTheme();
 
   const handleClickDialogOpen = () => {
     setDialogOpen(true);
@@ -23,7 +25,7 @@ export default function LeaderboardCard({ Number, stock, changeCount }) {
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
-          backgroundColor: "transparent", // Add this line
+          backgroundColor: "transparent", 
           boxShadow: "none",
         }}
       >
@@ -87,7 +89,7 @@ export default function LeaderboardCard({ Number, stock, changeCount }) {
         >
           <Typography
             sx={{
-              color: "white", // Ensure text is visible on dark background
+              color: theme.palette.text.primary, 
             }}
           >
             #{Number}

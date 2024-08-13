@@ -5,8 +5,10 @@ import { useMemo, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 // import { Typography } from '@mui/material';
 import CustomTooltip from "@/components/CustomToolTip";
+
+
 export const Treemap = ({ width, height, data }) => {
-  const navigate = useNavigate();
+  
   const tooltipRef = useRef(null);
   const theme = useTheme();
   const colors = {
@@ -96,7 +98,7 @@ export const Treemap = ({ width, height, data }) => {
               fontSize={12}
               textAnchor="middle"
               alignmentBaseline="middle"
-              fill="white"
+              fill={theme.palette.text.primary}
               className="font-medium"
             >
               {leaf.data.ticker}
@@ -107,7 +109,7 @@ export const Treemap = ({ width, height, data }) => {
               fontSize={12}
               textAnchor="middle"
               alignmentBaseline="middle"
-              fill="white"
+              fill={theme.palette.text.primary}
               className="font-light"
             >
               {leaf.data.priceChangePercentage}%

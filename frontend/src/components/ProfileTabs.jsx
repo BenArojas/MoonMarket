@@ -25,7 +25,7 @@ import {
 import { useAuth } from "@/contexts/AuthProvider";
 import { answerFriendRequest } from "@/api/friend";
 import SearchFriends from "@/components/SearchFriends";
-import PersonIcon from '@mui/icons-material/Person';
+import { useTheme } from '@mui/material/styles';
 
 export async function action({ request }) {
   let formData = await request.formData();
@@ -132,6 +132,7 @@ export function ProfileTabs({
   friendRequests,
   friendList,
 }) {
+  const theme = useTheme();
   const password = useRef(null);
   const money = useRef(null);
   const { token } = useAuth();

@@ -3,6 +3,7 @@ import * as d3 from "d3";
 import "@/styles/donut-chart.css";
 import { useNavigate, Link } from "react-router-dom";
 import { Box, Button } from "@mui/material";
+import { useTheme } from "@mui/material";
 
 const MARGIN_X = 150;
 const MARGIN_Y = 50;
@@ -23,7 +24,7 @@ const colors = [
 export const DonutChart = ({ width, height, data }) => {
   const [showOthers, setShowOthers] = useState(false);
   const ref = useRef(null);
-  const navigate = useNavigate();
+  const theme = useTheme();
 
   const radius = Math.min(width - 2 * MARGIN_X, height - 2 * MARGIN_Y) / 2;
   const innerRadius = radius / 2;
@@ -127,16 +128,16 @@ export const DonutChart = ({ width, height, data }) => {
             y1={centroid[1]}
             x2={inflexionPoint[0]}
             y2={inflexionPoint[1]}
-            stroke={"white"}
-            fill={"white"}
+            stroke={theme.palette.text.primary}
+            fill={theme.palette.text.primary}
           />
           <line
             x1={inflexionPoint[0]}
             y1={inflexionPoint[1]}
             x2={labelPosX}
             y2={inflexionPoint[1]}
-            stroke={"white"}
-            fill={"white"}
+            stroke={theme.palette.text.primary}
+            fill={theme.palette.text.primary}
           />
           <text
             x={labelPosX + (isRightLabel ? 2 : -2)}
@@ -144,7 +145,7 @@ export const DonutChart = ({ width, height, data }) => {
             textAnchor={textAnchor}
             dominantBaseline="middle"
             fontSize={14}
-            fill={"white"}
+            fill={theme.palette.text.primary}
           >
             {label}
           </text>
@@ -154,7 +155,7 @@ export const DonutChart = ({ width, height, data }) => {
             textAnchor={textAnchor}
             dominantBaseline="middle"
             fontSize={14}
-            fill={"white"}
+            fill={theme.palette.text.primary}
           >
             {percentageOfPortfolio}%
           </text>

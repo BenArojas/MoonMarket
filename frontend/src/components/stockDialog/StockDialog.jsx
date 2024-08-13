@@ -6,6 +6,9 @@ import Slide from "@mui/material/Slide";
 import * as React from "react";
 import dayjs from "dayjs";
 import styles from "./stockDialog.module.css";
+import { useTheme } from "@mui/material";
+
+
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
@@ -22,6 +25,7 @@ function InfoBox({ text, subtitle }) {
 }
 
 export default function AlertDialogSlide({ dialogOpen, setDialogOpen, stock }) {
+  const theme = useTheme();
   const infoBoxText = [
     {
       text: dayjs(stock.earnings).format("DD.MM.YYYY"),
@@ -47,7 +51,7 @@ export default function AlertDialogSlide({ dialogOpen, setDialogOpen, stock }) {
         aria-describedby="alert-dialog-slide-description"
         sx={{
           "& .MuiDialog-paper": {
-            color: "white",
+            color:theme.palette.text.primary,
             borderRadius: "10px",
             overflow: "visible", // Allow content to overflow
             maxWidth: "600px",
@@ -57,6 +61,7 @@ export default function AlertDialogSlide({ dialogOpen, setDialogOpen, stock }) {
         <DialogTitle className={styles.dialogTitle}>
           <Typography
             variant="h4"
+            component="div"
             sx={{
               textAlign: "center",
             }}

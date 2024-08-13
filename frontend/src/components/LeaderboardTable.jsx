@@ -6,8 +6,11 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
+import { useTheme } from "@mui/material";
+
 
 export default function LeaderBoardsTable({ data }) {
+  const theme = useTheme();
 
   const formatPriceChange = (change, percentage) => {
     const isPositive = change >= 0;
@@ -67,14 +70,14 @@ export default function LeaderBoardsTable({ data }) {
               <TableCell component="th" scope="row">
               <span
                     style={{
-                      color: "white",
+                      color: theme.palette.text.primary,
                       fontWeight: "700",
                       fontSize: "1.1em",
                     }}
                   >
                     {row.ticker}
                   </span>{" "}
-                  <span style={{ color: "#B0B0B0", fontSize: "0.9em" }}>
+                  <span style={{ color:theme.palette.text.secondary, fontSize: "0.9em" }}>
                     {row.name}
                   </span>
               </TableCell>
