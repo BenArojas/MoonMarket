@@ -1,8 +1,14 @@
-import { Box, Stack, Badge } from "@mui/material";
-import { ArrowLeftRight, BriefcaseBusiness, Orbit, User, LogOut } from "lucide-react";
+import { Box, Stack, Badge, IconButton } from "@mui/material";
+import {
+  ArrowLeftRight,
+  BriefcaseBusiness,
+  Orbit,
+  User,
+  LogOut,
+} from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
-import LightModeIcon from '@mui/icons-material/LightMode';
-import DarkModeIcon from '@mui/icons-material/DarkMode';
+import LightModeIcon from "@mui/icons-material/LightMode";
+import DarkModeIcon from "@mui/icons-material/DarkMode";
 import { useTheme } from "@/contexts/ThemeContext";
 
 function capitalizeFirstLetter(string) {
@@ -10,59 +16,117 @@ function capitalizeFirstLetter(string) {
 }
 
 function Navbar({ friendRequests }) {
-
-  const { toggleTheme, theme } = useTheme()
-  console.log(theme)
+  const { toggleTheme, theme } = useTheme();
   const mode = theme.palette.mode;
-
   const { pathname } = useLocation();
-  const navItems = [
-    { icon: mode === 'dark' ? DarkModeIcon : LightModeIcon, text: mode === 'dark' ? 'darkMode' : 'lightMode', onClick: toggleTheme },
+
+  const mainNavItems = [
     { icon: Orbit, text: "space" },
     { icon: BriefcaseBusiness, text: "portfolio" },
     { icon: ArrowLeftRight, text: "transactions" },
+  ];
+
+  const rightNavItems = [
+    { icon: User, text: "profile", badge: friendRequests.length },
     {
-      icon: User,
-      text: "profile",
-      badge: friendRequests.length,
-      // onClick: friendRequests.length ? handleClick : null
+      icon: mode === "dark" ? LightModeIcon : DarkModeIcon,
+      onClick: toggleTheme,
     },
     { icon: LogOut, text: "logout" },
   ];
 
-
-
   return (
-    <Stack flexDirection={"row"} gap={6}>
-      {navItems.map(({ icon: Icon, text, badge, onClick }) => (
-        <Box
-          component={onClick ? 'div' : Link}
-          to={onClick ? undefined : text}
-          key={text}
-          onClick={onClick}
-          sx={{
-            color: pathname === `/${text}` ? "#077e5d" : "inherit",
-            display: "flex",
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 1,
-            cursor: "pointer",
-          }}
-        >
-          {badge ? (
-            <Badge badgeContent={badge} color="primary">
-              <Icon
-                color={pathname === `/${text}` ? "#077e5d" : "currentColor"}
-              />
-            </Badge>
-          ) : (
+    <Stack
+      flexDirection="row"
+      justifyContent="space-between"
+      sx={{
+        flex: 1,
+      }}
+    >
+      <Stack flexDirection="row" gap={3} alignItems="center">
+        {mainNavItems.map(({ icon: Icon, text }) => (
+          <Box
+            component={Link}
+            to={text}
+            key={text}
+            sx={{
+              color: pathname === `/${text}` ? "#077e5d" : "inherit",
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 0.5,
+              cursor: "pointer",
+              borderRadius: "8px",
+              p: 1,
+              transition: "all 0.3s ease",
+              "&:hover": {
+                backgroundColor: "rgba(255, 255, 255, 0.1)",
+                "& .nav-text": {
+                  opacity: 1,
+                  width: "auto",
+                  marginLeft: 1,
+                },
+              },
+            }}
+          >
             <Icon
               color={pathname === `/${text}` ? "#077e5d" : "currentColor"}
             />
-          )}
-          {capitalizeFirstLetter(text)}
-        </Box>
-      ))}
+            <Box
+              className="nav-text"
+              sx={{
+                opacity: 0,
+                width: 0,
+                overflow: "hidden",
+                whiteSpace: "nowrap",
+                transition: "all 0.3s ease",
+              }}
+            >
+              {capitalizeFirstLetter(text)}
+            </Box>
+          </Box>
+        ))}
+      </Stack>
+
+      <Stack flexDirection="row" gap={3} alignItems="center">
+        {rightNavItems.map(({ icon: Icon, text, badge, onClick }, index) => (
+          <Box key={text || index}>
+            {text ? (
+              <Box
+                component={Link}
+                to={text}
+                sx={{
+                  color: pathname === `/${text}` ? "#077e5d" : "inherit",
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 0.5,
+                  cursor: "pointer",
+                }}
+              >
+                {badge ? (
+                  <Badge badgeContent={badge} color="primary">
+                    <Icon
+                      color={
+                        pathname === `/${text}` ? "#077e5d" : "currentColor"
+                      }
+                    />
+                  </Badge>
+                ) : (
+                  <Icon
+                    color={pathname === `/${text}` ? "#077e5d" : "currentColor"}
+                  />
+                )}
+                {capitalizeFirstLetter(text)}
+              </Box>
+            ) : (
+              <IconButton onClick={onClick} color="inherit">
+                <Icon />
+              </IconButton>
+            )}
+          </Box>
+        ))}
+      </Stack>
     </Stack>
   );
 }

@@ -16,7 +16,7 @@ function RocketSideBar() {
   };
   
   return (
-    <div>
+    <Box >
       <ShootingStars />
       <Box
         className="logo1"
@@ -26,8 +26,8 @@ function RocketSideBar() {
           zIndex: 1,
         }}
       >
-        <Link to="/portfolio" className="logo">
-          <img src={mainlogo} style={{ height: "120px", width: "70px" }} />
+        <Link draggable={false} to="/portfolio" className="logo">
+          <img draggable={false} src={mainlogo} style={{ height: "120px", width: "70px" }} />
         </Link>
       </Box>
 
@@ -45,7 +45,7 @@ function RocketSideBar() {
           zIndex: 1,
         }}
       />
-    </div>
+    </Box>
   );
 }
 

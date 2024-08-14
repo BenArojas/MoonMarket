@@ -1,6 +1,15 @@
 import React from "react";
+import { useTheme } from "@mui/material/styles";
 
 const ShootingStars = () => {
+  const theme = useTheme();
+
+  // Determine the background color based on the current theme mode
+  const backgroundColor =
+    theme.palette.mode === "dark"
+      ? "linear-gradient(to bottom, #151515, #0b0b0b)"
+      : "linear-gradient(to bottom, #bfbfbf ,#efefef)"; // Light to medium gray gradient
+
   const spans = [
     { top: 0, right: 0, animationDuration: "1s" },
     { top: 0, right: 0, animationDuration: "3s" },
@@ -26,7 +35,7 @@ const ShootingStars = () => {
         left: 0,
         width: 70,
         minHeight: "100vh",
-        // backgroundColor: "#1d1d1d",
+        background: backgroundColor,
         backgroundSize: "cover",
         overflow: "hidden",
         animation: "animateBg 50s linear infinite",

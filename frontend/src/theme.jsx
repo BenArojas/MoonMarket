@@ -6,7 +6,7 @@ export const darkTheme = createTheme({
   },
   palette: {
     background: {
-      default: "#0b0b0b"
+      default: "#0b0b0b",
       // default: "#2B2B2B",
       // default: "#060817",
       // default:'#15202B'
@@ -16,6 +16,9 @@ export const darkTheme = createTheme({
     },
     secondary: {
       main: "#E1E5EB", // light grey
+    },
+    trinary: {
+      main: "#3f3f46",
     },
     mode: "dark",
   },
@@ -44,14 +47,18 @@ export const lightTheme = createTheme({
   },
   palette: {
     background: {
-      default: "#ffffff", // White background for light mode
-      paper:'#F9F6EE'
+      default: "#efefef", // White background for light mode
+      // paper:'#F9F6EE'
+      paper: "#fff",
     },
     primary: {
       main: "#077e5d", // Keeping the same metallic green
     },
     secondary: {
       main: "#2B2B2B", // Darker color for contrast in light mode
+    },
+    trinary: {
+      main: "#d1d1d6",
     },
     mode: "light",
   },
