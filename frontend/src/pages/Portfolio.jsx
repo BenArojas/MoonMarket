@@ -5,7 +5,7 @@ import GraphMenu from "@/components/GraphMenu";
 import NewUserNoHoldings from "@/components/NewUserNoHoldings";
 import { useAuth } from "@/contexts/AuthProvider";
 import useGraphData from "@/hooks/useGraphData";
-import { PercentageChange } from "@/pages/ProtectedRoute";
+import { PercentageChange } from "@/pages/Layout";
 import { lastUpdateDate } from "@/utils/dataProcessing";
 import { Box, Stack, CircularProgress, Card } from "@mui/material";
 import React, { useContext, useEffect, useState} from "react";

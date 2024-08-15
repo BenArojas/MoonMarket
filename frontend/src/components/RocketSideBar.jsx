@@ -3,7 +3,7 @@ import { Box } from "@mui/material";
 import mainlogo from "/ToTheMoon.png";
 import spaceship from "/spaceship.png";
 import { Link } from "react-router-dom";
-import { PercentageChange } from "@/pages/ProtectedRoute";
+import { PercentageChange } from "@/pages/Layout";
 import ShootingStars from "@/components/ShootingStars";
 
 

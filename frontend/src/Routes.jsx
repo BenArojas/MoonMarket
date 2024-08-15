@@ -1,8 +1,7 @@
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthProvider";
 import {
-  ProtectedRoute,
-  loader as ProtectedRouteLoader,
+  ProtectedRoute
 } from "@/pages/ProtectedRoute";
 import Portfolio from "@/pages/Portfolio";
 import ErrorPage from "@/pages/ErrorPage";
@@ -19,6 +18,8 @@ import Register from "@/pages/Register";
 import Space, { loader as spaceLoader } from "@/pages/Space";
 import Test from "@/pages/Test";
 import "./styles/global.css";
+import Layout, { loader as LayoutLoader } from "@/pages/Layout"
+
 const Routes = () => {
   const { token } = useAuth();
 
@@ -26,50 +27,54 @@ const Routes = () => {
   // Combine and conditionally include routes based on authentication status
   const router = createBrowserRouter([
     {
-      path: "/",
       element: <ProtectedRoute />,
-      loader: ProtectedRouteLoader(token),
-      errorElement: <ErrorPage />,
       children: [
         {
-          path: "/portfolio",
-          element: <Portfolio />,
-          errorElement: <ErrorPage />,
-        },
-        {
-          path: "/profile",
-          element: <Profile />,
-          errorElement: <ErrorPage />,
-          loader: profileLoader(token),
-          action: profileAction,
-        },
-        {
-          path: "/transactions",
-          element: <Transactions />,
-          errorElement: <ErrorPage />,
-          loader: transactionsLoader(token),
-        },
-        {
-          path: "/space",
-          element: <Space />,
-          loader: spaceLoader(token),
-          errorElement: <ErrorPage />,
-        },
-        {
-          path: "/logout",
-          element: <Logout />,
-        },
-        {
-          path: "/test",
-          element: <Test />,
-        },
-        {
-          path: "stock/:stockTicker",
-          element: <StockItem />,
-          errorElement: <ErrorPage />,
-          loader: ({ params }) => {
-            return stockItemLoader(params.stockTicker, token);
-          },
+          element: <Layout />,
+          path: "/",
+          loader: LayoutLoader(token),
+          children: [
+            {
+              path: "/portfolio",
+              element: <Portfolio />,
+              errorElement: <ErrorPage />,
+            },
+            {
+              path: "/profile",
+              element: <Profile />,
+              errorElement: <ErrorPage />,
+              loader: profileLoader(token),
+              action: profileAction,
+            },
+            {
+              path: "/transactions",
+              element: <Transactions />,
+              errorElement: <ErrorPage />,
+              loader: transactionsLoader(token),
+            },
+            {
+              path: "/space",
+              element: <Space />,
+              loader: spaceLoader(token),
+              errorElement: <ErrorPage />,
+            },
+            {
+              path: "/logout",
+              element: <Logout />,
+            },
+            {
+              path: "/test",
+              element: <Test />,
+            },
+            {
+              path: "stock/:stockTicker",
+              element: <StockItem />,
+              errorElement: <ErrorPage />,
+              loader: ({ params }) => {
+                return stockItemLoader(params.stockTicker, token);
+              },
+            },
+          ]
         },
       ],
     },

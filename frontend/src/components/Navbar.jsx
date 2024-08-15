@@ -12,7 +12,6 @@ function capitalizeFirstLetter(string) {
 function Navbar({ friendRequests }) {
 
   const { toggleTheme, theme } = useTheme()
-  console.log(theme)
   const mode = theme.palette.mode;
 
   const { pathname } = useLocation();
