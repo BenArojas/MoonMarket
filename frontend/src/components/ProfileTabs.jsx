@@ -150,7 +150,7 @@ export function ProfileTabs({
 
   return (
     <Tabs defaultValue="profile" className="w-[650px]">
-      <TabsList className="grid w-full grid-cols-5 bg-zinc-700">
+      <TabsList className="grid w-full grid-cols-5" style={{ backgroundColor:theme.palette.trinary.main}}>
         <TabsTrigger value="profile">Profile</TabsTrigger>
         <TabsTrigger value="password">Settings</TabsTrigger>
         <TabsTrigger value="money">Money</TabsTrigger>

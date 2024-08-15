@@ -91,7 +91,7 @@ export default function CurrentStockCard({
         gap: 2,
         margin: "auto",
         padding: "10px 15px",
-        backgroundColor: "transparent",
+        // backgroundColor: "transparent",
       }}
     >
       <Box

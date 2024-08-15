@@ -29,7 +29,7 @@ const SnapshotChart = React.memo(({
           gap: 2,
           margin: "auto",
           padding: "15px 15px",
-          backgroundColor: "transparent",
+          // backgroundColor: "transparent",
         }}
       >
         <PortfolioStats trend={trend} formattedDate={formattedDate} incrementalChange={incrementalChange} percentageChange={percentageChange} stockTickers={stockTickers} token={token} value={value}/>

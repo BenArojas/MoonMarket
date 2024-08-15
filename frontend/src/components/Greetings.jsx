@@ -22,11 +22,8 @@ function Greetings({ username, friendRequests }) {
             paddingBottom: '10px'
         }}>
             <Box sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-
-
+                display: 'grid',
+                gridTemplateColumns: 'auto auto'
             }}>
                 <Box className="Greetings" sx={{
                     padding: 2

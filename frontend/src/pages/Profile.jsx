@@ -62,9 +62,7 @@ function Profile() {
                   sx={{
                     display: "flex",
                     justifyContent: "center",
-                    alignItems: "center",
-                    margin: "auto",
-                    minHeight: "50vh",
+                    mt: 8
                   }}
                 >
                   <ProfileTabs
