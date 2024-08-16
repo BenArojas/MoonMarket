@@ -4,7 +4,7 @@ import {
   BriefcaseBusiness,
   Orbit,
   User,
-  LogOut,
+  LogOut, Globe
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import LightModeIcon from "@mui/icons-material/LightMode";
@@ -16,11 +16,12 @@ function capitalizeFirstLetter(string) {
 }
 
 function Navbar({ friendRequests }) {
-  const { toggleTheme, mode  } = useTheme();
+  const { toggleTheme, mode } = useTheme();
   const { pathname } = useLocation();
   const isSpacePage = pathname === "/space";
   const mainNavItems = [
     { icon: Orbit, text: "space" },
+    { icon: Globe, text: "global" },
     { icon: BriefcaseBusiness, text: "portfolio" },
     { icon: ArrowLeftRight, text: "transactions" },
   ];

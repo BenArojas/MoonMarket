@@ -19,6 +19,8 @@ import Space, { loader as spaceLoader } from "@/pages/Space";
 import Test from "@/pages/Test";
 import "./styles/global.css";
 import Layout, { loader as LayoutLoader } from "@/pages/Layout"
+import { ThemeProvider } from "./contexts/ThemeContext";
+import Global from "@/pages/Global";
 
 
 const Routes = () => {
@@ -69,6 +71,10 @@ const Routes = () => {
             {
               path: "/test",
               element: <Test />,
+            },
+            {
+              path: "/global",
+              element: <Global />,
             },
             {
               path: "stock/:stockTicker",
