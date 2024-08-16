@@ -11,6 +11,7 @@ import { useEffect } from "react";
 import "@/styles/global.css";
 
 
+
 export const loader = (token) => async () => {
     const userName = await getUserName(token);
     const friendRequests = await getFriendRequest(token);

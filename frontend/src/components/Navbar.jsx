@@ -16,10 +16,9 @@ function capitalizeFirstLetter(string) {
 }
 
 function Navbar({ friendRequests }) {
-  const { toggleTheme, theme } = useTheme();
-  const mode = theme.palette.mode;
+  const { toggleTheme, mode  } = useTheme();
   const { pathname } = useLocation();
-
+  const isSpacePage = pathname === "/space";
   const mainNavItems = [
     { icon: Orbit, text: "space" },
     { icon: BriefcaseBusiness, text: "portfolio" },
@@ -30,7 +29,8 @@ function Navbar({ friendRequests }) {
     { icon: User, text: "profile", badge: friendRequests.length },
     {
       icon: mode === "dark" ? LightModeIcon : DarkModeIcon,
-      onClick: toggleTheme,
+      onClick: isSpacePage ? null : toggleTheme,
+      disabled: isSpacePage,
     },
     { icon: LogOut, text: "logout" },
   ];

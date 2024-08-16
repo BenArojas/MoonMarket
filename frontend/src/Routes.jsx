@@ -20,6 +20,7 @@ import Test from "@/pages/Test";
 import "./styles/global.css";
 import Layout, { loader as LayoutLoader } from "@/pages/Layout"
 
+
 const Routes = () => {
   const { token } = useAuth();
 
@@ -33,6 +34,7 @@ const Routes = () => {
           element: <Layout />,
           path: "/",
           loader: LayoutLoader(token),
+          errorElement: <ErrorPage />,
           children: [
             {
               path: "/portfolio",
@@ -54,7 +56,9 @@ const Routes = () => {
             },
             {
               path: "/space",
-              element: <Space />,
+              element:
+                <Space />
+              ,
               loader: spaceLoader(token),
               errorElement: <ErrorPage />,
             },

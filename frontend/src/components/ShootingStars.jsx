@@ -35,8 +35,10 @@ const ShootingStars = () => {
         left: 0,
         width: 70,
         minHeight: "100vh",
-        background: backgroundColor,
+        backgroundImage: backgroundColor,
         backgroundSize: "cover",
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "center",
         overflow: "hidden",
         animation: "animateBg 50s linear infinite",
       }}

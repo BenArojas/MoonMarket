@@ -6,6 +6,8 @@ import SpaceshipsFleet from "@/components/space/SpaceshipsFleet";
 import { getFriendsAndUserHoldings } from "@/api/friend";
 import { Await, defer, useLoaderData } from "react-router-dom";
 import FriendsSideBar from "@/components/FriendsSideBar";
+import { useTheme } from "@/contexts/ThemeContext";
+
 
 export const loader = (token) => async () => {
   const friends = getFriendsAndUserHoldings(token);
@@ -14,9 +16,14 @@ export const loader = (token) => async () => {
 
 function Space() {
   const data = useLoaderData();
+  const { forceDarkMode } = useTheme();
   const galaxy = useRef(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [radius, setRadius] = useState(0);
+
+  useEffect(() => {
+    forceDarkMode();
+  }, [forceDarkMode]);  
 
   useEffect(() => {
     const updateDimensions = () => {

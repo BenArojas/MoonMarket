@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useMemo } from 'react';
 import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import { darkTheme, lightTheme } from '@/theme';
 
@@ -13,8 +13,19 @@ export const ThemeProvider = ({ children }) => {
     setCurrentTheme(prevTheme => prevTheme === darkTheme ? lightTheme : darkTheme);
   };
 
+  const forceDarkMode = () => {
+    setCurrentTheme(darkTheme);
+  };
+
+  const contextValue = useMemo(() => ({
+    theme: currentTheme,
+    toggleTheme,
+    forceDarkMode,
+    mode: currentTheme === darkTheme ? 'dark' : 'light'
+  }), [currentTheme]);
+
   return (
-    <ThemeContext.Provider value={{ theme: currentTheme, toggleTheme }}>
+    <ThemeContext.Provider value={contextValue}>
       <MuiThemeProvider theme={currentTheme}>
         {children}
       </MuiThemeProvider>
