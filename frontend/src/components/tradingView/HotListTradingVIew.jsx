@@ -21,7 +21,7 @@ const HotList = () => {
         "showSymbolLogo": true, 
         "showFloatingTooltip": true,
         "width": "350",
-        "height": "550",
+        "height": "500",
         "plotLineColorGrowing": "rgba(41, 98, 255, 1)",
         "plotLineColorFalling": "rgba(41, 98, 255, 1)",
         "gridLineColor": "rgba(240, 243, 250, 0)",

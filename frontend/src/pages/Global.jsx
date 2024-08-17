@@ -26,18 +26,26 @@ function Global() {
                     display:'flex',
                     flexDirection:'column',
                     gap: 5,
-                    height:1000,
-                    width:1000,
-                    overflowY:'auto'
+                    height:750,
+                    width:1050,
+                    overflowY:'auto',
+                    alignItems: 'center',
                 }}>
                     <SwitchableHeatMap/>
                     <Box sx={{
                         display:'flex',
                         gap:5,
+                        p:2,
+                        mb:5
                     }}>
                         <HotList/>
                         <StockScreener/>
                     </Box>
+                    <div style={{
+                        height: 500,
+                        width: 800
+                    }}><TechnicalAnalysis/> </div>
+                   
                 </Box>
                 <EconomicCalander />
             </Box>

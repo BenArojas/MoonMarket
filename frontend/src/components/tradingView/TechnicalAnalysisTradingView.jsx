@@ -1,22 +1,20 @@
-// HotList.jsx
-import React, { useEffect, useRef } from 'react';
+// TradingViewWidget.jsx
+import React, { useEffect, useRef, memo } from 'react';
 
-const TechnicalAnalysis = () => {
-    const container = useRef();
+function TechnicalAnalysis() {
+  const container = useRef();
 
-    useEffect(() => {
-        const script = document.createElement("script");
-        script.src = "https://s3.tradingview.com/tv.js";
-        script.type = "text/javascript";
-        script.async = true;
-        script.innerHTML = `
-        {
-        "container_id": "technical-analysis-chart-demo",
-        "width": "100%",
-        "height": "100%",
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+    script.type = "text/javascript";
+    script.async = true;
+    script.innerHTML = `
+      {
         "autosize": true,
-        "symbol": "AAPL",
+        "symbol": "NASDAQ:AAPL",
         "interval": "D",
+        "support_host": "https://www.tradingview.com",
         "timezone": "exchange",
         "theme": "light",
         "style": "1",
@@ -25,24 +23,22 @@ const TechnicalAnalysis = () => {
         "allow_symbol_change": true,
         "save_image": false,
         "studies": [
-        "ROC@tv-basicstudies",
-        "StochasticRSI@tv-basicstudies",
-        "MASimple@tv-basicstudies"
+          "ROC@tv-basicstudies",
+          "StochasticRSI@tv-basicstudies",
+          "MASimple@tv-basicstudies"
         ],
         "show_popup_button": true,
         "popup_width": "1000",
-        "popup_height": "650",
-        "support_host": "https://www.tradingview.com",
-        "locale": "en"
-    }`;
-        container.current.appendChild(script);
-    }, []);
+        "popup_height": "650"
+      }`;
+    container.current.appendChild(script);
+  }, []);
 
-    return (
-        <div className="tradingview-widget-container" ref={container} style={{ height: '100%' }}>
-           
-        </div>
-    );
-};
+  return (
+    <div className="tradingview-widget-container" ref={container} style={{ height: "600px", width: "100%" }}>
+      <div className="tradingview-widget-container__widget" style={{ height: "calc(100% - 32px)", width: "100%" }}></div>
+    </div>
+  );
+}
 
-export default TechnicalAnalysis;
+export default memo(TechnicalAnalysis);
