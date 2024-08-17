@@ -19,6 +19,7 @@ function TradingViewWidget() {
           "theme": "light",
           "style": "1",
           "locale": "en",
+          "hide_side_toolbar": false,
           "allow_symbol_change": true,
           "calendar": false,
           "studies": [

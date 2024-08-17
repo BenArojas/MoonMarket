@@ -61,7 +61,7 @@ function Global() {
                         minHeight: '70vh',
                         width: '100%',
                         padding: '0 20px',
-                        mb: 10
+                        mb: 6
                     }}>
                         <TechnicalAnalysis />
                     </Box>
