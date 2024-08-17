@@ -33,7 +33,7 @@ function DataGraph({ isDataProcessed, selectedGraph, visualizationData  }) {
   }
 
   return GraphComponent ? (
-    <GraphComponent  data={visualizationData} width={1000} height={650} />
+    <GraphComponent  data={visualizationData} width={1000} height={660} />
   ) : null;
 }
 
