@@ -1,35 +1,46 @@
 // Global.jsx
 import React from 'react'
-import TickerTape from '@/components/TickerTapeTradingView'
+import TickerTape from '@/components/tradingView/TickerTapeTradingView'
 import SwitchableHeatMap from '@/components/SwitchHeatMap'
 import { Box, Container } from '@mui/material'
-import Timeline from '@/components/TimelineTradingView'
+import Timeline from '@/components/tradingView/TimelineTradingView'
+import HotList from '@/components/tradingView/HotListTradingVIew'
+import StockScreener from '@/components/tradingView/StockScreenerTradingView'
+import TechnicalAnalysis from '@/components/tradingView/TechnicalAnalysisTradingView'
+import EconomicCalander from '@/components/tradingView/EconomicCalanderTradingView'
 
 function Global() {
     return (
         <Box sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 10,
-            justifyContent: 'center',
-            alignItems: 'center',
-        }}>
-            <TickerTape />
-
-            <Container maxWidth="lg">
+            display:'flex',
+            flexDirection:'column',
+            gap:5,
+        }}> 
+            <TickerTape/>
+            <Box sx={{
+                display:'flex',
+                justifyContent: 'space-around',
+            }}>
+                <Timeline/>
                 <Box sx={{
-                    display: 'flex',
+                    display:'flex',
+                    flexDirection:'column',
                     gap: 5,
-                    height: '600px', // Set a fixed height for both charts
+                    height:1000,
+                    width:1000,
+                    overflowY:'auto'
                 }}>
-                    <Box sx={{ flex: 2 }}> {/* This will take up 2/3 of the space */}
-                        <SwitchableHeatMap />
-                    </Box>
-                    <Box sx={{ flex: 1 }}> {/* This will take up 1/3 of the space */}
-                        <Timeline />
+                    <SwitchableHeatMap/>
+                    <Box sx={{
+                        display:'flex',
+                        gap:5,
+                    }}>
+                        <HotList/>
+                        <StockScreener/>
                     </Box>
                 </Box>
-            </Container>
+                <EconomicCalander />
+            </Box>
         </Box>
     )
 }

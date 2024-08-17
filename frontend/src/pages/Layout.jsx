@@ -55,8 +55,7 @@ function Layout() {
                     <Box
                         sx={{
                             display: "flex",
-                            flexDirection: "row",
-                            height: "100%",
+                            overflow: "hidden"
                         }}
                     >
                         <Sidebar></Sidebar>

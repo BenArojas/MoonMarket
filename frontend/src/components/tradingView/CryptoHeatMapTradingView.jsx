@@ -28,9 +28,8 @@ function CryptoHeatMap() {
   }, []);
 
   return (
-    <div className="tradingview-widget-container" ref={container} style={{ height: '100%' }}>
-      <div className="tradingview-widget-container__widget"></div>
-    </div>
+    <div className="tradingview-widget-container" ref={container} />
+     
   );
 }
 
