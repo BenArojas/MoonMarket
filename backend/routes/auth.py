@@ -1,34 +1,55 @@
 """Authentication router."""
 
-from fastapi import APIRouter, HTTPException, Security
+from fastapi import APIRouter, HTTPException, Security, Response, Depends, Request
 from fastapi_jwt import JwtAuthorizationCredentials
-
-from models.auth import AccessToken, RefreshToken
+from fastapi.security import OAuth2PasswordRequestForm
 from models.user import User, UserAuth
 from jwt import access_security, refresh_security
-from util.password import hash_password
-
+from util.password import hash_password, verify_password
+from util.current_user import current_user
+from fastapi.responses import JSONResponse
+import sys
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @router.post("/login")
-async def login(user_auth: UserAuth) -> RefreshToken:
-    """Authenticate and returns the user's JWT."""
-    user = await User.by_email(user_auth.email)
-    if user is None or hash_password(user_auth.password) != user.password:
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = await User.by_email(form_data.username)
+    if user is None or not verify_password(form_data.password, user.password):
         raise HTTPException(status_code=401, detail="Bad email or password")
-    # if user.email_confirmed_at is None:
-    #     raise HTTPException(status_code=400, detail="Email is not yet verified")
+    
     access_token = access_security.create_access_token(user.jwt_subject)
     refresh_token = refresh_security.create_refresh_token(user.jwt_subject)
-    return RefreshToken(access_token=access_token, refresh_token=refresh_token)
+    
+    response = JSONResponse(content={"message": "Login successful"})
+    access_security.set_access_cookie(response, access_token)
+    refresh_security.set_refresh_cookie(response, refresh_token)
+
+    return response
 
 
-@router.post("/refresh",operation_id="refresh_auth_token")
-async def refresh(
-    auth: JwtAuthorizationCredentials = Security(refresh_security)
-) -> AccessToken:
-    """Return a new access token from a refresh token."""
-    access_token = access_security.create_access_token(subject=auth.subject)
-    return AccessToken(access_token=access_token)
+@router.post("/refresh")
+async def refresh(response: Response, credentials: JwtAuthorizationCredentials = Security(refresh_security)):
+    new_access_token = access_security.create_access_token(subject=credentials.subject)
+    response.set_cookie(
+        key="access_token", 
+        value=new_access_token,
+        httponly=True,
+        secure=True,
+        samesite='none',
+        max_age=1800  # 30 minutes
+    )
+    return {"message": "Token refreshed successfully"}
+
+@router.post("/logout")
+async def logout(response: Response):
+    response.delete_cookie("access_token_cookie")
+    response.delete_cookie("refresh_token_cookie")
+    return {"message": "Logged out successfully"}
+
+
+
+@router.get("/protected-route")
+async def protected_route(current_user: dict = Depends(current_user)):
+    return {"message": "This is a protected route", "user": current_user.username}

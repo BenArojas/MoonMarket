@@ -1,78 +1,97 @@
-import axios from "axios";
-import { createContext, useContext, useMemo, useReducer } from "react";
+  import React, { createContext, useContext, useMemo, useReducer, useEffect } from "react";
+  import api from "@/api/axios";
 
-const AuthContext = createContext();
+  const AuthContext = createContext();
 
-const ACTIONS = {
-  setTokens: "setTokens",
-  clearTokens: "clearTokens",
-};
-
-const authReducer = (state, action) => {
-  switch (action.type) {
-    case ACTIONS.setTokens:
-      localStorage.setItem("token", action.payload.token);
-      localStorage.setItem("refreshToken", action.payload.refreshToken);
-      localStorage.setItem("tokenExpiry", action.payload.tokenExpiry);
-
-      return {
-        ...state,
-        token: action.payload.token,
-        refreshToken: action.payload.refreshToken,
-        tokenExpiry: action.payload.tokenExpiry,
-      };
-
-    case ACTIONS.clearTokens:
-      localStorage.removeItem("token");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("tokenExpiry");
-
-      return { ...state, token: null, refreshToken: null, tokenExpiry: null };
-
-    default:
-      console.error(
-        `You passed an action.type: ${action.type} which doesn't exist`
-      );
-      return state;
-  }
-};
-
-const initialData = {
-  token: localStorage.getItem("token"),
-  refreshToken: localStorage.getItem("refreshToken"),
-  tokenExpiry: localStorage.getItem("tokenExpiry"),
-};
-
-const AuthProvider = ({ children }) => {
-  const [state, dispatch] = useReducer(authReducer, initialData);
-
-  const setTokens = (token, refreshToken, tokenExpiry) => {
-    dispatch({
-      type: ACTIONS.setTokens,
-      payload: { token, refreshToken, tokenExpiry },
-    });
+  const ACTIONS = {
+    setAuth: "setAuth",
+    clearAuth: "clearAuth",
   };
 
-  const clearTokens = () => {
-    dispatch({ type: ACTIONS.clearTokens });
+  const authReducer = (state, action) => {
+    switch (action.type) {
+      case ACTIONS.setAuth:
+        return { ...state, isAuthenticated: true };
+      case ACTIONS.clearAuth:
+        return { ...state, isAuthenticated: false };
+      default:
+        return state;
+    }
   };
 
-  const contextValue = useMemo(
-    () => ({
-      ...state,
-      setTokens,
-      clearTokens,
-    }),
-    [state]
-  );
+  const initialState = {
+    isAuthenticated: false,
+  };
 
-  return (
-    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
-  );
-};
+  export const AuthProvider = ({ children }) => {
+    const [state, dispatch] = useReducer(authReducer, initialState);
 
-export const useAuth = () => {
-  return useContext(AuthContext);
-};
+    useEffect(() => {
+      checkAuthStatus();
+    }, []);
 
-export default AuthProvider;
+    const refreshToken = async () => {
+      try {
+        await api.post('/auth/refresh');
+        dispatch({ type: ACTIONS.setAuth });
+      } catch (error) {
+        dispatch({ type: ACTIONS.clearAuth });
+        // Redirect to login or handle as needed
+      }
+    };
+
+    const checkAuthStatus = async () => {
+      try {
+        await api.get('/auth/protected-route');
+        dispatch({ type: ACTIONS.setAuth });
+      } catch (error) {
+          dispatch({ type: ACTIONS.clearAuth });
+      }
+    };
+
+    const login = async (email, password) => {
+      try {
+        const formData = new FormData();
+        formData.append('username', email);
+        formData.append('password', password);
+    
+        const response = await api.post('/auth/login', 
+          formData,
+          {
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'
+            }
+          }
+        );
+        dispatch({ type: ACTIONS.setAuth });
+        return response.data;
+      } catch (error) {
+        console.error('Login error:', error.response?.data || error.message);
+        throw error;
+      }
+    };
+
+    const logout = async () => {
+      try {
+        await api.post('/auth/logout');
+        dispatch({ type: ACTIONS.clearAuth });
+      } catch (error) {
+        console.error("Logout failed", error);
+      }
+    };
+
+    const value = useMemo(
+      () => ({ ...state, login, logout, checkAuthStatus }),
+      [state]
+    );
+
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  };
+
+  export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (!context) {
+      throw new Error("useAuth must be used within an AuthProvider");
+    }
+    return context;
+  };

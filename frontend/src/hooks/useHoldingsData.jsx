@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { getStockFromPortfolio } from "@/api/stock";
 
-function useHoldingsData(holdingsList, token, userData) {
+function useHoldingsData(holdingsList, userData) {
     const [holdingsData, setHoldingsData] = useState([])
     useEffect(() => {
         const getStocksData = async () => {
             let promises = holdingsList.map((holding) =>
-                getStockFromPortfolio(holding.ticker, token)
+                getStockFromPortfolio(holding.ticker )
             );
             let results = await Promise.all(promises);
 

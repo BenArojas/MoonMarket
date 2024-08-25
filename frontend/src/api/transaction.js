@@ -1,13 +1,9 @@
-import axios from "axios";
-const baseUrl = "http://localhost:8000";
+import api from "@/api/axios";
 
 
-export async function getUserTransactions(token) {
 
-    const transactions = await axios.get(`${baseUrl}/user/user_transactions`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+export async function getUserTransactions() {
+
+    const transactions = await api.get(`/user/user_transactions`);
     return transactions.data;
   }

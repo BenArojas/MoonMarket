@@ -3,10 +3,10 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import Routes from "./Routes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import AuthProvider from "@/contexts/AuthProvider.jsx";
-import RefreshTokenProvider from "@/contexts/RefreshTokenProvider.jsx";
+import {AuthProvider} from "@/contexts/AuthProvider.jsx";
+
 import { darkTheme, lightTheme } from "./theme";
-import {ReactQueryDevtools} from '@tanstack/react-query-devtools'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { ThemeProvider } from "./contexts/ThemeContext";
 import "@/styles/index.css";
 
@@ -19,19 +19,23 @@ const queryClient = new QueryClient({
   },
 });
 
+
+
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   // <React.StrictMode>
+
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <AuthProvider>
-        <RefreshTokenProvider>
-          <CssBaseline />
-          <Routes />
-        </RefreshTokenProvider>
+
+        <CssBaseline />
+        <Routes />
+
       </AuthProvider>
     </ThemeProvider>
     <ReactQueryDevtools />
   </QueryClientProvider>
+
   // </React.StrictMode>
 );

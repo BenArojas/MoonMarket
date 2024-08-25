@@ -10,7 +10,6 @@ const SnapshotChart = React.memo(({
   incrementalChange,
   value,
   percentageChange,
-  token,
   formattedDate,
   stockTickers,
   dailyTimeFrameData,
@@ -32,7 +31,7 @@ const SnapshotChart = React.memo(({
           // backgroundColor: "transparent",
         }}
       >
-        <PortfolioStats trend={trend} formattedDate={formattedDate} incrementalChange={incrementalChange} percentageChange={percentageChange} stockTickers={stockTickers} token={token} value={value}/>
+        <PortfolioStats trend={trend} formattedDate={formattedDate} incrementalChange={incrementalChange} percentageChange={percentageChange} stockTickers={stockTickers} value={value}/>
         <CurrentStockChart data={transformedData} enableAdvancedFeatures={true} trend={trend} />
       </Card>
     </div>

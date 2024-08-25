@@ -5,44 +5,33 @@ import Sidebar from "@/components/Sidebar";
 import { Box } from "@mui/material";
 import { createContext, useState } from "react";
 import {  Outlet, useLoaderData } from "react-router-dom";
-import { useAuth } from "../contexts/AuthProvider";
-import { useRefreshToken } from "@/contexts/RefreshTokenProvider";
 import { useEffect } from "react";
 import "@/styles/global.css";
 
 
 
-export const loader = (token) => async () => {
-    const userName = await getUserName(token);
-    const friendRequests = await getFriendRequest(token);
+export const loader = async () => {
+    try {
+        const userName = await getUserName();
+        const friendRequests = await getFriendRequest();
 
-    return { userName, friendRequests };
+        return { userName, friendRequests };
+    } catch (error) {
+        console.error("Error in loader:", error);
+        return { userName: null, friendRequests: [] };
+    }
 };
 
 export const PercentageChange = createContext(0);
 export const FirstLetter = createContext();
 
 function Layout() {
-    const { token, refreshToken, tokenExpiry } = useAuth();
-    const { initializeTokenRefresh } = useRefreshToken();
-
-    useEffect(() => {
-        let refreshTimeout;
-        if (refreshToken && tokenExpiry) {
-            refreshTimeout = initializeTokenRefresh(refreshToken, tokenExpiry);
-        }
-        return () => {
-            if (refreshTimeout) {
-                clearTimeout(refreshTimeout);
-            }
-        };
-    }, [refreshToken, tokenExpiry, initializeTokenRefresh]);
 
     const data = useLoaderData();
     const [percentageChange, setPercentageChange] = useState(0);
-    const username = data.userName.data;
-    const friendRequests = data.friendRequests;
-    const firstLetter = Array.from(username)[0];
+    const username = data.userName;
+    const friendRequests = []
+    const firstLetter = data.friendRequests
     return (
         <>
             <PercentageChange.Provider

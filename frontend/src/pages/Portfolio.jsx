@@ -1,5 +1,5 @@
 import { getPortfolioSnapshots, postSnapshot } from "@/api/portfolioSnapshot";
-import { getIntradyData} from "@/api/stock";
+import { getIntradyData } from "@/api/stock";
 import { getUserData } from "@/api/user";
 import GraphMenu from "@/components/GraphMenu";
 import NewUserNoHoldings from "@/components/NewUserNoHoldings";
@@ -8,7 +8,7 @@ import useGraphData from "@/hooks/useGraphData";
 import { PercentageChange } from "@/pages/Layout";
 import { lastUpdateDate } from "@/utils/dataProcessing";
 import { Box, Stack, CircularProgress, Card } from "@mui/material";
-import React, { useContext, useEffect, useState} from "react";
+import React, { useContext, useEffect, useState } from "react";
 import DataGraph from "@/components/DataGraph";
 import SnapshotChart from "@/components/SnapShotChart";
 import CurrentStockCard from "@/components/CurrentStock";
@@ -43,32 +43,32 @@ function ErrorFallback({ error }) {
 }
 
 function Portfolio() {
-  const { token } = useAuth();
+
   const [searchParams] = useSearchParams();
   const selectedTicker = searchParams.get("selected") || "BTCUSD"; // Default to 'BTCUSD' if not specified
   const queryClient = useQueryClient();
 
   const { data: userData, isPending: userDataLoading } = useQuery({
-    queryKey: ["userData", token],
-    queryFn: () => getUserData(token),
+    queryKey: ["userData",],
+    queryFn: () => getUserData(),
   });
 
   const { data: stockData, isPending: stockDataLoading } = useQuery({
-    queryKey: ["stockData", selectedTicker, token],
-    queryFn: () => getIntradyData(selectedTicker, token),
-    enabled: !!selectedTicker && !!token,
-    staleTime: 120 * 1000, 
+    queryKey: ["stockData", selectedTicker,],
+    queryFn: () => getIntradyData(selectedTicker,),
+    enabled: !!selectedTicker ,
+    staleTime: 120 * 1000,
   });
 
   const { data: dailyTimeFrame, isPending: dailyTimeFrameLoading } = useQuery({
-    queryKey: ["dailyTimeFrame", token],
-    queryFn: () => getPortfolioSnapshots(token),
+    queryKey: ["dailyTimeFrame",],
+    queryFn: () => getPortfolioSnapshots(),
   });
 
 
   useEffect(() => {
-    queryClient.invalidateQueries(["stockData", selectedTicker, token]);
-  }, [selectedTicker, token, queryClient]);
+    queryClient.invalidateQueries(["stockData", selectedTicker,]);
+  }, [selectedTicker, , queryClient]);
 
   return (
     <Box
@@ -92,7 +92,7 @@ function Portfolio() {
           {userDataLoading ? (
             <GraphSkeleton />
           ) : (
-            <PortfolioContent userData={userData} token={token} />
+            <PortfolioContent userData={userData} />
           )}
         </ErrorBoundary>
       </Box>
@@ -104,7 +104,7 @@ function Portfolio() {
             ) : (
               <SnapshotChartWrapper
                 dailyTimeFrame={dailyTimeFrame}
-                token={token}
+
                 userData={userData}
               />
             )}
@@ -116,7 +116,7 @@ function Portfolio() {
             ) : (
               <CurrentStockCard
                 stockData={stockData}
-                token={token}
+
                 stockTicker={selectedTicker}
               />
             )}
@@ -127,12 +127,12 @@ function Portfolio() {
   );
 }
 
-function PortfolioContent({ userData, token }) {
+function PortfolioContent({ userData, }) {
   const [selectedGraph, setSelectedGraph] = useState("Treemap");
   const { visualizationData, isDataProcessed, value } = useGraphData(
     userData,
     selectedGraph,
-    token
+
   );
 
 
@@ -149,8 +149,8 @@ function PortfolioContent({ userData, token }) {
 
 
   useEffect(() => {
-    if (value != 0 && token) {
-      postSnapshotMutation.mutate({ value: value, token: token });
+    if (value != 0) {
+      postSnapshotMutation.mutate({ value: value });
     }
   }, [value]);
 
@@ -174,13 +174,13 @@ function PortfolioContent({ userData, token }) {
   );
 }
 
-const SnapshotChartWrapper = ({ dailyTimeFrame, token, userData }) => {
+const SnapshotChartWrapper = ({ dailyTimeFrame, userData }) => {
   const { percentageChange, setPercentageChange } =
     useContext(PercentageChange);
   const { stockTickers, value, moneySpent } = useGraphData(
     userData,
     "Treemap",
-    token
+
   );
   const formattedDate = lastUpdateDate(userData);
   const incrementalChange = value - moneySpent;
@@ -199,7 +199,7 @@ const SnapshotChartWrapper = ({ dailyTimeFrame, token, userData }) => {
       stockTickers={stockTickers}
       incrementalChange={incrementalChange}
       percentageChange={percentageChange}
-      token={token}
+
       value={value}
       width={550}
       height={250}

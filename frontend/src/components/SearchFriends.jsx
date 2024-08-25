@@ -8,7 +8,7 @@ import Typography from "@mui/material/Typography";
 import { useState } from "react";
 
 function SearchFriends() {
-  const { token } = useAuth();
+  
   const [friend,setFriend] = useState({})
   const [error,setError] = useState()
   const [searchInput, setSearchInput] = useState("");
@@ -20,7 +20,7 @@ function SearchFriends() {
   const handleSearchClick = async () => {
     if (searchInput.trim()) {
       try {
-        const result = await searchUser(searchInput, token);
+        const result = await searchUser(searchInput, );
         setFriend(result)
       } catch (error) {
         console.error("Error searching for user:", error);
@@ -47,7 +47,7 @@ function SearchFriends() {
           <Button variant="outlined" onClick={handleSearchClick}>Search</Button>
         </Stack>
         <Stack spacing={2}>
-          {error? <p>{error}</p>: friend.username && <AddFriend  username={friend.username} email={friend.email} token={token}/>}
+          {error? <p>{error}</p>: friend.username && <AddFriend  username={friend.username} email={friend.email} />}
         </Stack>
       </Box>
     </>

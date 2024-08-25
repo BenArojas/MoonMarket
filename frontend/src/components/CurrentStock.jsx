@@ -18,7 +18,6 @@ function transformData(historicalData) {
 export default function CurrentStockCard({
   stockData,
   stockTicker,
-  token,
 }) {
   const transformedData = transformData(stockData);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -51,7 +50,7 @@ export default function CurrentStockCard({
     function: "",
     buttonText: "",
     ticker: stockTicker,
-    token: token,
+
   });
 
   function handleClose() {

@@ -24,9 +24,9 @@ app.include_router(FriendsRouter)
 if __name__ == "__main__":
     uvicorn.run(
         "main:app",
-        host=CONFIG.HOST,
-        reload=CONFIG.DEBUG_MODE,
-        port=CONFIG.PORT,
+        host="localhost",
+        reload=True,
+        port=8000,
     )
     
 

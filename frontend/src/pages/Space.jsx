@@ -9,8 +9,8 @@ import FriendsSideBar from "@/components/FriendsSideBar";
 import { useTheme } from "@/contexts/ThemeContext";
 
 
-export const loader = (token) => async () => {
-  const friends = getFriendsAndUserHoldings(token);
+export const loader = async () => {
+  const friends = getFriendsAndUserHoldings();
   return defer({ friends });
 };
 

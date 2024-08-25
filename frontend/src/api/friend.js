@@ -1,15 +1,11 @@
-import axios from "axios";
-const baseUrl = "http://localhost:8000"
-export async function sendFriendRequest(username, token) {
+
+import api from "@/api/axios";
+
+export async function sendFriendRequest(username ) {
   try {
-    const response = await axios.post(
-      `${baseUrl}/friend/send_friend_request/${username}`,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+    const response = await api.post(
+      `/friend/send_friend_request/${username}`,
+      {}
     );
     return response.data;
   } catch (error) {
@@ -17,15 +13,10 @@ export async function sendFriendRequest(username, token) {
   }
 }
 
-export async function getFriendRequest(token) {
+export async function getFriendRequest() {
   try {
-    const response = await axios.get(
-      `${baseUrl}/friend/pending_friend_requests`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+    const response = await api.get(
+      `/friend/pending_friend_requests`
     );
     return response.data;
   } catch (error) {
@@ -33,16 +24,12 @@ export async function getFriendRequest(token) {
   }
 }
 
-export async function answerFriendRequest(requestId, action, token) {
+export async function answerFriendRequest(requestId, action, ) {
   try {
-    const response = await axios.post(
-      `${baseUrl}/friend/handle_friend_request/${requestId}`,
+    const response = await api.post(
+      `/friend/handle_friend_request/${requestId}`,
       { action }, // Send action in the request body
       {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
         params: { action }, // Also include action as a query parameter
       }
     );
@@ -52,26 +39,18 @@ export async function answerFriendRequest(requestId, action, token) {
   }
 }
 
-export async function getFriendsAndUserHoldings(token) {
+export async function getFriendsAndUserHoldings() {
   try {
-    const response = await axios.get(`${baseUrl}/friend/get_friends_and_user_holdings`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await api.get(`/friend/get_friends_and_user_holdings`, );
     return response.data;
   } catch (error) {
     throw error;
   }
 }
 
-export async function getFriendList(token) {
+export async function getFriendList() {
   try {
-    const response = await axios.get(`${baseUrl}/friend/get_friendList`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await api.get(`/friend/get_friendList`);
     return response.data;
   } catch (error) {
     throw error;

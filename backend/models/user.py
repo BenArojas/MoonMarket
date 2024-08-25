@@ -34,19 +34,17 @@ class Holding(BaseModel):
 class UserAuth(BaseModel):
     """User login auth."""
 
-    email: EmailStr
+    email: Annotated[str, Indexed(EmailStr, unique=True)]
     password: str
 
-class UserRegister(BaseModel):
+class UserRegister(UserAuth):
     """User register."""
 
-    email: EmailStr
-    password: str
     deposits: List[Deposit] = Field(..., min_items=1)  # At least one deposit required
     username: str
 
 class UserFriend(BaseModel):
-    """User fields that will be shown when searching user for sending friend request"""
+    """User fields that will be shown when searching a user in order to send a friend request"""
      
     email: EmailStr | None = None
     username: Optional[str] = None
@@ -56,35 +54,31 @@ class UserFriend(BaseModel):
 class UserUpdate(BaseModel):
     """Updatable user fields."""
 
-    email: EmailStr | None = None
+    email: Annotated[str, Indexed(EmailStr, unique=True)]
     holdings: List[Holding] = []
     transactions: List[PydanticObjectId] = []  # Use PydanticObjectId for transactions
     deposits: List[Deposit] | None = []
     current_balance: float | None = 0
     last_refresh: datetime | None = None
     username: Optional[str] = None
-    password: Optional[str] = None
     
 class UserOut(UserUpdate):
     """User fields returned to the client."""
 
-    email: Annotated[str, Indexed(EmailStr, unique=True)]
-    disabled: bool = False
-    username: str
-    deposits: List[Deposit] 
-    current_balance: float 
-    holdings: List[Holding] = []
-    last_refresh: datetime | None = None
-    transactions: List[PydanticObjectId] = []  # Use PydanticObjectId for transactions  
     friends: List[UserFriend] = []
 
 
-
-class User(Document, UserOut):
+class User(Document):
     """User DB representation."""
 
+    email: Annotated[str, Indexed(EmailStr, unique=True)]
     password: str
-    # email_confirmed_at: datetime | None = None
+    username: Optional[str] = None
+    holdings: List[Holding] = []
+    transactions: List[PydanticObjectId] = []
+    deposits: List[Deposit] = []
+    current_balance: float = 0
+    last_refresh: Optional[datetime] = None
     friends: List[PydanticObjectId] = []
     friend_requests_sent: List[Link["FriendRequest"]] = []
     friend_requests_received: List[Link["FriendRequest"]] = []

@@ -14,9 +14,9 @@ import TabsSkeleton from "@/Skeletons/TabsSkeleton";
 import { getFriendList } from "@/api/friend";
 import ErrorPage from "./ErrorPage";
 
-export const loader = (token) => async () => {
-  const userPromise = getUserData(token);
-  const friendListPromise = getFriendList(token);
+export const loader = async () => {
+  const userPromise = getUserData();
+  const friendListPromise = getFriendList();
 
   return defer({
     user: userPromise,

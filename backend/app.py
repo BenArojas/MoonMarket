@@ -1,6 +1,6 @@
-
 """Server app config."""
 
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -15,9 +15,6 @@ from models.transaction import Transaction
 from models.PortfolioSnapshot import PortfolioSnapshot
 from models.friendRequest import FriendRequest
 
-
-
-
 DESCRIPTION = """
 This API powers whatever I want to make
 
@@ -27,16 +24,25 @@ It supports:
 - Something really cool that will blow your socks off
 """
 
+# async def init_db(client: AsyncIOMotorClient):
+#     db = client.stock_db
+#     await init_beanie(database=db, document_models=[User, Stock, Transaction, PortfolioSnapshot, FriendRequest])
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):  # type: ignore
+async def lifespan(app: FastAPI):
     """Initialize application services."""
-    app.db = AsyncIOMotorClient(CONFIG.DB_URL).stock_db  # type: ignore[attr-defined]
-    await init_beanie(app.db, document_models=[User, Stock,FriendRequest, Transaction, PortfolioSnapshot])  # type: ignore[arg-type,attr-defined]
-    print("Startup complete")
-    yield
-    print("Shutdown complete")
-
+    client = None
+    try:
+        client = AsyncIOMotorClient(CONFIG.DB_URL, maxPoolSize=50, minPoolSize=10)
+        await init_beanie(database=client[CONFIG.DB_NAME], document_models=[User, Stock, Transaction, PortfolioSnapshot, FriendRequest])
+        print("Database initialized")
+        
+        yield
+    finally:
+        await asyncio.sleep(1)  # Allow pending operations to complete
+        if client:
+            client.close()
+            print("Database connection closed")
 
 app = FastAPI(
     title="My Server",
@@ -44,9 +50,10 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  
+    allow_origins=["http://localhost:5173"],  # Consider restricting this in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

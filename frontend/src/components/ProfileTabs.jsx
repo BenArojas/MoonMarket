@@ -22,28 +22,26 @@ import {
   Box,
   Button,
 } from "@mui/material";
-import { useAuth } from "@/contexts/AuthProvider";
+
 import { answerFriendRequest } from "@/api/friend";
 import SearchFriends from "@/components/SearchFriends";
 import { useTheme } from '@mui/material/styles';
 
 export async function action({ request }) {
-  let formData = await request.formData();
   let intent = formData.get("intent");
-  const token = formData.get("token");
   if (intent === "username") {
-    const newUsername = updateUsername(formData.get("username"), token);
+    const newUsername = updateUsername(formData.get("username"));
     return newUsername;
   }
   if (intent === "password") {
     let oldPassword = formData.get("password");
     let newPassword = formData.get("new-password");
-    const changedPassword = changePassword(oldPassword, newPassword, token);
+    const changedPassword = changePassword(oldPassword, newPassword);
     return changedPassword;
   }
   if (intent === "Deposit") {
     let money = formData.get("money");
-    const deposit = addDeposit(money, token);
+    const deposit = addDeposit(money);
     return deposit;
   }
   if (intent === "accept") {
@@ -51,7 +49,7 @@ export async function action({ request }) {
     const result = await answerFriendRequest(
       requestId.toString(),
       "accept",
-      token
+
     );
     return result;
   }
@@ -60,20 +58,20 @@ export async function action({ request }) {
     const result = await answerFriendRequest(
       requestId.toString(),
       "reject",
-      token
+
     );
     return result;
   }
 }
 
-function FriendRequestCard({ request, token }) {
+function FriendRequestCard({ request }) {
   return (
     <Stack
       key={request.from_user.id}
       direction={"row"}
       alignItems={"center"}
       spacing={8}
-      // justifyContent={"space-around"}
+    // justifyContent={"space-around"}
     >
       <Avatar
         sx={{ width: 56, height: 56, mr: 2 }}
@@ -92,7 +90,7 @@ function FriendRequestCard({ request, token }) {
               name="requestId"
               value={request._id}
             />
-            <input type="hidden" name="token" value={token} />
+            <input type="hidden" />
             <Button
               sx={{ width: "100%" }}
               variant="contained"
@@ -110,7 +108,7 @@ function FriendRequestCard({ request, token }) {
               name="requestId"
               value={request._id}
             />
-            <input type="hidden" name="token" value={token} />
+            <input type="hidden" name="" />
             <Button
               sx={{ width: "100%" }}
               variant="text"
@@ -135,7 +133,7 @@ export function ProfileTabs({
   const theme = useTheme();
   const password = useRef(null);
   const money = useRef(null);
-  const { token } = useAuth();
+
   const navigation = useNavigation();
   const { state } = navigation;
 
@@ -150,7 +148,7 @@ export function ProfileTabs({
 
   return (
     <Tabs defaultValue="profile" className="w-[650px]">
-      <TabsList className="grid w-full grid-cols-5" style={{ backgroundColor:theme.palette.trinary.main}}>
+      <TabsList className="grid w-full grid-cols-5" style={{ backgroundColor: theme.palette.trinary.main }}>
         <TabsTrigger value="profile">Profile</TabsTrigger>
         <TabsTrigger value="password">Settings</TabsTrigger>
         <TabsTrigger value="money">Money</TabsTrigger>
@@ -172,7 +170,7 @@ export function ProfileTabs({
               <div className="space-y-1">
                 <Label htmlFor="username">Username</Label>
                 <Input id="username" name="username" defaultValue={username} />
-                <input type="hidden" name="token" value={token} />
+                <input type="hidden" name="" />
               </div>
             </CardContent>
             <CardFooter>
@@ -203,7 +201,7 @@ export function ProfileTabs({
               <div className="space-y-1">
                 <Label htmlFor="new">New password</Label>
                 <Input id="new" type="password" name="new-password" />
-                <input type="hidden" name="token" value={token} />
+                <input type="hidden" name="" />
               </div>
             </CardContent>
             <CardFooter>
@@ -228,7 +226,7 @@ export function ProfileTabs({
               <div className="space-y-1">
                 <Label htmlFor="new">$$$</Label>
                 <Input id="new" type="number" name="money" />
-                <input type="hidden" name="token" value={token} />
+                <input type="hidden" name="" />
               </div>
             </CardContent>
             <CardFooter>
@@ -258,10 +256,10 @@ export function ProfileTabs({
                     alignItems="center"
                   >
                     <Avatar
-                     
+
                     />
-                      <Typography>{friend.username}</Typography>
-                      <Typography>{friend.email}</Typography>
+                    <Typography>{friend.username}</Typography>
+                    <Typography>{friend.email}</Typography>
                   </Stack>
                 );
               })}
@@ -283,7 +281,7 @@ export function ProfileTabs({
                 divider={<Divider orientation="horizontal" flexItem />}
               >
                 {friendRequests.map((request) => (
-                  <FriendRequestCard request={request} token={token} />
+                  <FriendRequestCard request={request} />
                 ))}
               </Stack>
             ) : (

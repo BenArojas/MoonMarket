@@ -7,8 +7,8 @@ import SkeletonTable from "@/Skeletons/TableSkeleton";
 import ErrorPage from "./ErrorPage";
 
 
-export const loader = (token) => async () => {
-  const transactions = getUserTransactions(token);
+export const loader = async () => {
+  const transactions = getUserTransactions();
   return defer({ transactions });
 };
 

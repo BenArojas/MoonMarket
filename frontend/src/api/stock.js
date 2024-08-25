@@ -1,26 +1,16 @@
-import axios from "axios";
-const baseUrl = "http://localhost:8000"
+import api from "@/api/axios";
 
 
-export async function postApiStock(portfolioStock, token) {
-  return axios.post(`${baseUrl}/stocks/add_stock`, portfolioStock, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export async function postApiStock(portfolioStock) {
+  return api.post(`/stocks/add_stock`, portfolioStock, );
 }
 
-export async function getStockData(ticker, token) {
+export async function getStockData(ticker) {
   if (isValidStockTicker(ticker) === false) {
     return false;
   } else {
-    const stock = await axios.get(
-      `${baseUrl}/stocks/quote/${ticker}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+    const stock = await api.get(
+      `/stocks/quote/${ticker}`
     );
     if(stock.data.length == 0) {
     return null;
@@ -30,33 +20,23 @@ export async function getStockData(ticker, token) {
 }
 }
 
-export async function getHistoricalData(ticker, token) {
+export async function getHistoricalData(ticker) {
   if (isValidStockTicker(ticker) === false) {
     return false;
   } else {
-    const data = await axios.get(
-      `${baseUrl}/stocks/historical_data/${ticker}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+    const data = await api.get(
+      `/stocks/historical_data/${ticker}`
     );
     return data.data;
   }
 }
 
-export async function getIntradyData(ticker, token) {
+export async function getIntradyData(ticker) {
   if (isValidStockTicker(ticker) === false) {
     return false;
   } else {
-    const data = await axios.get(
-      `${baseUrl}/stocks/intrady_chart/${ticker}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+    const data = await api.get(
+      `/stocks/intrady_chart/${ticker}`
     );
     return data.data;
   }
@@ -75,25 +55,17 @@ function isValidStockTicker(ticker) {
   return false;
 }
 
-export async function getStockFromPortfolio(ticker, token) {
-  const stock = await axios.get(`${baseUrl}/stocks/${ticker}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export async function getStockFromPortfolio(ticker) {
+  const stock = await api.get(`/stocks/${ticker}`);
   return stock.data;
 }
 
-export async function updateStockPrice(ticker, token) {
+export async function updateStockPrice(ticker ) {
   try {
-    const response = await axios.put(
-      `${baseUrl}/stocks/update_stock_price/${ticker}`,
+    const response = await api.put(
+      `/stocks/update_stock_price/${ticker}`,
       {}, // This is the data payload. Use an empty object if no data to send.
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+     
     );
     return response.data; // Return response data if needed
   } catch (error) {
@@ -102,13 +74,9 @@ export async function updateStockPrice(ticker, token) {
   }
 }
 
-export async function deleteStock(ticker, token) {
-  const stock = await axios.delete(
-    `${baseUrl}/stocks/delete/${ticker}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+export async function deleteStock(tickeroken) {
+  const stock = await api.delete(
+    `/stocks/delete/${ticker}`
   );
+  return stock.data; // Return response data if needed
 }

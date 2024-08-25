@@ -8,9 +8,9 @@ import {
 } from "@/utils/dataProcessing.js";
 import useHoldingsData from "@/hooks/useHoldingsData";
 
-function useGraphData(userData, selectedGraph, token) {
+function useGraphData(userData, selectedGraph, ) {
   const stockList = userData.holdings;
-  const stocksInfo = useHoldingsData(stockList, token, userData);
+  const stocksInfo = useHoldingsData(stockList, userData);
 
   const portfolioStats = useMemo(() => {
     if (stockList.length > 0 && stocksInfo.length > 0) {

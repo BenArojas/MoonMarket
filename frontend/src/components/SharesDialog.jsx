@@ -39,14 +39,14 @@ function SharesDialog({
           price: data.price,
           ticker: dialog.ticker,
           quantity: data.quantity,
-          token: dialog.token,
+          
         });
       } else if (dialog.function === "sell") {
         await sellShares.mutateAsync({
           ticker: dialog.ticker,
           quantity: data.quantity,
           price: data.price,
-          token: dialog.token,
+    
         });
       }
       else {

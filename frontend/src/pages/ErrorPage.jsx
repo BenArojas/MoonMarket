@@ -5,11 +5,11 @@ import { useAuth } from "@/contexts/AuthProvider";
 
 const ErrorPage = () => {
   const error = useRouteError();
-  const { clearTokens } = useAuth();
+  const { clears } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    clearTokens(); // Clear the authentication token
+    clears(); // Clear the authentication 
     navigate("/login", { replace: true }); // Navigate to the login page with replace option set to true
   };
 
@@ -17,7 +17,7 @@ const ErrorPage = () => {
     if(error?.response?.status === 401 ){
       handleLogout(); // Invoke the logout action
     }
-  }, [clearTokens, navigate, error]); // Dependency array to avoid unnecessary re-renders
+  }, [clears, navigate, error]); // Dependency array to avoid unnecessary re-renders
 
   return (
     <div>

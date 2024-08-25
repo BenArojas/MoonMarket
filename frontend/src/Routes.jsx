@@ -24,7 +24,7 @@ import Global from "@/pages/Global";
 
 
 const Routes = () => {
-  const { token } = useAuth();
+  
 
 
   // Combine and conditionally include routes based on authentication status
@@ -35,7 +35,7 @@ const Routes = () => {
         {
           element: <Layout />,
           path: "/",
-          loader: LayoutLoader(token),
+          loader: LayoutLoader,
           errorElement: <ErrorPage />,
           children: [
             {
@@ -47,21 +47,21 @@ const Routes = () => {
               path: "/profile",
               element: <Profile />,
               errorElement: <ErrorPage />,
-              loader: profileLoader(token),
+              loader: profileLoader,
               action: profileAction,
             },
             {
               path: "/transactions",
               element: <Transactions />,
               errorElement: <ErrorPage />,
-              loader: transactionsLoader(token),
+              loader: transactionsLoader,
             },
             {
               path: "/space",
               element:
                 <Space />
               ,
-              loader: spaceLoader(token),
+              loader: spaceLoader,
               errorElement: <ErrorPage />,
             },
             {
@@ -81,7 +81,7 @@ const Routes = () => {
               element: <StockItem />,
               errorElement: <ErrorPage />,
               loader: ({ params }) => {
-                return stockItemLoader(params.stockTicker, token);
+                return stockItemLoader(params.stockTicker);
               },
             },
           ]
@@ -89,7 +89,6 @@ const Routes = () => {
       ],
     },
     {
-      path: "/",
       element: <PublicRoute />,
       errorElement: <ErrorPage />,
       children: [
@@ -105,6 +104,10 @@ const Routes = () => {
         },
       ],
     },
+    {
+      path: "*",
+      element: <div style={{color: 'white'}}>404 - Not Found</div>,
+    },  
   ]);
 
   // Provide the router configuration using RouterProvider

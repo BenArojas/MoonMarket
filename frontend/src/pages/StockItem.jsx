@@ -17,13 +17,13 @@ import { useForm } from "react-hook-form";
 import { useLoaderData } from "react-router-dom";
 import SearchBar from "@/components/SearchBar.jsx";
 
-export async function loader(ticker, token) {
-  const stock = await getStockData(ticker, token);
-  const historicaldata = await getHistoricalData(ticker, token);
+export async function loader(ticker ) {
+  const stock = await getStockData(ticker, );
+  const historicaldata = await getHistoricalData(ticker, );
   return { stock, historicaldata };
 }
 function StockItem() {
-  const { token } = useAuth();
+  
   const {
     stock,
     historicaldata: { historical, symbol },
@@ -56,8 +56,8 @@ function StockItem() {
 
   const queryClient = useQueryClient();
   const { mutateAsync: addStockMutation } = useMutation({
-    mutationFn: ({ portfolioStock, price, quantity, token }) =>
-      addStockToPortfolio(portfolioStock, price, quantity, token),
+    mutationFn: ({ portfolioStock, price, quantity,  }) =>
+      addStockToPortfolio(portfolioStock, price, quantity, ),
     onSuccess: () => {
       queryClient.invalidateQueries(["userData"]) // Invalidate the dailyTimeFrame query when the snapshot is posted
     },
@@ -78,7 +78,7 @@ function StockItem() {
         portfolioStock,
         price: data.price,
         quantity: data.quantity,
-        token,
+        
       });
       setisBought(true);
     } catch (error) {

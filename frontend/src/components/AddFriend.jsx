@@ -5,12 +5,12 @@ import { Avatar } from "@mui/material";
 import { sendFriendRequest } from '@/api/friend';
 import { useState } from "react";
 
-function AddFriend({  username, email, token }) {
+function AddFriend({  username, email}) {
   const [resultMessage, setResultMessage] = useState("");
 
   const handleSubmit = async () => {
     try {
-      await sendFriendRequest(username, token);
+      await sendFriendRequest(username);
       setResultMessage("Friend request sent successfully");
     } catch (error) {
       setResultMessage(`Error adding friend: ${error.message}`);
