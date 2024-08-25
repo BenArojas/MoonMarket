@@ -7,9 +7,9 @@
     const { isAuthenticated, checkAuthStatus } = useAuth();
     const location = useLocation();
 
-    // React.useEffect(() => {
-    //   checkAuthStatus();
-    // }, [checkAuthStatus]);
+    React.useEffect(() => {
+      checkAuthStatus();
+    }, [isAuthenticated]);
 
     if (!isAuthenticated) {
       // Redirect them to the /login page, but save the current location they were

@@ -12,7 +12,6 @@ export async function getUserData() {
 }
 export async function getUserName() {
   const userName = await api.get(`/user/name`);
-  console.log(userName)
   return userName.data;
 }
 

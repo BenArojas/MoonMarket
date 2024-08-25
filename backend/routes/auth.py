@@ -8,7 +8,7 @@ from jwt import access_security, refresh_security
 from util.password import hash_password, verify_password
 from util.current_user import current_user
 from fastapi.responses import JSONResponse
-import sys
+from config import CONFIG
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -32,22 +32,16 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 @router.post("/refresh")
 async def refresh(response: Response, credentials: JwtAuthorizationCredentials = Security(refresh_security)):
     new_access_token = access_security.create_access_token(subject=credentials.subject)
-    response.set_cookie(
-        key="access_token", 
-        value=new_access_token,
-        httponly=True,
-        secure=True,
-        samesite='none',
-        max_age=1800  # 30 minutes
-    )
-    return {"message": "Token refreshed successfully"}
+    response = JSONResponse(content={"message": "Token refreshed successfully"})
+    access_security.set_access_cookie(response, new_access_token)
+    return response
+
 
 @router.post("/logout")
 async def logout(response: Response):
     response.delete_cookie("access_token_cookie")
     response.delete_cookie("refresh_token_cookie")
     return {"message": "Logged out successfully"}
-
 
 
 @router.get("/protected-route")

@@ -7,21 +7,21 @@ from fastapi_jwt import JwtAuthorizationCredentials, JwtAccessBearerCookie, JwtR
 from config import CONFIG
 from models.user import User
 
-ACCESS_EXPIRES = timedelta(minutes=20)
+ACCESS_EXPIRES = timedelta(minutes=1)
 REFRESH_EXPIRES = timedelta(days=30)
 
 access_security = JwtAccessBearerCookie(
     secret_key=CONFIG.authjwt_secret_key,
     access_expires_delta=ACCESS_EXPIRES,
     refresh_expires_delta=REFRESH_EXPIRES,
-    auto_error=False
+    auto_error=True,
 )
 
 refresh_security = JwtRefreshBearerCookie(
     secret_key=CONFIG.authjwt_secret_key,
     access_expires_delta=ACCESS_EXPIRES,
     refresh_expires_delta=REFRESH_EXPIRES,
-    auto_error=False
+    auto_error=True
 )
 
 

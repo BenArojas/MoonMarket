@@ -8,9 +8,9 @@ export const PublicRoute = ({ children }) => {
   const { isAuthenticated, checkAuthStatus } = useAuth();
   const location = useLocation();
 
-  // useEffect(() => {
-  //   checkAuthStatus();
-  // }, [checkAuthStatus]);
+  useEffect(() => {
+    checkAuthStatus();
+  }, [isAuthenticated]);
   
   const { forceDarkMode } = useTheme(); 
   useEffect(() => {
