@@ -1,10 +1,7 @@
 """Current user dependency."""
 
-from fastapi import HTTPException, Security, FastAPI, Depends, Cookie
-from typing import Optional
+from fastapi import HTTPException, Security
 from fastapi_jwt import JwtAuthorizationCredentials
-
-from models.user import User
 from jwt import access_security, user_from_credentials
 
 

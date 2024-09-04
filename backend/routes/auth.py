@@ -1,14 +1,13 @@
 """Authentication router."""
 
-from fastapi import APIRouter, HTTPException, Security, Response, Depends, Request
+from fastapi import APIRouter, HTTPException, Security, Response, Depends
 from fastapi_jwt import JwtAuthorizationCredentials
 from fastapi.security import OAuth2PasswordRequestForm
-from models.user import User, UserAuth
+from models.user import User
 from jwt import access_security, refresh_security
-from util.password import hash_password, verify_password
+from util.password import  verify_password
 from util.current_user import current_user
 from fastapi.responses import JSONResponse
-from config import CONFIG
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 

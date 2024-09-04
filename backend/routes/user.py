@@ -8,8 +8,7 @@ from jwt import access_security
 from util.current_user import current_user
 from models.transaction import Transaction
 from util.password import hash_password, verify_password
-from bson import DBRef
-from models.friendRequest import FriendRequest, FriendRequestAction
+
 
 
 router = APIRouter(prefix="/user", tags=["User"])

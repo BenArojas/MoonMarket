@@ -7,7 +7,7 @@ import pytz
 
 from beanie import PydanticObjectId
 
-from datetime import datetime, time
+from datetime import datetime
 
 
 

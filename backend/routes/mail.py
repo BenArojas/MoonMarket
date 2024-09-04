@@ -2,11 +2,9 @@
 
 from datetime import datetime, UTC
 
-from fastapi import APIRouter, Body, HTTPException, Response
-from pydantic import EmailStr
-
+from fastapi import APIRouter, HTTPException, Response
 from models.user import User
-from jwt import access_security, user_from_token
+from jwt import user_from_token
 # from util.mail import send_verification_email
 
 

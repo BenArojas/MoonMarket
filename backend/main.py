@@ -1,6 +1,5 @@
 """Server main runtime."""
 import uvicorn
-from config import CONFIG
 from app import app
 from routes.auth import router as AuthRouter
 from routes.mail import router as MailRouter

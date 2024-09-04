@@ -1,16 +1,12 @@
 """Registration router."""
 
-from fastapi import APIRouter, Body, HTTPException, Response
-from pydantic import EmailStr
-
-from models.user import User, UserAuth, UserOut, UserRegister
-from jwt import access_security, user_from_token
-# from util.mail import send_password_reset_email
+from fastapi import APIRouter, HTTPException
+from models.user import User, UserRegister
 from util.password import hash_password
 
 router = APIRouter(prefix="/register", tags=["Register"])
 
-embed = Body(..., embed=True)
+# embed = Body(..., embed=True)
 
 
 @router.post("", response_model=UserRegister)
