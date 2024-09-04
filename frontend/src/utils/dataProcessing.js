@@ -214,7 +214,7 @@ export function processLeaderboardsData(stocksList, stocksInfo) {
   });
   let LeaderboardsData = [];
   stocksList.forEach((stock, i) => {
-    const value = stock.quantity * stocksInfo[i].price;
+    const value = (stock.quantity * stocksInfo[i].price).toFixed(2);
     const ticker = stock.ticker;
     const name = stocksInfo[i].name;
     const avg_bought_price = stock.avg_bought_price;
@@ -244,7 +244,7 @@ export function processLeaderboardsData(stocksList, stocksInfo) {
   LeaderboardsData.sort(
     (a, b) => b.priceChangePercentage - a.priceChangePercentage
   );
-  // console.log("LeaderboardsData is: " , LeaderboardsData)
+  console.log("LeaderboardsData is: " , LeaderboardsData)
 
   return LeaderboardsData;
 }

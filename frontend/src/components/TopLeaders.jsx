@@ -4,7 +4,6 @@ import * as React from 'react';
 
 
 function TopLeaders({ leaderboardsData, category }) {
-  console.log(leaderboardsData)
 
   const renderLeaderboardCard = (index, position) => {
     if (leaderboardsData.length > index) {

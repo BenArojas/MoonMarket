@@ -2,13 +2,10 @@
 import React from 'react'
 import TickerTape from '@/components/tradingView/TickerTapeTradingView'
 import SwitchableHeatMap from '@/components/SwitchHeatMap'
-import { Box, Container } from '@mui/material'
+import { Box } from '@mui/material'
 import Timeline from '@/components/tradingView/TimelineTradingView'
 import HotList from '@/components/tradingView/HotListTradingVIew'
-import StockScreener from '@/components/tradingView/StockScreenerTradingView'
 import TechnicalAnalysis from '@/components/tradingView/TechnicalAnalysisTradingView'
-import EconomicCalander from '@/components/tradingView/EconomicCalanderTradingView'
-import { MinimizeSharp } from '@mui/icons-material'
 
 function Global() {
     return (
@@ -48,15 +45,7 @@ function Global() {
                     },
                 }}>
                     <SwitchableHeatMap />
-                    <Box sx={{
-                        display: 'flex',
-                        gap: 5,
-                        p: 2,
-                        mb: 5
-                    }}>
-                        <HotList />
-                        <StockScreener />
-                    </Box>
+
                     <Box sx={{
                         minHeight: '70vh',
                         width: '100%',
@@ -65,9 +54,9 @@ function Global() {
                     }}>
                         <TechnicalAnalysis />
                     </Box>
-
                 </Box>
-                <EconomicCalander />
+
+                <HotList />
             </Box>
         </Box>
     )

@@ -14,22 +14,23 @@ import SnapshotChart from "@/components/SnapShotChart";
 import CurrentStockCard from "@/components/CurrentStock";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
+import GraphSkeleton from "@/Skeletons/GraphSkeleton";
 
-function GraphSkeleton() {
-  return (
-    <Card
-      sx={{
-        width: "100%",
-        height: "100%",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <CircularProgress />
-    </Card>
-  );
-}
+// function GraphSkeleton() {
+//   return (
+//     <Card
+//       sx={{
+//         width: "100%",
+//         height: "100%",
+//         display: "flex",
+//         justifyContent: "center",
+//         alignItems: "center",
+//       }}
+//     >
+//       <CircularProgress />
+//     </Card>
+//   );
+// }
 
 import { ErrorBoundary } from "react-error-boundary";
 

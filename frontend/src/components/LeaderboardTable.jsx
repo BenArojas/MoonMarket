@@ -40,9 +40,9 @@ export default function LeaderBoardsTable({ data }) {
     return (
       <span>
         <span style={{ color }}>
-          {`${sign}${gainLossNumber.toFixed(2)}$`}
+          {`${sign}${gainLossNumber}$`}
         </span>
-        {` (${value.toFixed(2)}$)`}
+        {` (${value}$)`}
       </span>
     );
   };

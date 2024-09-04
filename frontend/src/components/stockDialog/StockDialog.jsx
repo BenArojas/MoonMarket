@@ -44,6 +44,9 @@ export default function AlertDialogSlide({ dialogOpen, setDialogOpen, stock }) {
   return (
     <React.Fragment>
       <Dialog
+      BackdropProps={{
+        style: { backgroundColor: 'rgba(0, 0, 0, 0.9)' }, 
+      }}
         open={dialogOpen}
         TransitionComponent={Transition}
         keepMounted
@@ -53,8 +56,10 @@ export default function AlertDialogSlide({ dialogOpen, setDialogOpen, stock }) {
           "& .MuiDialog-paper": {
             color:theme.palette.text.primary,
             borderRadius: "10px",
-            overflow: "visible", // Allow content to overflow
+            overflow: "visible", 
             maxWidth: "600px",
+            display:'flex',
+            alignItems: "center"
           },
         }}
       >
@@ -101,7 +106,11 @@ export default function AlertDialogSlide({ dialogOpen, setDialogOpen, stock }) {
             </Stack>
           </Stack>
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{
+          p:'20px 0',
+          width:'105%',
+          
+        }}>
           <div className={styles.container}>
             {infoBoxText.map((item, index) => (
               <InfoBox key={index} text={item.text} subtitle={item.subtitle} />
