@@ -230,7 +230,7 @@ export function ProfileTabs({
               </div>
             </CardContent>
             <CardFooter>
-              <Button variant="contained" name="intent" value="Deposit">
+              <Button variant="contained" name="intent" value="Deposit" type="submit">
                 Add
               </Button>
             </CardFooter>

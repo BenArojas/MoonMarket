@@ -44,7 +44,7 @@ const Login = () => {
   const onSubmit = async (data) => {
     try {
       await login(data.email, data.password);
-      navigate("/portfolio", { replace: true });
+      navigate("/home", { replace: true });
     } catch (error) {
       if (error.response && error.response.data) {
         setError(error.response.data.detail);

@@ -26,7 +26,7 @@ function RocketSideBar() {
           zIndex: 1,
         }}
       >
-        <Link draggable={false} to="/portfolio" className="logo">
+        <Link draggable={false} to="/home" className="logo">
           <img draggable={false} src={mainlogo} style={{ height: "120px", width: "70px" }} />
         </Link>
       </Box>

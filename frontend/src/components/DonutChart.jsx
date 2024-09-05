@@ -9,17 +9,29 @@ const MARGIN_X = 150;
 const MARGIN_Y = 50;
 const INFLEXION_PADDING = 25;
 
-const colors = [
-  "#077e5d", // Your main metallic green
-  "#f2c94c", // Complementary golden yellow
-  "#2d9cdb", // Cool blue
-  "#eb5757", // Accent red
-  "#6fcf97", // Light green
-  "#bb6bd9", // Purple
-  "#4f4f4f", // Dark gray
-  "#ff9800", // Orange
-  "#00bcd4", // Cyan
+const colors_array = [
+  "#1a8cff", // Bright blue
+  "#f94144", // Vibrant red
+  "#f3722c", // Deep orange
+  "#f8961e", // Warm yellow
+  "#43aa8b", // Teal green
+  "#577590", // Muted blue
+  "#b5179e", // Magenta
+  "#90be6d", // Soft green
+  "#f9c74f", // Gold
+  "#ff0054", // Bold pink
+  "#3700ff", // Deep blue
+  "#02c39a", // Bright teal
+  "#e63946", // Bold red
+  "#1d3557", // Dark navy
+  "#457b9d", // Muted blue
+  "#f4a261", // Warm orange
+  "#e9c46a", // Golden yellow
+  "#264653", // Deep teal
 ];
+
+// Create a new array of 9 randomized colors from colors_array
+const colors = colors_array.sort(() => 0.5 - Math.random()).slice(0, 9);
 
 export const DonutChart = ({ width, height, data }) => {
   const [showOthers, setShowOthers] = useState(false);
@@ -66,16 +78,6 @@ export const DonutChart = ({ width, height, data }) => {
     const label = ticker + " (" + grp.value.toLocaleString("en-US") + "$)";
     const percentageOfPortfolio = grp.data.percentageOfPortfolio;
 
-    // const handleClick = (stockData) => {
-    //   const showOthersClicked =
-    //   if (stockData.name === "Others" && !showOthers) {
-    //     setShowOthers(true);
-    //   } else if (showOthers) {
-    //     setShowOthers(false);
-    //   } else {
-    //   }
-    // };
-
     return (
       <Link
       key={grp.data.name}
@@ -89,9 +91,9 @@ export const DonutChart = ({ width, height, data }) => {
         <defs>
           {colors.map((color, i) => (
             <radialGradient key={i} id={`holographic-gradient-${i}`}>
-              <stop offset="0%" stopColor={color} stopOpacity="0.6" />
-              <stop offset="40%" stopColor={color} stopOpacity="0.8" />
-              <stop offset="100%" stopColor={color} stopOpacity="1" />
+              <stop offset="0%" stopColor={color} />
+              <stop offset="40%" stopColor={color} />
+              <stop offset="100%" stopColor={color} />
             </radialGradient>
           ))}
           <filter id="glow">

@@ -101,7 +101,7 @@ export async function changePassword(oldPassword, newPassword) {
   return response;
 }
 
-export async function addDeposit(money, ) {
+export async function addDeposit(money) {
   const currentDate = new Date().toISOString();
   const depositPayload = {
     amount: money,

@@ -58,6 +58,7 @@ function Global() {
                     </Box>
                 </Box>
                 <HotList mode={mode}/>
+                
             </Box>
         </Box>
     )

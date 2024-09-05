@@ -58,7 +58,7 @@ function SearchBar() {
   };
 
   useEffect(() => {
-    if (location.pathname === '/portfolio') {
+    if (location.pathname === '/home') {
       setTickerInput("");
     }
   }, [location.pathname])

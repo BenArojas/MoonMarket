@@ -25,8 +25,6 @@ import Global from "@/pages/Global";
 
 const Routes = () => {
   
-
-
   // Combine and conditionally include routes based on authentication status
   const router = createBrowserRouter([
     {
@@ -39,7 +37,7 @@ const Routes = () => {
           errorElement: <ErrorPage />,
           children: [
             {
-              path: "/portfolio",
+              path: "/home",
               element: <Portfolio />,
               errorElement: <ErrorPage />,
             },

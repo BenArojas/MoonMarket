@@ -22,8 +22,8 @@ function Navbar({ friendRequests }) {
   const mainNavItems = [
     { icon: Orbit, text: "space" },
     { icon: Globe, text: "global" },
-    { icon: BriefcaseBusiness, text: "portfolio" },
     { icon: ArrowLeftRight, text: "transactions" },
+    { icon: BriefcaseBusiness, text: "Home" },
   ];
 
   const rightNavItems = [
