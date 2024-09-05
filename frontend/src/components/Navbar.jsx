@@ -27,12 +27,12 @@ function Navbar({ friendRequests }) {
   ];
 
   const rightNavItems = [
-    { icon: User, text: "profile", badge: friendRequests.length },
     {
       icon: mode === "dark" ? LightModeIcon : DarkModeIcon,
       onClick: isSpacePage ? null : toggleTheme,
       disabled: isSpacePage,
     },
+    { icon: User, text: "profile", badge: friendRequests.length },
     { icon: LogOut, text: "logout" },
   ];
 

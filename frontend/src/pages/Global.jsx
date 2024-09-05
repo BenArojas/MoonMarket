@@ -6,20 +6,22 @@ import { Box } from '@mui/material'
 import Timeline from '@/components/tradingView/TimelineTradingView'
 import HotList from '@/components/tradingView/HotListTradingVIew'
 import TechnicalAnalysis from '@/components/tradingView/TechnicalAnalysisTradingView'
+import { useTheme } from "@/contexts/ThemeContext";
 
 function Global() {
+    const { mode } = useTheme();
     return (
         <Box sx={{
             display: 'flex',
             flexDirection: 'column',
             gap: 5,
         }}>
-            <TickerTape />
+            <TickerTape mode={mode}/>
             <Box sx={{
                 display: 'flex',
                 justifyContent: 'space-around',
             }}>
-                <Timeline />
+                <Timeline mode={mode}/>
                 <Box sx={{
                     display: 'flex',
                     flexDirection: 'column',
@@ -44,7 +46,7 @@ function Global() {
                         backgroundColor: '#a8bbbf',
                     },
                 }}>
-                    <SwitchableHeatMap />
+                    <SwitchableHeatMap mode={mode}/>
 
                     <Box sx={{
                         minHeight: '70vh',
@@ -52,11 +54,10 @@ function Global() {
                         padding: '0 20px',
                         mb: 6
                     }}>
-                        <TechnicalAnalysis />
+                        <TechnicalAnalysis mode={mode}/>
                     </Box>
                 </Box>
-
-                <HotList />
+                <HotList mode={mode}/>
             </Box>
         </Box>
     )
