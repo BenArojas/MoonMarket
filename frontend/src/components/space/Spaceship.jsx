@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
-import { motion, useAnimation } from "framer-motion";
-import HumanSpaceship from "/spaceship_4-cropped.png";
-import styles from "./spaceship.module.css";
-import ReactDOM from "react-dom";
-import { DonutBarplotTransition } from "./DonutBarplotTransition";
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, useAnimation } from 'framer-motion';
+import HumanSpaceship from '/spaceship_4-cropped.png';
+import styles from './spaceship.module.css';
+import Hologram from '@/components/space/Hologram';
 
 function Spaceship({
   Radius,
@@ -14,10 +13,8 @@ function Spaceship({
   onClick,
   onCloseHologram,
   isHologramMode,
-  data
+  data,
 }) {
-
-  
   const FIXED_DESTINATION_X = 100;
   const FIXED_DESTINATION_Y = window.innerHeight / 2 - 150;
   const [showHologram, setShowHologram] = useState(false);
@@ -78,10 +75,9 @@ function Spaceship({
         centerY + 200,
         FIXED_DESTINATION_Y,
       ],
-      transition: { duration: 1.5, ease: "easeInOut" },
+      transition: { duration: 1.5, ease: 'easeInOut' },
     });
-    // No need for additional x animation since we're already at the final X position
-    return new Promise((resolve) => setTimeout(resolve, 100)); // Small delay for stability
+    return new Promise((resolve) => setTimeout(resolve, 100));
   };
 
   const handleClick = () => {
@@ -96,9 +92,8 @@ function Spaceship({
       await controls.start({
         x: originalPosition.current.x,
         y: originalPosition.current.y,
-        transition: { duration: 1, ease: "easeInOut" },
+        transition: { duration: 1, ease: 'easeInOut' },
       });
-      // Resume the orbital motion
       setAngle(
         Math.atan2(
           originalPosition.current.y - centerY,
@@ -110,37 +105,8 @@ function Spaceship({
     onCloseHologram();
   };
 
-  const renderHologram = () => {
-    if (isActive && showHologram) {
-      return ReactDOM.createPortal(
-        <div className={styles.hologramWrapper}>
-          <motion.div
-            className={styles.hologramScreen}
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: [0, 1.2, 1], opacity: [0, 1] }}
-            transition={{ duration: 0.5 }}
-          >
-            <div className={styles.hologramImage}></div>
-            <div className={styles.screenOverlay}></div>
-            <div className={styles.hologramContent}>
-              <button
-                className={styles.closeButton}
-                onClick={handleCloseHologram}
-              >
-                X
-              </button>
-              {/* Hologram content goes here */}
-              <p>{data.username+ "'"+ 's'} Portfolio</p>
-              {data.holdings.length === 0 ? <p>No holdings</p>: <DonutBarplotTransition Holdingsdata={data.holdings}></DonutBarplotTransition>}
-            </div>
-          </motion.div>
-        </div>,
-        document.querySelector(".space-container")
-      );
-    }
-    return null;
-  };
-  const ariaProps = { "aria-selected": isActive && showHologram};
+  const ariaProps = { 'aria-selected': isActive && showHologram };
+
   return (
     <motion.div
       className={styles.spaceshipContainer}
@@ -153,11 +119,16 @@ function Spaceship({
         draggable={false}
         src={HumanSpaceship}
         alt="Spaceship"
-        style={{ width: "100px" }}
+        style={{ width: '100px' }}
       />
-      <div className={styles.portal} />   {/* portal animation, do not remove */}
-    
-      {renderHologram()}
+      <div className={styles.portal} />
+      <Hologram
+        isActive={isActive}
+        showHologram={showHologram}
+        data={data}
+        onClose={handleCloseHologram}
+        Percentage={Percentage}
+      />
     </motion.div>
   );
 }

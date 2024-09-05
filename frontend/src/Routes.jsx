@@ -88,6 +88,7 @@ const Routes = () => {
     },
     {
       element: <PublicRoute />,
+      path: "/",
       errorElement: <ErrorPage />,
       children: [
         {

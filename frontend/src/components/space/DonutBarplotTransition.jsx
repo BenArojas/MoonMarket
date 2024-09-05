@@ -3,7 +3,7 @@ import { DonutBarplotChart } from "@/components/space/DonutBarPlotChart";
 import { Box } from "@mui/material";
 
 
-const BUTTONS_HEIGHT = 50;
+const BUTTONS_HEIGHT = 30;
 
 
 const buttonStyle = {
@@ -22,7 +22,6 @@ export const DonutBarplotTransition = ({Holdingsdata}) => {
     <Box sx={{
       display:'flex',
       flexDirection: 'column',
-
     }}>
       <div style={{ height: BUTTONS_HEIGHT, }}>
         <button style={buttonStyle} onClick={() => setType("pie")}>
@@ -37,7 +36,7 @@ export const DonutBarplotTransition = ({Holdingsdata}) => {
       }}>
       <DonutBarplotChart
         width={800}
-        height={400 - BUTTONS_HEIGHT}
+        height={380 - BUTTONS_HEIGHT}
         data={Holdingsdata}
         type={type}
       />
