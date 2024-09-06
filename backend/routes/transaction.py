@@ -6,7 +6,7 @@ from models.stock import Stock
 from models.transaction import Transaction
 from models.user import Holding
 
-router = APIRouter(prefix="/transaction", tags=["Transaction"])
+router = APIRouter(tags=["Transaction"])
 
 @router.post("/buy_stock")
 async def buy_stock_shares(price: float, ticker: str, quantity: int, user: User = Depends(current_user)):

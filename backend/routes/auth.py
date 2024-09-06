@@ -9,7 +9,7 @@ from util.password import  verify_password
 from util.current_user import current_user
 from fastapi.responses import JSONResponse
 
-router = APIRouter(prefix="/auth", tags=["Auth"])
+router = APIRouter( tags=["Auth"])
 
 
 @router.post("/login")

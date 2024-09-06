@@ -12,7 +12,7 @@ from util.password import hash_password, verify_password
 
 
 
-router = APIRouter(prefix="/user", tags=["User"])
+router = APIRouter( tags=["User"])
 
 
 @router.get("", response_model=UserOut, operation_id="retrieve_user")

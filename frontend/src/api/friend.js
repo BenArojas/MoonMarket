@@ -4,7 +4,7 @@ import api from "@/api/axios";
 export async function sendFriendRequest(username ) {
   try {
     const response = await api.post(
-      `/friend/send_friend_request/${username}`,
+      `/friends/send_friend_request/${username}`,
       {}
     );
     return response.data;
@@ -16,7 +16,7 @@ export async function sendFriendRequest(username ) {
 export async function getFriendRequest() {
   try {
     const response = await api.get(
-      `/friend/pending_friend_requests`
+      `/friends/pending_friend_requests`
     );
     return response.data;
   } catch (error) {
@@ -27,7 +27,7 @@ export async function getFriendRequest() {
 export async function answerFriendRequest(requestId, action, ) {
   try {
     const response = await api.post(
-      `/friend/handle_friend_request/${requestId}`,
+      `/friends/handle_friend_request/${requestId}`,
       { action }, // Send action in the request body
       {
         params: { action }, // Also include action as a query parameter
@@ -41,7 +41,7 @@ export async function answerFriendRequest(requestId, action, ) {
 
 export async function getFriendsAndUserHoldings() {
   try {
-    const response = await api.get(`/friend/get_friends_and_user_holdings`, );
+    const response = await api.get(`/friends/get_friends_and_user_holdings`, );
     return response.data;
   } catch (error) {
     throw error;
@@ -50,7 +50,7 @@ export async function getFriendsAndUserHoldings() {
 
 export async function getFriendList() {
   try {
-    const response = await api.get(`/friend/get_friendList`);
+    const response = await api.get(`/friends/get_friendList`);
     return response.data;
   } catch (error) {
     throw error;

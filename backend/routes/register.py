@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 from models.user import User, UserRegister
 from util.password import hash_password
 
-router = APIRouter(prefix="/register", tags=["Register"])
+router = APIRouter( tags=["Register"])
 
 # embed = Body(..., embed=True)
 

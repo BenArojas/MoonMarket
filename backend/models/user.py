@@ -148,7 +148,7 @@ class User(Document):
     @classmethod
     async def by_email(cls, email: str) -> Optional["User"]:
         """Get a user by email."""
-        return await cls.find_one(cls.email == email)
+        return await cls.find_one({"email": email})
 
     def update_email(self, new_email: str) -> None:
         """Update email logging and replace."""

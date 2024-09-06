@@ -8,7 +8,7 @@ from util.current_user import current_user
 from routes.user import get_user_transactions_by_type
 
 
-router = APIRouter(prefix="/friend")
+router = APIRouter()
 
 @router.get("/pending_friend_requests")
 async def get_pending_friend_requests(current_user: User = Depends(current_user)):

@@ -7,7 +7,7 @@ from decouple import config
 import requests
 from datetime import datetime, timedelta
 
-router = APIRouter(prefix="/stocks", tags=["Stock"])
+router = APIRouter( tags=["Stock"])
 BASE_URL = 'https://financialmodelingprep.com/api/v3/'
 
 # request from FMP API

@@ -8,7 +8,7 @@ from jwt import user_from_token
 # from util.mail import send_verification_email
 
 
-router = APIRouter(prefix="/mail", tags=["Mail"])
+router = APIRouter( tags=["Mail"])
 
 
 # @router.post("/verify")
