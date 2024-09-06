@@ -26,104 +26,39 @@ import {
 import { answerFriendRequest } from "@/api/friend";
 import SearchFriends from "@/components/SearchFriends";
 import { useTheme } from '@mui/material/styles';
+import FriendRequestCard from "@/components/FriendRequestCard";
 
 export async function action({ request }) {
-  let intent = formData.get("intent");
-  if (intent === "username") {
-    const newUsername = updateUsername(formData.get("username"));
-    return newUsername;
-  }
-  if (intent === "password") {
-    let oldPassword = formData.get("password");
-    let newPassword = formData.get("new-password");
-    const changedPassword = changePassword(oldPassword, newPassword);
-    return changedPassword;
-  }
-  if (intent === "Deposit") {
-    let money = formData.get("money");
-    const deposit = addDeposit(money);
-    return deposit;
-  }
-  if (intent === "accept") {
-    const requestId = formData.get("requestId");
-    const result = await answerFriendRequest(
-      requestId.toString(),
-      "accept",
+  const formData = await request.formData();
+  const intent = formData.get("intent");
 
-    );
-    return result;
-  }
-  if (intent === "reject") {
-    const requestId = formData.get("requestId");
-    const result = await answerFriendRequest(
-      requestId.toString(),
-      "reject",
+  switch (intent) {
+    case "username":
+      const newUsername = await updateUsername(formData.get("username"));
+      return newUsername;
 
-    );
-    return result;
+    case "password":
+      const oldPassword = formData.get("password");
+      const newPassword = formData.get("new-password");
+      const changedPassword = await changePassword(oldPassword, newPassword);
+      return changedPassword;
+
+    case "Deposit":
+      const money = formData.get("money");
+      const deposit = await addDeposit(money);
+      return deposit;
+
+    case "accept":
+    case "reject":
+      const requestId = formData.get("requestId");
+      const result = await answerFriendRequest(requestId.toString(), intent);
+      return result;
+
+    default:
+      throw new Error("Unknown intent");
   }
 }
 
-function FriendRequestCard({ request }) {
-  return (
-    <Stack
-      key={request.from_user.id}
-      direction={"row"}
-      alignItems={"center"}
-      spacing={8}
-    // justifyContent={"space-around"}
-    >
-      <Avatar
-        sx={{ width: 56, height: 56, mr: 2 }}
-        alt="Remy Sharp"
-        src={
-          "https://plus.unsplash.com/premium_photo-1683121366070-5ceb7e007a97?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-        }
-      />
-      <Stack direction={"column"} spacing={1}>
-        <Typography variant="body2">{request.from_user.id}</Typography>
-        <Stack spacing={2} direction={"row"}>
-          <Box component={Form} method="post" sx={{ width: "50%" }}>
-            <input
-              type="hidden"
-              readOnly
-              name="requestId"
-              value={request._id}
-            />
-            <input type="hidden" />
-            <Button
-              sx={{ width: "100%" }}
-              variant="contained"
-              name="intent"
-              value="accept"
-              type="submit"
-            >
-              Add
-            </Button>
-          </Box>
-          <Box component={Form} method="post" sx={{ width: "50%" }}>
-            <input
-              type="hidden"
-              readOnly
-              name="requestId"
-              value={request._id}
-            />
-            <input type="hidden" name="" />
-            <Button
-              sx={{ width: "100%" }}
-              variant="text"
-              name="intent"
-              value="reject"
-              type="submit"
-            >
-              Ignore
-            </Button>
-          </Box>
-        </Stack>
-      </Stack>
-    </Stack>
-  );
-}
 export function ProfileTabs({
   username,
   current_balance,
@@ -165,7 +100,7 @@ export function ProfileTabs({
               Make changes to your profile here. Click save when you're done.
             </CardDescription>
           </CardHeader>
-          <Form method="patch">
+          <Form method="patch" action="/profile">
             <CardContent className="space-y-2">
               <div className="space-y-1">
                 <Label htmlFor="username">Username</Label>
@@ -192,7 +127,7 @@ export function ProfileTabs({
             <CardTitle>Password</CardTitle>
             <CardDescription>Change your password here.</CardDescription>
           </CardHeader>
-          <Form method="patch" ref={password}>
+          <Form method="patch" ref={password} action="/profile"> 
             <CardContent className="space-y-2">
               <div className="space-y-1">
                 <Label htmlFor="current">Current password</Label>
@@ -205,7 +140,7 @@ export function ProfileTabs({
               </div>
             </CardContent>
             <CardFooter>
-              <Button variant="contained" name="intent" value="password">
+              <Button variant="contained" name="intent" value="password" type="submit">
                 Save changes
               </Button>
             </CardFooter>
@@ -221,7 +156,7 @@ export function ProfileTabs({
               your account. if you wish to add more, you can deposit more below.
             </CardDescription>
           </CardHeader>
-          <Form method="post" ref={money}>
+          <Form method="post" ref={money} action="/profile">
             <CardContent className="space-y-2">
               <div className="space-y-1">
                 <Label htmlFor="new">$$$</Label>

@@ -65,21 +65,12 @@ async def add_deposit(deposit:Deposit, user:User = Depends(current_user)):
     return user
 
 
-@router.patch("/update", response_model=UserOut, operation_id="update_user_details")
-async def update_user(update: UserUpdate, user: User = Depends(current_user)):  # type: ignore[no-untyped-def]
+@router.patch("/update-username", operation_id="update_user_details")
+async def update_user(new_username: str, user: User = Depends(current_user)) ->str:  
     """Update allowed user fields."""
-    fields = update.model_dump(exclude_unset=True)
-     # Check and hash the password if it's being updated
-    if "password" in fields:
-        fields["password"] = hash_password(fields["password"])
-    if new_email := fields.pop("email", None):
-        if new_email != user.email:
-            if await User.by_email(new_email) is not None:
-                raise HTTPException(400, "Email already exists")
-            user.update_email(new_email)
-    user = user.model_copy(update=fields)
+    user.username = new_username
     await user.save()
-    return user
+    return user.username
 
 @router.patch("/change_password",response_model=UserOut, operation_id="change_password")
 async def update_password(request: PasswordChangeRequest, user:User = Depends(current_user)):

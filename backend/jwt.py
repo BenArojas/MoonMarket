@@ -5,7 +5,7 @@ import secrets
 from fastapi_jwt import JwtAuthorizationCredentials, JwtAccessBearerCookie, JwtRefreshBearerCookie
 from models.user import User
 
-ACCESS_EXPIRES = timedelta(minutes=1)
+ACCESS_EXPIRES = timedelta(minutes=15)
 REFRESH_EXPIRES = timedelta(days=30)
 
 SECRET_KEY = secrets.token_hex(32)

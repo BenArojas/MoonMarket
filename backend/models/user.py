@@ -64,9 +64,7 @@ class UserUpdate(BaseModel):
     
 class UserOut(UserUpdate):
     """User fields returned to the client."""
-
     friends: List[UserFriend] = []
-
 
 class User(Document):
     """User DB representation."""

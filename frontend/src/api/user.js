@@ -36,8 +36,8 @@ export async function getUserName() {
 //   return response;
 // }
 
-export async function addUserPurchase({price, ticker, quantity}) {
-  
+export async function addUserPurchase({ price, ticker, quantity }) {
+
   const response = await api.post(
     `/transaction/buy_stock`,
     null, // Set the request body to null if your API doesn't expect a request body
@@ -48,8 +48,8 @@ export async function addUserPurchase({price, ticker, quantity}) {
   return response.data;
 }
 
-export async function addUserSale({ticker, quantity, price}) {
-  
+export async function addUserSale({ ticker, quantity, price }) {
+
   const response = await api.post(
     `/transaction/sell_stock`,
     null, // Set the request body to null if your API doesn't expect a request body
@@ -75,16 +75,17 @@ export async function addStockToPortfolio(
     null, // Set the request body to null if your API doesn't expect a request body
     {
       params: { price, ticker, quantity }, // Send the required fields as query parameters
-  
+
     }
   );
 }
 
 export async function updateUsername(newUsername) {
-  const UpdatePayload = {
-    username: newUsername,
-  };
-  const response = await api.patch(`/user/update`, UpdatePayload);
+  const response = await api.patch(`/user/update-username`, null,
+    {
+      params:
+        { new_username: newUsername }
+    });
   return response;
 }
 
@@ -120,11 +121,11 @@ export async function addDeposit(money) {
   }
 }
 
-export async function searchUser(username, ) {
+export async function searchUser(username,) {
   try {
     const response = await api.get(
       `/user/user_friend/${username}`,
-     
+
     );
     return response.data;
   } catch (error) {
