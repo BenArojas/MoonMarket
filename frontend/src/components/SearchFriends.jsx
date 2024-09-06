@@ -8,30 +8,22 @@ import Typography from "@mui/material/Typography";
 import { useState } from "react";
 
 function SearchFriends() {
-  
-  const [friend,setFriend] = useState({})
-  const [error,setError] = useState()
+
+  const [friend, setFriend] = useState({})
   const [searchInput, setSearchInput] = useState("");
   const handleInputChange = (event) => {
     setSearchInput(event.target.value);
-    setError(null)
   };
 
   const handleSearchClick = async () => {
     if (searchInput.trim()) {
-      try {
-        const result = await searchUser(searchInput, );
-        setFriend(result)
-      } catch (error) {
-        console.error("Error searching for user:", error);
-       setError(error.response.data.detail)
-      }
+      const result = await searchUser(searchInput);
+      setFriend(result)
     }
   };
 
   return (
     <>
-    
       <Box
       >
         <Typography sx={{ textAlign: "center" }}>
@@ -47,7 +39,7 @@ function SearchFriends() {
           <Button variant="outlined" onClick={handleSearchClick}>Search</Button>
         </Stack>
         <Stack spacing={2}>
-          {error? <p>{error}</p>: friend.username && <AddFriend  username={friend.username} email={friend.email} />}
+          {friend.username && <AddFriend username={friend.username} email={friend.email} />}
         </Stack>
       </Box>
     </>

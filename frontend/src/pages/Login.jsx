@@ -114,7 +114,6 @@ const Login = () => {
             }}
           >
             <Typography variant="h5">Login to your account</Typography>
-            {error && <div style={{ color: "white" }}>{error}</div>}
             <StyledTextField
               {...register("email", {
                 required: true,

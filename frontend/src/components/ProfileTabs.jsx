@@ -31,32 +31,37 @@ import FriendRequestCard from "@/components/FriendRequestCard";
 export async function action({ request }) {
   const formData = await request.formData();
   const intent = formData.get("intent");
+  try {
+    switch (intent) {
+      case "username":
+        const newUsername = await updateUsername(formData.get("username"));
+        return newUsername;
 
-  switch (intent) {
-    case "username":
-      const newUsername = await updateUsername(formData.get("username"));
-      return newUsername;
+      case "password":
+        const oldPassword = formData.get("password");
+        const newPassword = formData.get("new-password");
+        const changedPassword = await changePassword(oldPassword, newPassword);
+        return changedPassword;
 
-    case "password":
-      const oldPassword = formData.get("password");
-      const newPassword = formData.get("new-password");
-      const changedPassword = await changePassword(oldPassword, newPassword);
-      return changedPassword;
+      case "Deposit":
+        const money = formData.get("money");
+        const deposit = await addDeposit(money);
+        return deposit;
 
-    case "Deposit":
-      const money = formData.get("money");
-      const deposit = await addDeposit(money);
-      return deposit;
+      case "accept":
+      case "reject":
+        const requestId = formData.get("requestId");
+        const result = await answerFriendRequest(requestId.toString(), intent);
+        return result;
 
-    case "accept":
-    case "reject":
-      const requestId = formData.get("requestId");
-      const result = await answerFriendRequest(requestId.toString(), intent);
-      return result;
-
-    default:
-      throw new Error("Unknown intent");
-  }
+      default:
+        throw new Error("Unknown intent");
+    }}
+    catch (error) {
+      // Return an object indicating failure, but don't throw
+      return { ok: false, error: error.message };
+    }
+  
 }
 
 export function ProfileTabs({

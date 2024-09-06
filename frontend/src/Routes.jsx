@@ -34,7 +34,7 @@ const Routes = () => {
           element: <Layout />,
           path: "/",
           loader: LayoutLoader,
-          errorElement: <ErrorPage />,
+          // errorElement: <ErrorPage />,
           children: [
             {
               path: "/home",
@@ -44,7 +44,7 @@ const Routes = () => {
             {
               path: "/profile",
               element: <Profile />,
-              errorElement: <ErrorPage />,
+              // errorElement: <ErrorPage />,
               loader: profileLoader,
               action: profileAction,
             },

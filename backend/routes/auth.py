@@ -16,7 +16,7 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     user = await User.by_email(form_data.username)
     if user is None or not verify_password(form_data.password, user.password):
-        raise HTTPException(status_code=401, detail="Bad email or password")
+        raise HTTPException(status_code=400, detail="Bad email or password")
     
     access_token = access_security.create_access_token(user.jwt_subject)
     refresh_token = refresh_security.create_refresh_token(user.jwt_subject)

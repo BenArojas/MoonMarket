@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, Security
 from fastapi_jwt import JwtAuthorizationCredentials
 
 from models.user import User, UserOut, UserUpdate, PasswordChangeRequest, Deposit, UserFriend
+from fastapi.responses import JSONResponse
 from jwt import access_security
 from util.current_user import current_user
 from models.transaction import Transaction
@@ -72,7 +73,7 @@ async def update_user(new_username: str, user: User = Depends(current_user)) ->s
     await user.save()
     return user.username
 
-@router.patch("/change_password",response_model=UserOut, operation_id="change_password")
+@router.patch("/change_password", operation_id="change_password")
 async def update_password(request: PasswordChangeRequest, user:User = Depends(current_user)):
     """change user password."""
     if not verify_password(request.password, user.password):
@@ -82,8 +83,12 @@ async def update_password(request: PasswordChangeRequest, user:User = Depends(cu
     # Update the user's password
     user.password = hashed_new_password
     await user.save()
-    return user
-        
+    return JSONResponse(
+        status_code=200,
+        content={
+            "message": "Password changed successfully"
+        }
+    )
 
 
 @router.delete("/delete", operation_id="delete_user_account")

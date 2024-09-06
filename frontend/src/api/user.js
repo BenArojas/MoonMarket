@@ -1,5 +1,6 @@
 import api from "@/api/axios";
-
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export async function RegisterUser(user) {
   const newUser = await api.post(`/register`, user);
@@ -15,26 +16,6 @@ export async function getUserName() {
   return userName.data;
 }
 
-// export async function loginUser(email, password) {
-//   const response = await api.post(`/auth/login`, {
-//     email,
-//     password,
-//   });
-//   return response;
-// }
-
-// export async function refreshJwtKey(token) {
-//   const response = await api.post(
-//     "http://localhost:8000/auth/refresh",
-//     {},
-//     {
-//       headers: {
-//         Authorization: `Bearer ${token}`,
-//       },
-//     }
-//   );
-//   return response;
-// }
 
 export async function addUserPurchase({ price, ticker, quantity }) {
 
@@ -86,7 +67,9 @@ export async function updateUsername(newUsername) {
       params:
         { new_username: newUsername }
     });
+  toast.success("Username updated successfully");
   return response;
+
 }
 
 export async function changePassword(oldPassword, newPassword) {
@@ -94,11 +77,8 @@ export async function changePassword(oldPassword, newPassword) {
     password: oldPassword,
     new_password: newPassword,
   };
-  const response = await api.patch(
-    `/user/change_password`,
-    passwordPayload,
-
-  );
+  const response = await api.patch(`/user/change_password`, passwordPayload);
+  toast.success("Password changed successfully");
   return response;
 }
 
@@ -108,27 +88,16 @@ export async function addDeposit(money) {
     amount: money,
     date: currentDate,
   };
-
-  try {
-    const response = await api.post(
-      `/user/add_deposit`,
-      depositPayload,
-    );
-    return response.data;
-  } catch (error) {
-    console.error("Error adding deposit:", error);
-    throw error;
-  }
+  const response = await api.post(
+    `/user/add_deposit`,
+    depositPayload,
+  );
+  return response.data;
 }
 
 export async function searchUser(username,) {
-  try {
     const response = await api.get(
       `/user/user_friend/${username}`,
-
     );
     return response.data;
-  } catch (error) {
-    throw error;
-  }
 }
