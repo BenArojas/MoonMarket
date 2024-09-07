@@ -1,5 +1,5 @@
 import { Box } from "@mui/material";
-import React, { useState, useEffect, useContext } from "react";
+import React from "react";
 import AutoAwesomeMosaicIcon from "@mui/icons-material/AutoAwesomeMosaic";
 import DonutLargeIcon from "@mui/icons-material/DonutLarge";
 import TocSharpIcon from "@mui/icons-material/TocSharp";
@@ -8,7 +8,6 @@ import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import BlurCircularIcon from "@mui/icons-material/BlurCircular";
-
 import SearchBar from "@/components/SearchBar.jsx";
 
 function GraphMenu({ selectedGraph, setSelectedGraph }) {

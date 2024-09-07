@@ -18,6 +18,7 @@ const StyledTextField = styled(TextField)({
 });
 
 function SearchBar() {
+  // todo: show something when loading 
   const location = useLocation();
   const [tickerInput, setTickerInput] = useState(""); // State to store the typed ticker input
   const navigate = useNavigate();

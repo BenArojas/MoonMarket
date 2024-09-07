@@ -25,7 +25,7 @@ export const loader = async () => {
 };
 
 function Profile() {
-  // todo: add private details card and money stuff card
+  // todo: check why friend requests don't show up, change to react use query
   const data = useLoaderData();
   const friendRequests = useOutletContext();
 

@@ -57,7 +57,7 @@ function Portfolio() {
   const { data: stockData, isPending: stockDataLoading } = useQuery({
     queryKey: ["stockData", selectedTicker,],
     queryFn: () => getIntradyData(selectedTicker,),
-    enabled: !!selectedTicker ,
+    enabled: !!selectedTicker,
     staleTime: 120 * 1000,
   });
 
@@ -133,9 +133,7 @@ function PortfolioContent({ userData, }) {
   const { visualizationData, isDataProcessed, value } = useGraphData(
     userData,
     selectedGraph,
-
   );
-
 
   const queryClient = useQueryClient()
   const postSnapshotMutation = useMutation({
@@ -150,7 +148,7 @@ function PortfolioContent({ userData, }) {
 
 
   useEffect(() => {
-    if (value != 0) {
+    if (visualizationData != null) {
       postSnapshotMutation.mutate({ value: value });
     }
   }, [value]);
@@ -185,7 +183,6 @@ const SnapshotChartWrapper = ({ dailyTimeFrame, userData }) => {
   );
   const formattedDate = lastUpdateDate(userData);
   const incrementalChange = value - moneySpent;
-  // console.log("percentageChange is " + percentageChange )
 
   useEffect(() => {
     if (moneySpent !== 0 && setPercentageChange) {
@@ -195,17 +192,17 @@ const SnapshotChartWrapper = ({ dailyTimeFrame, userData }) => {
   }, [incrementalChange, moneySpent]);
 
   return (
-    <SnapshotChart
-      formattedDate={formattedDate}
-      stockTickers={stockTickers}
-      incrementalChange={incrementalChange}
-      percentageChange={percentageChange}
-
-      value={value}
-      width={550}
-      height={250}
-      dailyTimeFrameData={dailyTimeFrame}
-    />
+    dailyTimeFrame.length === 0 ? <div>Ai driven Data will be shown as activity will increase</div> :
+      <SnapshotChart
+        formattedDate={formattedDate}
+        stockTickers={stockTickers}
+        incrementalChange={incrementalChange}
+        percentageChange={percentageChange}
+        value={value}
+        width={550}
+        height={250}
+        dailyTimeFrameData={dailyTimeFrame}
+      />
   );
 };
 

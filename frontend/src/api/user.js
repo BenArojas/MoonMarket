@@ -48,7 +48,7 @@ export async function addStockToPortfolio(
 ) {
   const ticker = portfolioStock.ticker;
   const stock = await api.post(
-    `/stocks/add_stock`,
+    `/stock/add_stock`,
     portfolioStock,
   );
   const user = await api.post(
