@@ -1,6 +1,6 @@
 from fastapi import Depends, APIRouter, HTTPException
 from typing import List
-from models.user import User
+from models.user import User, FriendShow
 from models.friend import FriendInfo, HoldingInfo
 from models.stock import Stock
 from models.friendRequest import FriendRequest, FriendRequestAction
@@ -16,7 +16,7 @@ async def get_pending_friend_requests(current_user: User = Depends(current_user)
         FriendRequest.to_user.id == current_user.id,
         FriendRequest.status == "pending"
     ).to_list()
-    
+
     return pending_requests
 
 @router.post("/send_friend_request/{username}")

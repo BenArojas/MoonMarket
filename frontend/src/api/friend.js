@@ -1,5 +1,7 @@
 
 import api from "@/api/axios";
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export async function sendFriendRequest(username ) {
   try {
@@ -7,8 +9,10 @@ export async function sendFriendRequest(username ) {
       `/friends/send_friend_request/${username}`,
       {}
     );
+    toast.success("Friend request sent successfully");
     return response.data;
   } catch (error) {
+    toast.error("Error while adding friend");
     throw error;
   }
 }

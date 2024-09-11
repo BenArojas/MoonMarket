@@ -43,11 +43,13 @@ class UserRegister(UserAuth):
     deposits: List[Deposit] = Field(..., min_items=1)  # At least one deposit required
     username: str
 
-class UserFriend(BaseModel):
-    """User fields that will be shown when searching a user in order to send a friend request"""
-     
+class FriendShow(BaseModel):
     email: EmailStr | None = None
     username: Optional[str] = None
+    
+class UserFriend(FriendShow):
+    """User fields that will be shown when searching a user in order to send a friend request"""
+     
     holdings: List[Holding] = []
 
         

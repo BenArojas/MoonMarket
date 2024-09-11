@@ -15,9 +15,11 @@ function FriendRequestCard({ request }) {
       <Stack
         key={request.from_user.id}
         direction={"row"}
-        alignItems={"center"}
+        // alignItems={"center"}
+        // justifyContent={"center"}
         spacing={8}
       >
+        <Box sx={{display:'flex', width:'70%', justifyContent:'space-between'}}>
         <Avatar
           sx={{ width: 56, height: 56, mr: 2 }}
           alt="Remy Sharp"
@@ -66,6 +68,7 @@ function FriendRequestCard({ request }) {
             </Box>
           </Stack>
         </Stack>
+        </Box>
       </Stack>
     );
   }

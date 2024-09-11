@@ -32,7 +32,7 @@ const Profile = () => {
     return <ErrorPage />;
   }
 
-
+  console.log(friendRequestsData)
   return (
     <div>
       <div className="heading-text">
