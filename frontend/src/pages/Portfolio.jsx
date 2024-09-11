@@ -182,9 +182,7 @@ const SnapshotChartWrapper = ({ dailyTimeFrame, userData }) => {
     }
   }, [incrementalChange, moneySpent]);
 
-  return dailyTimeFrame.length === 0 ? (
-    <div>Ai driven Data will be shown as activity will increase</div>
-  ) : (
+  return (
     <SnapshotChart
       formattedDate={formattedDate}
       stockTickers={stockTickers}

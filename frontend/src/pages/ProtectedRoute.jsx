@@ -6,6 +6,7 @@
   export const ProtectedRoute = () => {
     const { isAuthenticated, checkAuthStatus } = useAuth();
     const location = useLocation();
+    console.log("started")
 
     React.useEffect(() => {
       checkAuthStatus();
