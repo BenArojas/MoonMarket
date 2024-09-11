@@ -14,6 +14,8 @@ from models.transaction import Transaction
 from models.PortfolioSnapshot import PortfolioSnapshot
 from models.friendRequest import FriendRequest
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
 
 DESCRIPTION = """
 This API powers whatever I want to make
@@ -55,6 +57,11 @@ app.mount("/api", api_app)
 
 # Mount the static files directly to the root
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
+
+@app.exception_handler(404)
+async def custom_404_handler(request, exc):
+    return FileResponse('static/index.html')
+
 
 # Add CORS middleware to the main app
 app.add_middleware(

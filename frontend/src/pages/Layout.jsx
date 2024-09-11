@@ -23,15 +23,13 @@ export const loader = async () => {
 };
 
 export const PercentageChange = createContext(0);
-export const FirstLetter = createContext();
 
 function Layout() {
 
     const data = useLoaderData();
     const [percentageChange, setPercentageChange] = useState(0);
     const username = data.userName;
-    const friendRequests = []
-    const firstLetter = data.friendRequests
+    const friendRequests = data.friendRequests;
     return (
         <>
             <PercentageChange.Provider
@@ -40,7 +38,6 @@ function Layout() {
                     setPercentageChange,
                 }}
             >
-                <FirstLetter.Provider value={{ firstLetter }}>
                     <Box
                         sx={{
                             display: "flex",
@@ -57,10 +54,9 @@ function Layout() {
                             }}
                         >
                             <Greetings username={username} friendRequests={friendRequests} />
-                            <Outlet context={friendRequests} />
+                            <Outlet userName={username} context={friendRequests} />
                         </Box>
                     </Box>
-                </FirstLetter.Provider>
             </PercentageChange.Provider>
         </>
     );

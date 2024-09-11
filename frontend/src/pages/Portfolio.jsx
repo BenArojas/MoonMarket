@@ -43,32 +43,30 @@ function ErrorFallback({ error }) {
   );
 }
 
-function Portfolio() {
-
+function Portfolio({ userName }) {
   const [searchParams] = useSearchParams();
   const selectedTicker = searchParams.get("selected") || "BTCUSD"; // Default to 'BTCUSD' if not specified
   const queryClient = useQueryClient();
 
   const { data: userData, isPending: userDataLoading } = useQuery({
-    queryKey: ["userData",],
+    queryKey: ["userData", userName],
     queryFn: () => getUserData(),
   });
 
   const { data: stockData, isPending: stockDataLoading } = useQuery({
-    queryKey: ["stockData", selectedTicker,],
-    queryFn: () => getIntradyData(selectedTicker,),
+    queryKey: ["stockData", selectedTicker],
+    queryFn: () => getIntradyData(selectedTicker),
     enabled: !!selectedTicker,
     staleTime: 120 * 1000,
   });
 
   const { data: dailyTimeFrame, isPending: dailyTimeFrameLoading } = useQuery({
-    queryKey: ["dailyTimeFrame",],
+    queryKey: ["dailyTimeFrame", userName],
     queryFn: () => getPortfolioSnapshots(),
   });
 
-
   useEffect(() => {
-    queryClient.invalidateQueries(["stockData", selectedTicker,]);
+    queryClient.invalidateQueries(["stockData", selectedTicker]);
   }, [selectedTicker, , queryClient]);
 
   return (
@@ -100,12 +98,11 @@ function Portfolio() {
       <Box sx={{ width: 600, ml: "auto", overflow: "hidden" }}>
         <Stack spacing={2} sx={{ height: "100%" }}>
           <ErrorBoundary FallbackComponent={ErrorFallback}>
-            {(dailyTimeFrameLoading || userDataLoading) ? (
+            {dailyTimeFrameLoading || userDataLoading ? (
               <GraphSkeleton />
             ) : (
               <SnapshotChartWrapper
                 dailyTimeFrame={dailyTimeFrame}
-
                 userData={userData}
               />
             )}
@@ -117,7 +114,6 @@ function Portfolio() {
             ) : (
               <CurrentStockCard
                 stockData={stockData}
-
                 stockTicker={selectedTicker}
               />
             )}
@@ -128,24 +124,23 @@ function Portfolio() {
   );
 }
 
-function PortfolioContent({ userData, }) {
+function PortfolioContent({ userData }) {
   const [selectedGraph, setSelectedGraph] = useState("Treemap");
   const { visualizationData, isDataProcessed, value } = useGraphData(
     userData,
-    selectedGraph,
+    selectedGraph
   );
 
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
   const postSnapshotMutation = useMutation({
     mutationFn: postSnapshot,
     onSuccess: (data) => {
-      queryClient.invalidateQueries(["dailyTimeFrame"]) // Invalidate the dailyTimeFrame query when the snapshot is posted
+      queryClient.invalidateQueries(["dailyTimeFrame"]); // Invalidate the dailyTimeFrame query when the snapshot is posted
     },
     onError: (error) => {
       console.error("Error posting a snapshot", error);
-    }
-  })
-
+    },
+  });
 
   useEffect(() => {
     if (visualizationData != null) {
@@ -176,11 +171,7 @@ function PortfolioContent({ userData, }) {
 const SnapshotChartWrapper = ({ dailyTimeFrame, userData }) => {
   const { percentageChange, setPercentageChange } =
     useContext(PercentageChange);
-  const { stockTickers, value, moneySpent } = useGraphData(
-    userData,
-    "Treemap",
-
-  );
+  const { stockTickers, value, moneySpent } = useGraphData(userData, "Treemap");
   const formattedDate = lastUpdateDate(userData);
   const incrementalChange = value - moneySpent;
 
@@ -191,18 +182,19 @@ const SnapshotChartWrapper = ({ dailyTimeFrame, userData }) => {
     }
   }, [incrementalChange, moneySpent]);
 
-  return (
-    dailyTimeFrame.length === 0 ? <div>Ai driven Data will be shown as activity will increase</div> :
-      <SnapshotChart
-        formattedDate={formattedDate}
-        stockTickers={stockTickers}
-        incrementalChange={incrementalChange}
-        percentageChange={percentageChange}
-        value={value}
-        width={550}
-        height={250}
-        dailyTimeFrameData={dailyTimeFrame}
-      />
+  return dailyTimeFrame.length === 0 ? (
+    <div>Ai driven Data will be shown as activity will increase</div>
+  ) : (
+    <SnapshotChart
+      formattedDate={formattedDate}
+      stockTickers={stockTickers}
+      incrementalChange={incrementalChange}
+      percentageChange={percentageChange}
+      value={value}
+      width={550}
+      height={250}
+      dailyTimeFrameData={dailyTimeFrame}
+    />
   );
 };
 

@@ -49,9 +49,6 @@ function SharesDialog({
     
         });
       }
-      else {
-        console.log("Unknown function", dialog.function);
-      }
       handleClose();
     } catch (error) {
       console.error("Error in onSubmit:", error);
