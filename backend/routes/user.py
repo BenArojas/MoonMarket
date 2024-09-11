@@ -50,11 +50,6 @@ async def get_user_by_username(username: str, current_user: User = Depends(curre
         return UserFriend(email=user.email,username=user.username, holdings=user.holdings)
     raise HTTPException(status_code=404, detail="User not found")
 
-@router.get("/get_friends")
-async def get_all_friends(current_user: User = Depends(current_user)):
-    friends = current_user.friends
-    # TODO:loop through friends and for each of them return an object with the following properties: ID, Username, calculate the percentage change of the portfolio profit/loss and return an array of holdings with percentage change of each stock and percentage of the stock in the portfolio 
-    return friends
     
 
 @router.post("/add_deposit")

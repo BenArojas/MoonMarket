@@ -9,11 +9,11 @@ import StockItem, { loader as stockItemLoader } from "@/pages/StockItem";
 import Login from "@/pages/Login";
 import Logout from "@/pages/Logout";
 import { PublicRoute } from "@/pages/PublicRoute";
-import Profile, { loader as profileLoader } from "@/pages/Profile";
+import Profile from "@/pages/Profile";
 import Transactions, {
   loader as transactionsLoader,
 } from "@/pages/Transactions";
-import { action as profileAction } from "@/components/ProfileTabs";
+// import { action as profileAction } from "@/components/ProfileTabs";
 import Register from "@/pages/Register";
 import Space, { loader as spaceLoader } from "@/pages/Space";
 import Test from "@/pages/Test";
@@ -43,8 +43,8 @@ const Routes = () => {
             {
               path: "/profile",
               element: <Profile />,
-              loader: profileLoader,
-              action: profileAction,
+              // loader: profileLoader,
+              // action: profileAction,
             },
             {
               path: "/transactions",

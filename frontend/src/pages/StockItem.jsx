@@ -17,6 +17,9 @@ import { useForm } from "react-hook-form";
 import { useLoaderData } from "react-router-dom";
 import SearchBar from "@/components/SearchBar.jsx";
 
+
+//todo add skeleton for loading mode
+
 export async function loader(ticker ) {
   const stock = await getStockData(ticker, );
   const historicaldata = await getHistoricalData(ticker, );

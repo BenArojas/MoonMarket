@@ -1,33 +1,37 @@
-import { Box, Divider, Typography} from "@mui/material";
-import React, { useEffect } from "react";
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useQuery } from "@tanstack/react-query";
+import { Box, Divider, Typography } from "@mui/material";
 import "@/styles/profile.css";
-import { ProfileTabs } from "@/components/ProfileTabs";
-import { Suspense } from "react";
-import {
-  useLoaderData,
-  Await,
-  defer,
-  useOutletContext,
-} from "react-router-dom";
-import { getUserData } from "@/api/user";
 import TabsSkeleton from "@/Skeletons/TabsSkeleton";
-import { getFriendList } from "@/api/friend";
 import ErrorPage from "./ErrorPage";
+import { getUserData} from "@/api/user";
+import {getFriendList, getFriendRequest} from '@/api/friend'
+import { MemoizedProfileTabs } from '@/components/ProfileTabs'
 
-export const loader = async () => {
-  const userPromise = getUserData();
-  const friendListPromise = getFriendList();
 
-  return defer({
-    user: userPromise,
-    friendList: friendListPromise,
+const Profile = () => {
+
+  const { data: userData, isLoading: userLoading, error: userError } = useQuery({
+    queryKey: ['userData'],
+    queryFn: getUserData
   });
-};
+  const { data: friendListData, isLoading: friendListLoading, error: friendListError } = useQuery({
+    queryKey: ['friendList'],
+    queryFn: getFriendList
+  });
+  const { data: friendRequestsData, isLoading: friendRequestsLoading, error: friendRequestsError } = useQuery({
+    queryKey: ['friendRequests'],
+    queryFn: getFriendRequest
+  });
 
-function Profile() {
-  // todo: check why friend requests don't show up, change to react use query
-  const data = useLoaderData();
-  const friendRequests = useOutletContext();
+  if (userLoading || friendListLoading || friendRequestsLoading) {
+    return <TabsSkeleton />;
+  }
+
+  if (userError || friendListError || friendRequestsError) {
+    return <ErrorPage />;
+  }
+
 
   return (
     <div>
@@ -48,37 +52,22 @@ function Profile() {
         </Typography>
       </div>
       <Divider />
-      <Suspense fallback={<TabsSkeleton />}>
-        <Await
-          resolve={Promise.all([data.user, data.friendList])}
-          errorElement={<ErrorPage/>}
-        >
-          {([user, friendList]) => (
-            <>
-              {user.length === 0 ? (
-                <TabsSkeleton />
-              ) : (
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                    mt: 8
-                  }}
-                >
-                  <ProfileTabs
-                    username={user.username}
-                    current_balance={user.current_balance}
-                    friendRequests={friendRequests}
-                    friendList={friendList}
-                  />
-                </Box>
-              )}
-            </>
-          )}
-        </Await>
-      </Suspense>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          mt: 8
+        }}
+      >
+        <MemoizedProfileTabs
+          username={userData.username}
+          current_balance={userData.current_balance}
+          friendRequests={friendRequestsData || []}
+          friendList={friendListData || []}
+        />
+      </Box>
     </div>
   );
-}
+};
 
 export default Profile;

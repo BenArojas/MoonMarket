@@ -3,7 +3,8 @@
   import 'react-toastify/dist/ReactToastify.css';
 
   const api = axios.create({
-    baseURL: '/api',
+    baseURL: 'http://localhost:8000',
+    // baseURL: '/api',
     withCredentials: true,
     headers: {
       'Content-Type': 'application/json',

@@ -23,7 +23,7 @@ function Navbar({ friendRequests }) {
     { icon: Orbit, text: "space" },
     { icon: Globe, text: "global" },
     { icon: ArrowLeftRight, text: "transactions" },
-    { icon: BriefcaseBusiness, text: "Home" },
+    { icon: BriefcaseBusiness, text: "home" },
   ];
 
   const rightNavItems = [
