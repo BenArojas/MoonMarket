@@ -43,9 +43,11 @@ class UserRegister(UserAuth):
     deposits: List[Deposit] = Field(..., min_items=1)  # At least one deposit required
     username: str
 
+# Update FriendShow to include request_id
 class FriendShow(BaseModel):
     email: EmailStr | None = None
     username: Optional[str] = None
+    request_id: Optional[str] = None
     
 class UserFriend(FriendShow):
     """User fields that will be shown when searching a user in order to send a friend request"""

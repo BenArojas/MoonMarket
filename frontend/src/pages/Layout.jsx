@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { getUserName } from "@/api/user";
-import { getFriendRequest } from "@/api/friend";
+import { getFriendRequestLength } from "@/api/friend";
 import Greetings from "@/components/Greetings";
 import Sidebar from "@/components/Sidebar";
 import { Box } from "@mui/material";
@@ -15,8 +15,8 @@ import { useQuery } from "@tanstack/react-query";
 export const loader = async () => {
     try {
         const userName = await getUserName();
-        const friendRequests = await getFriendRequest();
-        return { userName, friendRequests };
+        const friendRequestsLength = await getFriendRequestLength();
+        return { userName, friendRequestsLength };
     } catch (error) {
         console.error("Error in loader:", error);
         return { userName: null, friendRequests: [] };
@@ -34,7 +34,7 @@ function Layout() {
 
     const data = useLoaderData();
     const [percentageChange, setPercentageChange] = useState(0);
-    const friendRequests = data.friendRequests;
+    const friendRequestsCount = data.friendRequestsLength;
     return (
         <>
             <PercentageChange.Provider
@@ -58,8 +58,8 @@ function Layout() {
                                 flexDirection: "column",
                             }}
                         >
-                            <Greetings username={userName} friendRequests={friendRequests} />
-                            <Outlet context={friendRequests} />
+                            <Greetings username={userName} friendRequestsCount={friendRequestsCount} />
+                            <Outlet context={friendRequestsCount}/>
                         </Box>
                     </Box>
             </PercentageChange.Provider>

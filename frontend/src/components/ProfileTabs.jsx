@@ -12,7 +12,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Badge } from "@mui/material";
 
 
-const ProfileTabs = ({ username, current_balance, friendRequests, friendList }) => {
+const ProfileTabs = ({ username, current_balance, friendRequests, friendList, friendRequestsCount }) => {
   const theme = useTheme();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('profile');
@@ -66,7 +66,7 @@ const ProfileTabs = ({ username, current_balance, friendRequests, friendList }) 
         <TabsTrigger value="password">Settings</TabsTrigger>
         <TabsTrigger value="money">Money</TabsTrigger>
         <TabsTrigger value="friends">Friends</TabsTrigger>
-        <Badge badgeContent={friendRequests.length} color="primary">
+        <Badge badgeContent={friendRequestsCount} color="primary">
           <TabsTrigger value="friend_requests">Friend Requests</TabsTrigger>
         </Badge>
       </TabsList>

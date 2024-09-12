@@ -17,10 +17,10 @@ export async function sendFriendRequest(username ) {
   }
 }
 
-export async function getFriendRequest() {
+export async function getFriendRequestLength() {
   try {
     const response = await api.get(
-      `/friends/pending_friend_requests`
+      `/friends/pending_friend_requests_length`
     );
     return response.data;
   } catch (error) {
@@ -28,13 +28,24 @@ export async function getFriendRequest() {
   }
 }
 
-export async function answerFriendRequest(requestId, action, ) {
+export async function getFriendRequestUsers() {
+  try {
+    const response = await api.get(
+      `/friends/pending_friend_requests_users`
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+}
+
+export async function answerFriendRequest({ requestId, answer } ) {
   try {
     const response = await api.post(
       `/friends/handle_friend_request/${requestId}`,
-      { action }, // Send action in the request body
+      { answer }, 
       {
-        params: { action }, // Also include action as a query parameter
+        params: { answer }, 
       }
     );
     return response.data;

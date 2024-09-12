@@ -5,12 +5,14 @@ import "@/styles/profile.css";
 import TabsSkeleton from "@/Skeletons/TabsSkeleton";
 import ErrorPage from "./ErrorPage";
 import { getUserData} from "@/api/user";
-import {getFriendList, getFriendRequest} from '@/api/friend'
+import {getFriendList, getFriendRequestUsers} from '@/api/friend'
 import { MemoizedProfileTabs } from '@/components/ProfileTabs'
+import { useOutletContext } from "react-router-dom";
 
 
 const Profile = () => {
 
+  const friendRequestsCount = useOutletContext();
   const { data: userData, isLoading: userLoading, error: userError } = useQuery({
     queryKey: ['userData'],
     queryFn: getUserData
@@ -21,8 +23,10 @@ const Profile = () => {
   });
   const { data: friendRequestsData, isLoading: friendRequestsLoading, error: friendRequestsError } = useQuery({
     queryKey: ['friendRequests'],
-    queryFn: getFriendRequest
+    queryFn: getFriendRequestUsers
   });
+
+  console.log(friendRequestsData)
 
   if (userLoading || friendListLoading || friendRequestsLoading) {
     return <TabsSkeleton />;
@@ -32,7 +36,6 @@ const Profile = () => {
     return <ErrorPage />;
   }
 
-  console.log(friendRequestsData)
   return (
     <div>
       <div className="heading-text">
@@ -64,6 +67,7 @@ const Profile = () => {
           current_balance={userData.current_balance}
           friendRequests={friendRequestsData || []}
           friendList={friendListData || []}
+          friendRequestsCount={friendRequestsCount}
         />
       </Box>
     </div>

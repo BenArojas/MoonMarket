@@ -15,7 +15,7 @@ function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
-function Navbar({ friendRequests }) {
+function Navbar({ friendRequestsCount }) {
   const { toggleTheme, mode } = useTheme();
   const { pathname } = useLocation();
   const isSpacePage = pathname === "/space";
@@ -32,7 +32,7 @@ function Navbar({ friendRequests }) {
       onClick: isSpacePage ? null : toggleTheme,
       disabled: isSpacePage,
     },
-    { icon: User, text: "profile", badge: friendRequests.length },
+    { icon: User, text: "profile", badge: friendRequestsCount },
     { icon: LogOut, text: "logout" },
   ];
 

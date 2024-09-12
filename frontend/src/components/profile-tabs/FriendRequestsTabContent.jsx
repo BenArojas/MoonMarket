@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Stack, Divider } from "@mui/material";
 import FriendRequestCard from "@/components/FriendRequestCard";
@@ -12,15 +12,15 @@ const FriendRequestsTabContent = ({ friendRequests, onAnswer, isLoading }) => {
       <CardContent className="space-y-2 mt-5">
         {friendRequests.length ? (
           <Stack
-            direction={"column"}
+            direction="column"
             spacing={3}
             divider={<Divider orientation="horizontal" flexItem />}
           >
             {friendRequests.map((request) => (
-              <FriendRequestCard 
-                key={request.id}
+              <FriendRequestCard
+                key={request.request_id}
                 request={request}
-                onAnswer={(answer) => onAnswer(request.id, answer)}
+                onAnswer={(action) => onAnswer(request.request_id, action)}
                 isLoading={isLoading}
               />
             ))}

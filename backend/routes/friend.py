@@ -10,14 +10,35 @@ from routes.user import get_user_transactions_by_type
 
 router = APIRouter()
 
-@router.get("/pending_friend_requests")
-async def get_pending_friend_requests(current_user: User = Depends(current_user)):
+@router.get("/pending_friend_requests_length")
+async def get_pending_friend_requests_length(current_user: User = Depends(current_user)):
     pending_requests = await FriendRequest.find(
         FriendRequest.to_user.id == current_user.id,
         FriendRequest.status == "pending"
     ).to_list()
 
-    return pending_requests
+    return len(pending_requests)
+
+@router.get("/pending_friend_requests_users")
+async def get_pending_friend_requests_users(current_user: User = Depends(current_user)):
+    pending_requests = await FriendRequest.find(
+        FriendRequest.to_user.id == current_user.id,
+        FriendRequest.status == "pending"
+    ).to_list()
+    
+    from_users = []
+    for request in pending_requests:
+        from_user_id = request.from_user.ref.id
+        from_user = await User.get(from_user_id)
+        if from_user:
+            from_users.append(FriendShow(
+                email=from_user.email,
+                username=from_user.username,
+                request_id=str(request.id)
+            ))
+
+    return from_users
+
 
 @router.post("/send_friend_request/{username}")
 async def send_friend_request(username: str, current_user: User = Depends(current_user)):
