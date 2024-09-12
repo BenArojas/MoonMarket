@@ -6,10 +6,12 @@ import {
   User,
   LogOut, Globe
 } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useAuth } from "@/contexts/AuthProvider"; // Import the AuthProvider
+import { useQueryClient } from "@tanstack/react-query"; // Import react-query for cache clearing
 
 function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
@@ -18,6 +20,10 @@ function capitalizeFirstLetter(string) {
 function Navbar({ friendRequestsCount }) {
   const { toggleTheme, mode } = useTheme();
   const { pathname } = useLocation();
+  const navigate = useNavigate(); // Use the navigate function from react-router
+  const { logout } = useAuth(); // Get the logout function from AuthProvider
+  const queryClient = useQueryClient(); // Get the query client to clear cache
+
   const isSpacePage = pathname === "/space";
   const mainNavItems = [
     { icon: Orbit, text: "space" },
@@ -26,6 +32,18 @@ function Navbar({ friendRequestsCount }) {
     { icon: BriefcaseBusiness, text: "home" },
   ];
 
+  // Define the logout process
+  const handleLogout = async () => {
+    try {
+      queryClient.clear(); // Clear the query cache
+      await logout(); // Execute the logout function
+      navigate("/login", { replace: true }); // Redirect to login page
+    } catch (error) {
+      console.error("Error during logout", error);
+      // Optionally, you can handle the error here, such as showing a notification
+    }
+  };
+
   const rightNavItems = [
     {
       icon: mode === "dark" ? LightModeIcon : DarkModeIcon,
@@ -33,7 +51,7 @@ function Navbar({ friendRequestsCount }) {
       disabled: isSpacePage,
     },
     { icon: User, text: "profile", badge: friendRequestsCount },
-    { icon: LogOut, text: "logout" },
+    { icon: LogOut, text: "logout", onClick: handleLogout }, // Add the logout handler here
   ];
 
   return (
@@ -95,7 +113,8 @@ function Navbar({ friendRequestsCount }) {
             {text ? (
               <Box
                 component={Link}
-                to={text}
+                to={text === "logout" ? "" : text} // Don't navigate on logout, just call the handler
+                onClick={text === "logout" ? onClick : undefined} // Call onClick for logout
                 sx={{
                   color: pathname === `/${text}` ? "#077e5d" : "inherit",
                   display: "flex",

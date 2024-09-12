@@ -1,5 +1,5 @@
   import React, { createContext, useContext, useMemo, useReducer, useEffect } from "react";
-  import api from "@/api/axios";
+  import api, {authCheckApi } from "@/api/axios";
 
   const AuthContext = createContext();
 
@@ -42,7 +42,7 @@
 
     const checkAuthStatus = async () => {
       try {
-        await api.get('/auth/protected-route');
+        await authCheckApi.get('/auth/protected-route');
         dispatch({ type: ACTIONS.setAuth });
       } catch (error) {
           dispatch({ type: ACTIONS.clearAuth });
@@ -73,12 +73,16 @@
 
     const logout = async () => {
       try {
-        await api.post('/auth/logout');
-        dispatch({ type: ACTIONS.clearAuth });
+        await api.post('/auth/logout'); // Send logout request to server
       } catch (error) {
         console.error("Logout failed", error);
+        // You can handle the error if needed, e.g., show a notification
+      } finally {
+        // Clear auth state even if the API call fails
+        dispatch({ type: ACTIONS.clearAuth });
       }
     };
+    
 
     const value = useMemo(
       () => ({ ...state, login, logout, checkAuthStatus }),

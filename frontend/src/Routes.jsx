@@ -1,5 +1,4 @@
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthProvider";
 import {
   ProtectedRoute
 } from "@/pages/ProtectedRoute";
@@ -13,18 +12,16 @@ import Profile from "@/pages/Profile";
 import Transactions, {
   loader as transactionsLoader,
 } from "@/pages/Transactions";
-// import { action as profileAction } from "@/components/ProfileTabs";
 import Register from "@/pages/Register";
 import Space, { loader as spaceLoader } from "@/pages/Space";
 import Test from "@/pages/Test";
 import "./styles/global.css";
-import Layout, { loader as LayoutLoader } from "@/pages/Layout"
-import { ThemeProvider } from "./contexts/ThemeContext";
+import Layout from "@/pages/Layout"
 import Global from "@/pages/Global";
 
 
 const Routes = () => {
-  
+
   // Combine and conditionally include routes based on authentication status
   const router = createBrowserRouter([
     {
@@ -33,7 +30,6 @@ const Routes = () => {
         {
           element: <Layout />,
           path: "/",
-          loader: LayoutLoader,
           children: [
             {
               path: "/home",
@@ -59,10 +55,6 @@ const Routes = () => {
               ,
               loader: spaceLoader,
               errorElement: <ErrorPage />,
-            },
-            {
-              path: "/logout",
-              element: <Logout />,
             },
             {
               path: "/test",
@@ -103,8 +95,8 @@ const Routes = () => {
     },
     {
       path: "*",
-      element: <div style={{color: 'white'}}>404 - Not Found</div>,
-    },  
+      element: <div style={{ color: 'white' }}>404 - Not Found</div>,
+    },
   ]);
 
   // Provide the router configuration using RouterProvider

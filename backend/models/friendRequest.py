@@ -14,6 +14,6 @@ class FriendRequest(Document):
     to_user: Link["User"]
     
 
-class FriendRequestAction(str, Enum):
+class FriendRequestAnswer(str, Enum):
     accept = "accept"
     reject = "reject"

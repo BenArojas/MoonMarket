@@ -39,10 +39,10 @@ export async function getFriendRequestUsers() {
   }
 }
 
-export async function answerFriendRequest({ requestId, answer } ) {
+export async function answerFriendRequest({ request_Id, answer } ) {
   try {
     const response = await api.post(
-      `/friends/handle_friend_request/${requestId}`,
+      `/friends/handle_friend_request/${request_Id}`,
       { answer }, 
       {
         params: { answer }, 

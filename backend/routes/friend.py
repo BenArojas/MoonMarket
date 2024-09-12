@@ -3,7 +3,7 @@ from typing import List
 from models.user import User, FriendShow
 from models.friend import FriendInfo, HoldingInfo
 from models.stock import Stock
-from models.friendRequest import FriendRequest, FriendRequestAction
+from models.friendRequest import FriendRequest, FriendRequestAnswer
 from util.current_user import current_user
 from routes.user import get_user_transactions_by_type
 
@@ -53,7 +53,7 @@ async def send_friend_request(username: str, current_user: User = Depends(curren
 @router.post("/handle_friend_request/{request_id}")
 async def handle_friend_request(
     request_id: str,
-    action: FriendRequestAction,
+    answer: FriendRequestAnswer,
     current_user: User = Depends(current_user)
 ):
     friend_request = await FriendRequest.get(request_id)
@@ -70,10 +70,10 @@ async def handle_friend_request(
         raise HTTPException(status_code=400, detail="Friend request is not pending")
 
     try:
-        if action == FriendRequestAction.accept:
+        if answer == FriendRequestAnswer.accept:
             await current_user.accept_friend_request(friend_request, from_user)
             message = "Friend request accepted"
-        elif action == FriendRequestAction.reject:
+        elif answer == FriendRequestAnswer.reject:
             await current_user.reject_friend_request(friend_request, from_user)
             message = "Friend request rejected"
         

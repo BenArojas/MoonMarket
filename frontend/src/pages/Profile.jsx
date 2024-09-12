@@ -26,7 +26,6 @@ const Profile = () => {
     queryFn: getFriendRequestUsers
   });
 
-  console.log(friendRequestsData)
 
   if (userLoading || friendListLoading || friendRequestsLoading) {
     return <TabsSkeleton />;

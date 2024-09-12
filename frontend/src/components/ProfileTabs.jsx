@@ -38,7 +38,7 @@ const ProfileTabs = ({ username, current_balance, friendRequests, friendList, fr
   const answerFriendRequestMutation = useMutation({
     mutationFn: answerFriendRequest,
     onSuccess: () => {
-      queryClient.invalidateQueries('userData');
+      queryClient.invalidateQueries('friendRequestsLength');
       queryClient.invalidateQueries('friendList');
     },
   });
@@ -55,8 +55,8 @@ const ProfileTabs = ({ username, current_balance, friendRequests, friendList, fr
     addDepositMutation.mutate(amount);
   };
   
-  const handleFriendRequestAnswer = (requestId, answer) => {
-    answerFriendRequestMutation.mutate({ requestId, answer });
+  const handleFriendRequestAnswer = (request_Id, answer) => {
+    answerFriendRequestMutation.mutate({ request_Id, answer });
   };
 
   return (
