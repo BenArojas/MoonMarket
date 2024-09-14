@@ -31,12 +31,12 @@ export async function getHistoricalData(ticker) {
   }
 }
 
-export async function getIntradyData(ticker) {
+export async function getIntradayData(ticker, range) {
   if (isValidStockTicker(ticker) === false) {
     return false;
   } else {
     const data = await api.get(
-      `/stock/intrady_chart/${ticker}`
+      `/stock/intraday_chart/${ticker}?range=${range}`
     );
     return data.data;
   }

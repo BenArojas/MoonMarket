@@ -1,5 +1,5 @@
 import { getPortfolioSnapshots, postSnapshot } from "@/api/portfolioSnapshot";
-import { getIntradyData } from "@/api/stock";
+import { getHistoricalData } from "@/api/stock";
 import { getUserData } from "@/api/user";
 import GraphMenu from "@/components/GraphMenu";
 import NewUserNoHoldings from "@/components/NewUserNoHoldings";
@@ -16,21 +16,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import GraphSkeleton from "@/Skeletons/GraphSkeleton";
 
-// function GraphSkeleton() {
-//   return (
-//     <Card
-//       sx={{
-//         width: "100%",
-//         height: "100%",
-//         display: "flex",
-//         justifyContent: "center",
-//         alignItems: "center",
-//       }}
-//     >
-//       <CircularProgress />
-//     </Card>
-//   );
-// }
 
 import { ErrorBoundary } from "react-error-boundary";
 
@@ -55,7 +40,7 @@ function Portfolio({ userName }) {
 
   const { data: stockData, isPending: stockDataLoading } = useQuery({
     queryKey: ["stockData", selectedTicker],
-    queryFn: () => getIntradyData(selectedTicker),
+    queryFn: () => getHistoricalData(selectedTicker),
     enabled: !!selectedTicker,
     staleTime: 120 * 1000,
   });
@@ -113,7 +98,7 @@ function Portfolio({ userName }) {
               <GraphSkeleton />
             ) : (
               <CurrentStockCard
-                stockData={stockData}
+                stockData={stockData.historical}
                 stockTicker={selectedTicker}
               />
             )}

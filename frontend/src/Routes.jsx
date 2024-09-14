@@ -6,7 +6,6 @@ import Portfolio from "@/pages/Portfolio";
 import ErrorPage from "@/pages/ErrorPage";
 import StockItem, { loader as stockItemLoader } from "@/pages/StockItem";
 import Login from "@/pages/Login";
-import Logout from "@/pages/Logout";
 import { PublicRoute } from "@/pages/PublicRoute";
 import Profile from "@/pages/Profile";
 import Transactions, {

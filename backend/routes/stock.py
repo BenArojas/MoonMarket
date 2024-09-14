@@ -53,31 +53,41 @@ def get_historical_data(symbol:str):
     # If all API keys fail
     return {"error": "Unable to fetch data with any of the provided API keys"}
 
-@router.get("/intrady_chart/{symbol}")
-def get_intrady_chart(symbol:str):
-    # api_keys = [ config("FMP_FIRST_API_KEY"), config("FMP_SECOND_API_KEY"), config("FMP_THIRD_API_KEY")]
-    # for key in api_keys:
+from datetime import datetime, timedelta
+
+@router.get("/intraday_chart/{symbol}")
+def get_intraday_chart(symbol: str, range: str = '1month'):
     count = 1
-    api_key  = config(f"FMP_{count}_API_KEY")
+    api_key = config(f"FMP_{count}_API_KEY")
+    
+    # Define timeframes and their corresponding FMP timeframe and date range
+    timeframes = {
+        '1week': ('15min', 7),
+        '1month': ('30min', 30),
+        '3months': ('1hour', 90),
+        '6months': ('4hour', 180),
+        '1year': ('4hour', 365),
+        '3years': ('1hour', 1095)
+    }
+    
+    fmp_timeframe, days = timeframes.get(range, ('30min', 30))  # Default to 1 month if invalid range
+    
+    current_date = datetime.now()
+    from_date = current_date - timedelta(days=days)
+    
     while api_key:
         try:
-            current_date = datetime.now()
-            current_date_formatted = current_date.strftime("%Y-%m-%d")
-            one_month_ago = current_date - timedelta(days=30)  # Approximation for a month
-            # Format one month ago date as yyyy-mm-dd
-            one_month_ago_formatted = one_month_ago.strftime("%Y-%m-%d")
-            endpoint = f'historical-chart/15min/{symbol}?from={one_month_ago_formatted}&to={current_date_formatted}'
-            print(endpoint)
-            url = f"{BASE_URL}{endpoint}&apikey={api_key}"
+            endpoint = f'historical-chart/{fmp_timeframe}/{symbol}'
+            url = f"{BASE_URL}{endpoint}?from={from_date.strftime('%Y-%m-%d')}&to={current_date.strftime('%Y-%m-%d')}&apikey={api_key}"
             response = requests.get(url)
-            response.raise_for_status()  # Raises an HTTPError for bad responses
-            monthly_intrady_data = response.json()
-            return monthly_intrady_data
+            response.raise_for_status()
+            intraday_data = response.json()
+            return intraday_data
         except requests.RequestException as e:
             print(f"Error with API key {api_key}: {str(e)}")
         count += 1
         api_key = config(f"FMP_{count}_API_KEY")
-     # If all API keys fail
+    
     return {"error": "Unable to fetch data with any of the provided API keys"}
 
 @router.get("/quote/{symbol}")
