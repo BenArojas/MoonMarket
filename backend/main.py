@@ -10,17 +10,10 @@ from routes.stock import router as StockRouter
 from routes.transaction import router as TransactionRouter
 from routes.PortfolioSnapshot import router as  PortfolioSnapshotRouter
 from routes.friend import router as FriendsRouter
+from routes.apiKey import router as APIKeyRouter
 
 
 # Include routers in the API app
-# api_app.include_router(AuthRouter, prefix="/auth")
-# api_app.include_router(MailRouter, prefix="/mail")
-# api_app.include_router(RegisterRouter, prefix="/register")
-# api_app.include_router(UserRouter, prefix="/user")
-# api_app.include_router(StockRouter, prefix="/stock")
-# api_app.include_router(TransactionRouter, prefix="/transaction")
-# api_app.include_router(PortfolioSnapshotRouter, prefix="/portfolio-snapshot")
-# api_app.include_router(FriendsRouter, prefix="/friends")
 app.include_router(AuthRouter, prefix="/auth")
 app.include_router(MailRouter, prefix="/mail")
 app.include_router(RegisterRouter, prefix="/register")
@@ -29,6 +22,7 @@ app.include_router(StockRouter, prefix="/stock")
 app.include_router(TransactionRouter, prefix="/transaction")
 app.include_router(PortfolioSnapshotRouter, prefix="/portfolio-snapshot")
 app.include_router(FriendsRouter, prefix="/friends")
+app.include_router(APIKeyRouter, prefix="/api-key")
 
 
 

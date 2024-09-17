@@ -8,7 +8,7 @@ from util.current_user import current_user
 from routes.user import get_user_transactions_by_type
 
 
-router = APIRouter()
+router = APIRouter(tags=["Friends"])
 
 @router.get("/pending_friend_requests_length")
 async def get_pending_friend_requests_length(current_user: User = Depends(current_user)):

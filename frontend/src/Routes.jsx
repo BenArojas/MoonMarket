@@ -1,7 +1,5 @@
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
-import {
-  ProtectedRoute
-} from "@/pages/ProtectedRoute";
+import { ProtectedRoute } from "@/pages/ProtectedRoute";
 import Portfolio from "@/pages/Portfolio";
 import ErrorPage from "@/pages/ErrorPage";
 import StockItem, { loader as stockItemLoader } from "@/pages/StockItem";
@@ -15,12 +13,10 @@ import Register from "@/pages/Register";
 import Space, { loader as spaceLoader } from "@/pages/Space";
 import Test from "@/pages/Test";
 import "./styles/global.css";
-import Layout from "@/pages/Layout"
+import Layout from "@/pages/Layout";
 import Global from "@/pages/Global";
 
-
 const Routes = () => {
-
   // Combine and conditionally include routes based on authentication status
   const router = createBrowserRouter([
     {
@@ -49,9 +45,7 @@ const Routes = () => {
             },
             {
               path: "/space",
-              element:
-                <Space />
-              ,
+              element: <Space />,
               loader: spaceLoader,
               errorElement: <ErrorPage />,
             },
@@ -67,11 +61,9 @@ const Routes = () => {
               path: "stock/:stockTicker",
               element: <StockItem />,
               errorElement: <ErrorPage />,
-              loader: ({ params }) => {
-                return stockItemLoader(params.stockTicker);
-              },
+              loader: stockItemLoader,
             },
-          ]
+          ],
         },
       ],
     },
@@ -94,7 +86,7 @@ const Routes = () => {
     },
     {
       path: "*",
-      element: <div style={{ color: 'white' }}>404 - Not Found</div>,
+      element: <div style={{ color: "white" }}>404 - Not Found</div>,
     },
   ]);
 

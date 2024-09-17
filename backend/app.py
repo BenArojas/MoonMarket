@@ -15,6 +15,7 @@ from models.PortfolioSnapshot import PortfolioSnapshot
 from models.friendRequest import FriendRequest
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from models.APIKeyManager import ApiKey
 
 
 DESCRIPTION = """
@@ -32,7 +33,7 @@ async def lifespan(app: FastAPI):
     client = None
     try:
         client = AsyncIOMotorClient(CONFIG.DB_URL, maxPoolSize=50, minPoolSize=10)
-        await init_beanie(database=client[CONFIG.DB_NAME], document_models=[User, Stock, Transaction, PortfolioSnapshot, FriendRequest])
+        await init_beanie(database=client[CONFIG.DB_NAME], document_models=[User, Stock, Transaction, PortfolioSnapshot, FriendRequest, ApiKey])
         print("Database initialized")
         
         yield

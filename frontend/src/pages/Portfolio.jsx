@@ -15,8 +15,6 @@ import CurrentStockCard from "@/components/CurrentStock";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import GraphSkeleton from "@/Skeletons/GraphSkeleton";
-
-
 import { ErrorBoundary } from "react-error-boundary";
 
 function ErrorFallback({ error }) {
@@ -44,6 +42,7 @@ function Portfolio({ userName }) {
     enabled: !!selectedTicker,
     staleTime: 120 * 1000,
   });
+  console.log(stockData)
 
   const { data: dailyTimeFrame, isPending: dailyTimeFrameLoading } = useQuery({
     queryKey: ["dailyTimeFrame", userName],
