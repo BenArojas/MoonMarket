@@ -114,8 +114,8 @@ export default function CurrentStockCard({
         </Box>
       </Box>
       <CurrentStockChart  data={transformedData} colors={{
-            lineColor : '#2962FF',
-            areaTopColor : '#2962FF',
+            lineColor : '#E1E5EB',
+            areaTopColor : '#E1E5EB',
         }}/>
       {dialogOpen && (
         <SharesDialog

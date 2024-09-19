@@ -118,7 +118,7 @@ function PortfolioContent({ userData }) {
   const queryClient = useQueryClient();
   const postSnapshotMutation = useMutation({
     mutationFn: postSnapshot,
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries(["dailyTimeFrame"]); // Invalidate the dailyTimeFrame query when the snapshot is posted
     },
     onError: (error) => {

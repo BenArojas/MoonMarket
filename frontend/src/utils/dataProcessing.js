@@ -40,7 +40,7 @@ export function processTreemapData(stocksList, stocksInfo) {
     if (res.price > stock_avg_price) {
       positiveStocks.push({
         name: res.name,
-        id: res.id,
+        id: res._id,
         ticker: ticker,
         value: value,
         avgSharePrice: stock_avg_price.toFixed(2),
@@ -53,7 +53,7 @@ export function processTreemapData(stocksList, stocksInfo) {
     } else {
       negativeStocks.push({
         name: res.name,
-        id: res.id,
+        id: res._id,
         ticker: holding.ticker,
         value: value,
         avgSharePrice: stock_avg_price,
