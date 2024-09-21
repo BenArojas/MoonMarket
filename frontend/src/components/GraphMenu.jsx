@@ -9,6 +9,7 @@ import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import BlurCircularIcon from "@mui/icons-material/BlurCircular";
 import SearchBar from "@/components/SearchBar.jsx";
+import SchemaIcon from '@mui/icons-material/Schema';
 
 function GraphMenu({ selectedGraph, setSelectedGraph }) {
  
@@ -88,6 +89,20 @@ function GraphMenu({ selectedGraph, setSelectedGraph }) {
                 }}
               >
                 <TocSharpIcon />
+              </ListItemIcon>
+            </ListItemButton>
+          </ListItem>
+          <ListItem disablePadding>
+            <ListItemButton
+              selected={selectedGraph === "Sankey"}
+              onClick={() => handleListItemClick("Sankey")}
+            >
+              <ListItemIcon
+                sx={{
+                  justifyContent: "center", // Center the icon
+                }}
+              >
+                <SchemaIcon />
               </ListItemIcon>
             </ListItemButton>
           </ListItem>

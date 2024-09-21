@@ -4,6 +4,8 @@ import { CircularPacking } from "@/components/CircularPackingChart";
 import { DonutChart } from "@/components/DonutChart";
 import { Treemap } from "@/components/Treemap";
 import Leaderboards from "@/components/Leaderboards";
+import Sankey from "@/components/SankeyChart";
+
 
 const skeletons = {
   DonutChart: DonutSkeleton,
@@ -11,6 +13,7 @@ const skeletons = {
   Circular: TreeMapSkeleton,
   TableGraph: TreeMapSkeleton,
   Leaderboards: TreeMapSkeleton,
+  Sankey: TreeMapSkeleton,
 };
 
 const components = {
@@ -18,6 +21,7 @@ const components = {
   Treemap: Treemap,
   Circular: CircularPacking,
   Leaderboards: Leaderboards,
+  Sankey: Sankey
 };
 
 function DataGraph({ isDataProcessed, selectedGraph, visualizationData  }) {

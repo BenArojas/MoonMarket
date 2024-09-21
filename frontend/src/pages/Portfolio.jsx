@@ -113,6 +113,7 @@ function PortfolioContent({ userData }) {
     userData,
     selectedGraph
   );
+  console.log(visualizationData)
 
   const queryClient = useQueryClient();
   const postSnapshotMutation = useMutation({

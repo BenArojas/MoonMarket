@@ -45,7 +45,6 @@ export const Treemap = ({ width, height, data }) => {
     } = leaf.data;
 
     const fillColor = getColor(priceChangePercentage);
-    const textColor = priceChangePercentage >= 0 ? theme.palette.primary.dark : theme.palette.error.dark;
 
     return (
       <CustomTooltip

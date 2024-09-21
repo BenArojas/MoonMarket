@@ -6,7 +6,7 @@ export function getPortfolioStats(stocksList, stocksInfo) {
   for (let i = 0; i < stocksList.length; i++) {
     const res = stocksInfo[i];
     const holding = stocksList[i];
-    
+
     // Add null checks
     if (holding && res) {
       const value = holding.quantity * res.price;
@@ -28,8 +28,8 @@ export function processTreemapData(stocksList, stocksInfo) {
     const res = stocksInfo[i];
     const holding = stocksList[i];
 
-     // Add null checks
-     if (!res || !holding) continue;
+    // Add null checks
+    if (!res || !holding) continue;
 
 
     const stock_avg_price = holding.avg_bought_price;
@@ -152,7 +152,65 @@ export function processDonutData(stocksList, stocksInfo) {
   return stocks;
 }
 
+export function processSankeyData(stocksList, stocksInfo) {
+  const nodes = [
+    { id: "Positive", color: "#4CAF50", value: 0 },
+    { id: "Negative", color: "#F44336", value: 0 }
+  ];
 
+  const links = [];
+
+  let positiveValue = 0;
+  let negativeValue = 0;
+
+  for (let i = 0; i < stocksList.length; i++) {
+    const res = stocksInfo[i];
+    const holding = stocksList[i];
+
+    // Add null checks
+    if (!res || !holding) continue;
+
+    const stock_avg_price = holding.avg_bought_price;
+    const value = holding.quantity * res.price;
+    const ticker = holding.ticker;
+    const percentageChange = Math.round(((res.price - stock_avg_price) / stock_avg_price) * 100);
+
+    const nodeData = {
+      id: ticker,
+      name: res.name,
+      color: getRandomColor(), // Implement a function to assign random colors
+      value: value,
+      percentageChange: percentageChange
+    };
+
+    nodes.push(nodeData);
+
+    if (res.price > stock_avg_price) {
+      positiveValue += value;
+      links.push({ source: "Positive", target: ticker, value: value });
+    } else {
+      negativeValue += value;
+      links.push({ source: "Negative", target: ticker, value: value });
+    }
+  }
+
+  // Update total values for Positive and Negative nodes
+  nodes[0].value = positiveValue;
+  nodes[1].value = negativeValue;
+
+  return { nodes, links };
+}
+
+
+// Helper function to generate random colors
+function getRandomColor() {
+  const letters = '0123456789ABCDEF';
+  let color = '#';
+  for (let i = 0; i < 6; i++) {
+    color += letters[Math.floor(Math.random() * 16)];
+  }
+  return color;
+}
 export function processCircularData(stocksList, stocksInfo) {
   let children = [];
   let sum = 0;
@@ -244,7 +302,7 @@ export function processLeaderboardsData(stocksList, stocksInfo) {
   LeaderboardsData.sort(
     (a, b) => b.priceChangePercentage - a.priceChangePercentage
   );
-  console.log("LeaderboardsData is: " , LeaderboardsData)
+  console.log("LeaderboardsData is: ", LeaderboardsData)
 
   return LeaderboardsData;
 }
