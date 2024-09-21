@@ -9,16 +9,18 @@ import {
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useThemeHook } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthProvider"; // Import the AuthProvider
 import { useQueryClient } from "@tanstack/react-query"; // Import react-query for cache clearing
+import { useTheme } from "@mui/material";
 
 function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
 function Navbar({ friendRequestsCount }) {
-  const { toggleTheme, mode } = useTheme();
+  const theme = useTheme();
+  const { toggleTheme, mode } = useThemeHook();
   const { pathname } = useLocation();
   const navigate = useNavigate(); // Use the navigate function from react-router
   const { logout } = useAuth(); // Get the logout function from AuthProvider
@@ -69,7 +71,7 @@ function Navbar({ friendRequestsCount }) {
             to={text}
             key={text}
             sx={{
-              color: pathname === `/${text}` ? "#077e5d" : "inherit",
+              color: pathname === `/${text}` ? theme.palette.primary.main : "inherit",
               display: "flex",
               flexDirection: "row",
               alignItems: "center",
@@ -89,7 +91,7 @@ function Navbar({ friendRequestsCount }) {
             }}
           >
             <Icon
-              color={pathname === `/${text}` ? "#077e5d" : "currentColor"}
+              color={pathname === `/${text}` ? theme.palette.primary.main : "currentColor"}
             />
             <Box
               className="nav-text"
@@ -116,7 +118,7 @@ function Navbar({ friendRequestsCount }) {
                 to={text === "logout" ? "" : text} // Don't navigate on logout, just call the handler
                 onClick={text === "logout" ? onClick : undefined} // Call onClick for logout
                 sx={{
-                  color: pathname === `/${text}` ? "#077e5d" : "inherit",
+                  color: pathname === `/${text}` ? theme.palette.primary.main : "inherit",
                   display: "flex",
                   flexDirection: "row",
                   alignItems: "center",
@@ -128,13 +130,13 @@ function Navbar({ friendRequestsCount }) {
                   <Badge badgeContent={badge} color="primary">
                     <Icon
                       color={
-                        pathname === `/${text}` ? "#077e5d" : "currentColor"
+                        pathname === `/${text}` ? theme.palette.primary.main : "currentColor"
                       }
                     />
                   </Badge>
                 ) : (
                   <Icon
-                    color={pathname === `/${text}` ? "#077e5d" : "currentColor"}
+                    color={pathname === `/${text}` ? theme.palette.primary.main : "currentColor"}
                   />
                 )}
                 {capitalizeFirstLetter(text)}

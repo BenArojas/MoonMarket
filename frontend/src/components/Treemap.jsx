@@ -7,7 +7,6 @@ import CustomTooltip from "@/components/CustomToolTip";
 
 export const Treemap = ({ width, height, data }) => {
   const theme = useTheme();
-
   const hierarchy = useMemo(() => {
     return d3.hierarchy(data)
       .sum(d => d.value)
@@ -16,11 +15,14 @@ export const Treemap = ({ width, height, data }) => {
 
   // Create a color scale based on priceChangePercentage
   const getColor = (priceChangePercentage) => {
-    if (priceChangePercentage > 40) return theme.palette.primary.dark;
-    if (priceChangePercentage > 0) return theme.palette.primary.light;
-    if (priceChangePercentage > -30) return theme.palette.error.light;
+    if (priceChangePercentage > 40) return theme.palette.primary.light;
+    if (priceChangePercentage > 15) return theme.palette.primary.main;
+    if (priceChangePercentage > 0) return theme.palette.primary.dark;
+    if (priceChangePercentage > -15) return theme.palette.error.light;
+    if (priceChangePercentage > -40) return theme.palette.error.main;
     return theme.palette.error.dark;
   };
+  
 
   const root = useMemo(() => {
     const treeGenerator = d3.treemap().size([width, height]).padding(4);

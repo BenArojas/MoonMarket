@@ -1,10 +1,10 @@
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
-import { ProtectedRoute } from "@/pages/ProtectedRoute";
+import { ProtectedRoute, loader as ProtctedRouteLoader } from "@/pages/ProtectedRoute";
+import { PublicRoute, loader as PublicRouteLoader } from "@/pages/PublicRoute";
 import Portfolio from "@/pages/Portfolio";
 import ErrorPage from "@/pages/ErrorPage";
 import StockItem, { loader as stockItemLoader } from "@/pages/StockItem";
 import Login from "@/pages/Login";
-import { PublicRoute } from "@/pages/PublicRoute";
 import Profile from "@/pages/Profile";
 import Transactions, {
   loader as transactionsLoader,
@@ -21,6 +21,7 @@ const Routes = () => {
   const router = createBrowserRouter([
     {
       element: <ProtectedRoute />,
+      loader: ProtctedRouteLoader,
       children: [
         {
           element: <Layout />,
@@ -69,6 +70,7 @@ const Routes = () => {
     },
     {
       element: <PublicRoute />,
+      loader: PublicRouteLoader,
       path: "/",
       errorElement: <ErrorPage />,
       children: [

@@ -4,7 +4,6 @@ import { Stack, Divider } from "@mui/material";
 import FriendRequestCard from "@/components/FriendRequestCard";
 
 const FriendRequestsTabContent = ({ friendRequests, onAnswer, isLoading }) => {
-  console.log(friendRequests)
   return (
     <Card>
       <CardHeader>

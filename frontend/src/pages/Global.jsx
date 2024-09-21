@@ -6,11 +6,11 @@ import { Box } from '@mui/material'
 import Timeline from '@/components/tradingView/TimelineTradingView'
 import HotList from '@/components/tradingView/HotListTradingVIew'
 import TechnicalAnalysis from '@/components/tradingView/TechnicalAnalysisTradingView'
-import { useTheme } from "@/contexts/ThemeContext";
+import { useThemeHook } from "@/contexts/ThemeContext";
 import { flexRender } from '@tanstack/react-table'
 
 function Global() {
-    const { mode } = useTheme();
+    const { mode } = useThemeHook();
     return (
         <Box sx={{
             display: 'flex',

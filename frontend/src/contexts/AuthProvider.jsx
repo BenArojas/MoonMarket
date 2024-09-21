@@ -3,49 +3,14 @@
 
   const AuthContext = createContext();
 
-  const ACTIONS = {
-    setAuth: "setAuth",
-    clearAuth: "clearAuth",
-  };
-
-  const authReducer = (state, action) => {
-    switch (action.type) {
-      case ACTIONS.setAuth:
-        return { ...state, isAuthenticated: true };
-      case ACTIONS.clearAuth:
-        return { ...state, isAuthenticated: false };
-      default:
-        return state;
-    }
-  };
-
-  const initialState = {
-    isAuthenticated: false,
-  };
 
   export const AuthProvider = ({ children }) => {
-    const [state, dispatch] = useReducer(authReducer, initialState);
-
-    useEffect(() => {
-      checkAuthStatus();
-    }, []);
 
     const refreshToken = async () => {
       try {
         await api.post('/auth/refresh');
-        dispatch({ type: ACTIONS.setAuth });
       } catch (error) {
-        dispatch({ type: ACTIONS.clearAuth });
         // Redirect to login or handle as needed
-      }
-    };
-
-    const checkAuthStatus = async () => {
-      try {
-        await authCheckApi.get('/auth/protected-route');
-        dispatch({ type: ACTIONS.setAuth });
-      } catch (error) {
-          dispatch({ type: ACTIONS.clearAuth });
       }
     };
 
@@ -63,7 +28,7 @@
             }
           }
         );
-        dispatch({ type: ACTIONS.setAuth });
+       
         return response.data;
       } catch (error) {
         console.error('Login error:', error.response?.data || error.message);
@@ -79,14 +44,14 @@
         // You can handle the error if needed, e.g., show a notification
       } finally {
         // Clear auth state even if the API call fails
-        dispatch({ type: ACTIONS.clearAuth });
+       
       }
     };
     
 
     const value = useMemo(
-      () => ({ ...state, login, logout, checkAuthStatus }),
-      [state]
+      () => ({  login, logout }),
+      []
     );
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

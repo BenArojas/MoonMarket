@@ -1,14 +1,14 @@
 import React from 'react';
 import { Card } from '@mui/material';
 import { cardio } from 'ldrs';
-import { useTheme } from "@/contexts/ThemeContext";
+import { useThemeHook } from "@/contexts/ThemeContext";
 
 
 // Register the cardio custom element
 cardio.register();
 
 function GraphSkeleton() {
-const { mode } = useTheme();
+const { mode } = useThemeHook();
   return (
     <Card
       sx={{

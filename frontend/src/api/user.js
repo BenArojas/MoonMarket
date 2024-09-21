@@ -1,4 +1,4 @@
-import api from "@/api/axios";
+import api, {authCheckApi} from "@/api/axios";
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -100,4 +100,14 @@ export async function searchUser(username,) {
       `/user/user_friend/${username}`,
     );
     return response.data;
+}
+
+
+export async function checkAuth() {
+  try {
+    const response = await authCheckApi.get("/auth/protected-route");
+    return response.data;
+  } catch (error) {
+    return null;
+  }
 }

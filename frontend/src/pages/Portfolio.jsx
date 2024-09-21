@@ -42,7 +42,6 @@ function Portfolio({ userName }) {
     enabled: !!selectedTicker,
     staleTime: 120 * 1000,
   });
-  console.log(stockData)
 
   const { data: dailyTimeFrame, isPending: dailyTimeFrameLoading } = useQuery({
     queryKey: ["dailyTimeFrame", userName],
