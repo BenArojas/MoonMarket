@@ -1,3 +1,4 @@
+import { teal, red } from '@mui/material/colors';
 
 export function getPortfolioStats(stocksList, stocksInfo) {
   let tickers = [];
@@ -154,8 +155,8 @@ export function processDonutData(stocksList, stocksInfo) {
 
 export function processSankeyData(stocksList, stocksInfo) {
   const nodes = [
-    { id: "Positive", color: "#4CAF50", value: 0 },
-    { id: "Negative", color: "#F44336", value: 0 }
+    { id: "Positive", color: teal[500], value: 0 },
+    { id: "Negative", color: red[500], value: 0 }
   ];
 
   const links = [];
@@ -167,7 +168,6 @@ export function processSankeyData(stocksList, stocksInfo) {
     const res = stocksInfo[i];
     const holding = stocksList[i];
 
-    // Add null checks
     if (!res || !holding) continue;
 
     const stock_avg_price = holding.avg_bought_price;
@@ -178,7 +178,6 @@ export function processSankeyData(stocksList, stocksInfo) {
     const nodeData = {
       id: ticker,
       name: res.name,
-      color: getRandomColor(), // Implement a function to assign random colors
       value: value,
       percentageChange: percentageChange
     };
@@ -194,7 +193,7 @@ export function processSankeyData(stocksList, stocksInfo) {
     }
   }
 
-  // Update total values for Positive and Negative nodes
+  // Update Positive and Negative node values
   nodes[0].value = positiveValue;
   nodes[1].value = negativeValue;
 
