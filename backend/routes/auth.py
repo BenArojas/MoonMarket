@@ -44,5 +44,5 @@ async def logout(response: Response):
 
 
 @router.get("/protected-route")
-async def protected_route(current_user: dict = Depends(current_user)):
-    return {"message": "This is a protected route", "user": current_user.username}
+async def protected_route(current_user: User = Depends(current_user)):
+    return {"message": "This is a protected route", "user": str(current_user.id), "enabled": current_user.enabled}

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from typing import Optional, Annotated
 
 import pytz
@@ -29,10 +29,10 @@ class ApiKey(Document):
     is_active: bool = Field(default=True)
 
     @property
-    def is_available(self) -> bool:
+    async def is_available(self) -> bool:
         now = datetime.now()
         if now >= self.next_reset:
-            self.reset_usage(now)
+            await self.reset_usage(now)
         return self.requests < self.rate_limit and self.is_active
 
     async def reset_usage(self, now: datetime):
@@ -42,8 +42,8 @@ class ApiKey(Document):
 
     @staticmethod
     def get_next_reset(from_time: datetime) -> datetime:
-        next_day = from_time.date() + datetime.timedelta(days=1)
-        return datetime.combine(next_day, datetime.time.min)
+        next_day = from_time.date() + timedelta(days=1)
+        return datetime.combine(next_day, time.min)
 
     async def increment_usage(self):
         self.requests += 1
@@ -54,7 +54,7 @@ class ApiKey(Document):
     async def get_available_key(cls) -> Optional["ApiKey"]:
         available_keys = await cls.find(cls.is_active == True).to_list()
         for key in available_keys:
-            if key.is_available:
+            if await key.is_available:
                 return key
         return None
 

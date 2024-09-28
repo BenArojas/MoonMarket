@@ -64,6 +64,7 @@ class UserUpdate(BaseModel):
     current_balance: float | None = 0
     last_refresh: datetime | None = None
     username: Optional[str] = None
+    enabled: bool
     
 class UserOut(UserUpdate):
     """User fields returned to the client."""
@@ -83,6 +84,7 @@ class User(Document):
     friends: List[PydanticObjectId] = []
     friend_requests_sent: List[Link["FriendRequest"]] = []
     friend_requests_received: List[Link["FriendRequest"]] = []
+    enabled: bool = False
     
     async def add_friend(self, id: PydanticObjectId):
         self.friends.append(id)
@@ -129,7 +131,10 @@ class User(Document):
     
     def __str__(self) -> str:
         return self.email
-
+    
+    def display(self) -> str:
+        return f"User ID: {self.id}, Email: {self.email}"
+    
     def __hash__(self) -> int:
         return hash(self.email)
 

@@ -5,7 +5,7 @@ export async function requireAuth() {
     if (!response) {
       throw redirect("/login"); // Redirect to login page if the user is not authenticated
     }
-    return response.user;
+    return response;
   }
 
   export async function requireAnonymous() {

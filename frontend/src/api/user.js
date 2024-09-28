@@ -111,3 +111,14 @@ export async function checkAuth() {
     return null;
   }
 }
+
+export async function addApiKey(api_key) {
+  try {
+      const response = await api.post(`/api-key/add-api-key`, null, {
+          params: { api_key } // Send api_key as a query parameter
+      });
+      return response.data;
+  } catch (error) {
+      throw error;
+  }
+}

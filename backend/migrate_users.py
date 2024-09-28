@@ -18,12 +18,8 @@ async def migrate_users():
 
     for user in users:
         # Check if the new fields don't exist and add them
-        if not hasattr(user, 'friends'):
-            user.friends = []
-        if not hasattr(user, 'friend_requests_sent'):
-            user.friend_requests_sent = []
-        if not hasattr(user, 'friend_requests_received'):
-            user.friend_requests_received = []
+        if not hasattr(user, 'enabled'):
+            user.enabled = False
 
         # Save the updated user
         await user.save()
