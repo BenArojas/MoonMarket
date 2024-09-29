@@ -9,15 +9,15 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import "@/styles/global.css";
 import { useQuery } from "@tanstack/react-query";
 import AddApiKey from "@/components/AddApiKey";
+import { useRevalidator } from "react-router-dom";
 
 
 export const PercentageChange = createContext(0);
 function Layout() {
-    
+    let revalidator = useRevalidator();
     const isEnabled = useOutletContext()
     const [showModal, setShowModal] = useState(!isEnabled);
     const [percentageChange, setPercentageChange] = useState(0);
-    const queryClient = useQueryClient();
     
     const { data: userName, isLoading: userNameLoading, error: userNameError } = useQuery({
         queryKey: ['userName'],
@@ -29,11 +29,12 @@ function Layout() {
         queryFn: getFriendRequestLength
     });
 
-    const addApiKeyMutation = useMutation({
+    const { mutate: addApiKeyMutation, isPending} = useMutation({
         mutationFn: addApiKey,
         onSuccess: () => {
-            queryClient.invalidateQueries('userData');
+            revalidator.revalidate();
             setShowModal(false); // Close the modal on success
+            toast.success("API key added successfully!");
         },
         onError: () => {
             // Do nothing here to keep the modal open
@@ -42,7 +43,7 @@ function Layout() {
     });
 
     const handleApiKeySubmit = (apiKey) => {
-        addApiKeyMutation.mutate(apiKey)
+        addApiKeyMutation(apiKey);
     };
 
     return (
@@ -74,8 +75,8 @@ function Layout() {
                         ) : (
                             <AddApiKey
                                 isOpen={showModal}
-                                onClose={() => setShowModal(false)}
                                 onSubmit={handleApiKeySubmit}
+                                isPending={isPending}
                             />
                         )}
                     </Box>

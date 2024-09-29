@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
 
-const AddApiKey = ({ isOpen, onClose, onSubmit }) => {
+const AddApiKey = ({ isOpen,onSubmit, isPending }) => {
     const [apiKey, setApiKey] = useState('');
 
     const handleSubmit = () => {
@@ -13,7 +14,7 @@ const AddApiKey = ({ isOpen, onClose, onSubmit }) => {
     };
 
     return (
-        <AlertDialog open={isOpen} onOpenChange={onClose}>
+        <AlertDialog open={isOpen}>
             <AlertDialogContent className="bg-background text-foreground">
                 <AlertDialogHeader>
                     <AlertDialogTitle>Welcome to MoonMarket!</AlertDialogTitle>
@@ -44,7 +45,14 @@ const AddApiKey = ({ isOpen, onClose, onSubmit }) => {
                             disabled={apiKey.length !== 32}
                             className="bg-customTurquoise-400 text-white hover:bg-customTurquoise-400/80 focus:ring-2 focus:ring-customTurquoise-400 focus:ring-offset-2 focus:ring-offset-background"
                         >
-                            Submit
+                            {isPending ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Submitting...
+                                </>
+                            ) : (
+                                'Submit'
+                            )}
                         </Button>
                     </AlertDialogAction>
                 </AlertDialogFooter>
