@@ -88,9 +88,9 @@ export default function CurrentStockCard({
         display: "flex",
         flexDirection: "column",
         gap: 2,
-        margin: "auto",
+        // margin: "auto",
         padding: "10px 15px",
-        // backgroundColor: "transparent",
+        // flexGrow: 1
       }}
     >
       <Box
@@ -116,7 +116,7 @@ export default function CurrentStockCard({
       <CurrentStockChart  data={transformedData} colors={{
             lineColor : '#E1E5EB',
             areaTopColor : '#E1E5EB',
-        }}/>
+        }} height={280}/>
       {dialogOpen && (
         <SharesDialog
           handleClose={handleClose}

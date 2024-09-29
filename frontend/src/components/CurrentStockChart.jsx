@@ -12,6 +12,7 @@ export const CurrentStockChart = (props) => {
     data,
     trend,
     enableAdvancedFeatures = false,
+    height,
     colors: {
       backgroundColor = "transparent",
       lineColor = theme.palette.primary.main,
@@ -163,7 +164,7 @@ export const CurrentStockChart = (props) => {
   return (
     <div
       ref={chartContainerRef}
-      style={{ position: "relative", width: "100%", height: "250px" }}
+      style={{ position: "relative", width: "100%", height: height }}
     />
   );
 };

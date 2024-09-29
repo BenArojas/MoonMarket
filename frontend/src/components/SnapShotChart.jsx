@@ -19,14 +19,14 @@ const SnapshotChart = React.memo(
     const trend = percentageChange > 0 ? "positive" : "negative";
 
     return (
-      <div>
+      // <div>
         <Card
           sx={{
             display: "flex",
             flexDirection: "column",
             gap: 2,
-            margin: "auto",
             padding: "15px 15px",
+            flexGrow: 1
           }}
         >
           {dailyTimeFrameData.length === 0 ? (
@@ -45,11 +45,12 @@ const SnapshotChart = React.memo(
                 data={transformedData}
                 enableAdvancedFeatures={true}
                 trend={trend}
+                height={220}
               />
             </>
           )}
         </Card>
-      </div>
+      // </div>
     );
   }
 );

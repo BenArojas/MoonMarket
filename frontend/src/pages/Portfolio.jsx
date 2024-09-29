@@ -78,7 +78,7 @@ function Portfolio({ userName }) {
           )}
         </ErrorBoundary>
       </Box>
-      <Box sx={{ width: 600, ml: "auto", overflow: "hidden" }}>
+      <Box sx={{ width: 600, ml: "auto", overflow: "hidden",  height:'100%' }}>
         <Stack spacing={2} sx={{ height: "100%" }}>
           <ErrorBoundary FallbackComponent={ErrorFallback}>
             {dailyTimeFrameLoading || userDataLoading ? (
@@ -172,8 +172,6 @@ const SnapshotChartWrapper = ({ dailyTimeFrame, userData }) => {
       incrementalChange={incrementalChange}
       percentageChange={percentageChange}
       value={value}
-      width={550}
-      height={250}
       dailyTimeFrameData={dailyTimeFrame}
     />
   );
