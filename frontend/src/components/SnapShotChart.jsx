@@ -24,7 +24,7 @@ const SnapshotChart = React.memo(
           sx={{
             display: "flex",
             flexDirection: "column",
-            gap: 2,
+            gap: 4,
             padding: "15px 15px",
             flexGrow: 1
           }}

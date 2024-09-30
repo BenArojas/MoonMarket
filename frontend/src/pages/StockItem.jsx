@@ -144,6 +144,7 @@ function NoStockFound() {
 }
 
 function StockHeader({ stock, onRangeChange, currentRange }) {
+  console.log(stock)
   const timeRanges = [
     { value: "1week", label: "1 Week" },
     { value: "1month", label: "1 Month" },
@@ -165,8 +166,8 @@ function StockHeader({ stock, onRangeChange, currentRange }) {
         <Typography variant="h4">{stock.symbol}</Typography>
         <StockInfoCard label="Last Price" value={stock.price} />
         <StockInfoCard
-          label="Volume"
-          value={stock.volume.toLocaleString("en-US")}
+          label="Previous close"
+          value={stock.previousClose}
         />
         <StockInfoCard label="High (24h)" value={stock.dayHigh} />
         <StockInfoCard label="Low (24h)" value={stock.dayLow} />

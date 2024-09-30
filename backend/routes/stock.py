@@ -32,12 +32,12 @@ async def get_historical_data(symbol: str, api_key: ApiKey = Depends(get_api_key
 def get_intraday_chart(symbol: str, range: str = '1month', api_key: ApiKey = Depends(get_api_key)):
     # Define timeframes and their corresponding FMP timeframe and date range
     timeframes = {
-        '1week': ('15min', 7),
+        '1week': ('5min', 7),
         '1month': ('30min', 30),
         '3months': ('1hour', 90),
         '6months': ('4hour', 180),
-        '1year': ('4hour', 365),
-        '3years': ('1hour', 1095)
+        '1year': ('daily', 365),
+        '3years': ('daily', 1095)
     }
     
     fmp_timeframe, days = timeframes.get(range, ('30min', 30))  # Default to 1 month if invalid range
@@ -46,15 +46,24 @@ def get_intraday_chart(symbol: str, range: str = '1month', api_key: ApiKey = Dep
     from_date = current_date - timedelta(days=days)
     
     try:
-        endpoint = f'historical-chart/{fmp_timeframe}/{symbol}'
-        url = f"{BASE_URL}{endpoint}?from={from_date.strftime('%Y-%m-%d')}&to={current_date.strftime('%Y-%m-%d')}&apikey={api_key.key}"
+        if range in ['1year', '3years']:
+            endpoint = f'historical-price-full/{symbol}'
+            url = f"{BASE_URL}{endpoint}?from={from_date.strftime('%Y-%m-%d')}&to={current_date.strftime('%Y-%m-%d')}&apikey={api_key.key}"
+        else:
+            endpoint = f'historical-chart/{fmp_timeframe}/{symbol}'
+            url = f"{BASE_URL}{endpoint}?from={from_date.strftime('%Y-%m-%d')}&to={current_date.strftime('%Y-%m-%d')}&apikey={api_key.key}"
+        
+        print(url)
         response = requests.get(url)
         response.raise_for_status()
-        intraday_data = response.json()
-        return intraday_data
+        data = response.json()
+        
+        if range in ['1year', '3years']:
+            return data.get('historical', [])
+        else:
+            return data
     except requests.RequestException as e:
         print(f"Error with API key {api_key.key}: {str(e)}")
-
     
     return {"error": "Unable to fetch data with any of the provided API keys"}
 

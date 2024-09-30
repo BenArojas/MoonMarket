@@ -2,8 +2,6 @@ import { Divider } from "@mui/material";
 import Avatar from "@mui/material/Avatar";
 import Stack from "@mui/material/Stack";
 
-import SearchFriends from "@/components/SearchFriends";
-
 function FriendsSideBar({ friends }) {
 
   return (
@@ -14,7 +12,6 @@ function FriendsSideBar({ friends }) {
       justifyContent={"flex-start"}
     >
       <div>
-        {/* <SearchFriends /> */}
         <Divider flexItem sx={{ m: 0 }} />
       </div>
       {friends && friends.length > 0 ? (

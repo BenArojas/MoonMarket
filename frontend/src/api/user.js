@@ -92,6 +92,7 @@ export async function addDeposit(money) {
     `/user/add_deposit`,
     depositPayload,
   );
+  toast.success("Deposit added successfully");
   return response.data;
 }
 
