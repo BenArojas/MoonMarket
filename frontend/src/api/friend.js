@@ -71,3 +71,14 @@ export async function getFriendList() {
     throw error;
   }
 }
+
+export async function removeFriend(friend_id) {
+  try {
+    const response = await api.delete(`/friends/remove-friend/${friend_id}`);
+    toast.success("Friend removed successfully");
+    return response.data;
+  } catch (error) {
+    toast.error("couldn't remove Friend ");
+    throw error;
+  }
+}

@@ -5,10 +5,11 @@ import Typography from "@mui/material/Typography";
 import { Avatar } from "@mui/material";
 import { sendFriendRequest } from '@/api/friend';
 
-function AddFriend({  username, email}) {
+function AddFriend({  username, email, setFriend}) {
 
   const handleSubmit = async () => {
       await sendFriendRequest(username);
+      setFriend({})
     }
 
   return (

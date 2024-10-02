@@ -42,21 +42,25 @@ async def get_user_transactions_by_type(type: str, user: User = Depends(current_
 
 @router.get("/user_friend/{username}", response_model=UserFriend)
 async def get_user_by_username(username: str, current_user: User = Depends(current_user)):
-    # Prevent retrieving your own profile as a friend
+    print(f"Searching for user: {username}")
+    print(f"Current user: {current_user.username}")
+
     if username == current_user.username:
+        print("User tried to retrieve own profile")
         raise HTTPException(status_code=400, detail="Cannot retrieve your own profile as a friend")
 
-    # Find the user by username
     user = await User.find_one(User.username == username)
+    print(f"Found user: {user}")
+
     if user:
-        # Check if the user is already in the current user's friends list
         if user.id in current_user.friends:
+            print("User is already a friend")
             raise HTTPException(status_code=400, detail="User is already your friend")
         
-        # Return the user if found and not already a friend
+        print(f"Returning user: {user.username}, {user.email}")
         return UserFriend(email=user.email, username=user.username)
     
-    # Raise 404 if user not found
+    print("User not found")
     raise HTTPException(status_code=404, detail="User not found")
 
     

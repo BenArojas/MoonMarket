@@ -46,6 +46,8 @@ class UserRegister(UserAuth):
     
 class UserFriend(BaseModel):
     """User fields that will be shown when searching a user in order to send a friend request"""
+    email: str
+    username: str
      
 
 # Update FriendShow to include request_id
@@ -68,7 +70,7 @@ class UserUpdate(BaseModel):
     
 class UserOut(UserUpdate):
     """User fields returned to the client."""
-    friends: List[UserFriend] = []
+    friends: List[PydanticObjectId] | None = []
 
 class User(Document):
     """User DB representation."""

@@ -1,8 +1,10 @@
 import React from "react";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
-import { Grid, Stack, Typography, Avatar, IconButton,Button, Dialog , DialogActions ,  DialogContent , DialogContentText ,DialogTitle  } from "@mui/material";
+import { Grid, Stack, Typography, Avatar, IconButton, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
 import SearchFriends from "@/components/SearchFriends";
 import { Trash2 } from "lucide-react";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { removeFriend } from '@/api/friend'
 
 // const friendList = [
 //   {
@@ -37,6 +39,13 @@ import { Trash2 } from "lucide-react";
 // ]
 
 const FriendsTabContent = ({ friendList }) => {
+  const queryClient = useQueryClient();
+  const removeFriendMutation = useMutation({
+    mutationFn: removeFriend,
+    onSuccess: () => {
+      queryClient.invalidateQueries('friendList')
+    },
+  });
   const [open, setOpen] = React.useState(false);
 
   const handleClickOpen = () => {
@@ -45,8 +54,8 @@ const FriendsTabContent = ({ friendList }) => {
   const handleClose = () => {
     setOpen(false);
   };
-  const handleRemoveFriend = () => {
-    // remove friend action
+  const handleRemoveFriend = (friend_id) => {
+    removeFriendMutation.mutate(friend_id);
     setOpen(false);
   };
 
@@ -83,7 +92,7 @@ const FriendsTabContent = ({ friendList }) => {
           }}
         >
           <Typography variant="h6">Friend List:</Typography>
-          <Grid container spacing={2}>
+          {friendList.length > 0 ? <Grid container spacing={2}>
             {friendList.map((friend) => (
               <Grid
                 item
@@ -95,10 +104,10 @@ const FriendsTabContent = ({ friendList }) => {
                 <Grid item xs={2}>
                   <Avatar />
                 </Grid>
-                <Grid item xs={2}>
+                <Grid item xs={3}>
                   <Typography>{friend.username}</Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid item xs={5}>
                   <Typography>{friend.email}</Typography>
                 </Grid>
                 <Grid item>
@@ -121,7 +130,7 @@ const FriendsTabContent = ({ friendList }) => {
                     </DialogContent>
                     <DialogActions>
                       <Button onClick={handleClose}>Disagree</Button>
-                      <Button onClick={handleRemoveFriend} autoFocus>
+                      <Button onClick={() => handleRemoveFriend(friend.id)} autoFocus>
                         Agree
                       </Button>
                     </DialogActions>
@@ -129,7 +138,7 @@ const FriendsTabContent = ({ friendList }) => {
                 </Grid>
               </Grid>
             ))}
-          </Grid>
+          </Grid> : <p>No friends</p>}
         </Stack>
       </CardContent>
     </Card>

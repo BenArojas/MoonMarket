@@ -144,7 +144,6 @@ function NoStockFound() {
 }
 
 function StockHeader({ stock, onRangeChange, currentRange }) {
-  console.log(stock)
   const timeRanges = [
     { value: "1week", label: "1 Week" },
     { value: "1month", label: "1 Month" },

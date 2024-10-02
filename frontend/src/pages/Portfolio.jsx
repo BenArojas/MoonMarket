@@ -91,16 +91,16 @@ function Portfolio({ userName }) {
             )}
           </ErrorBoundary>
 
-          <ErrorBoundary FallbackComponent={ErrorFallback}>
-            {stockDataLoading ? (
-              <GraphSkeleton />
-            ) : (
-              <CurrentStockCard
-                stockData={stockData.historical}
-                stockTicker={selectedTicker}
-              />
-            )}
-          </ErrorBoundary>
+            <ErrorBoundary FallbackComponent={ErrorFallback}>
+              {stockDataLoading ? (
+                <GraphSkeleton />
+              ) : (
+                <CurrentStockCard
+                  stockData={stockData.historical}
+                  stockTicker={selectedTicker}
+                />
+              )}
+            </ErrorBoundary>
         </Stack>
       </Box>
     </Box>

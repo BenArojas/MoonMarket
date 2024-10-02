@@ -1,7 +1,7 @@
 import { CurrentStockChart } from "@/components/CurrentStockChart.jsx";
 import GraphCardSkeleton from "@/Skeletons/GraphCardSkeleton";
 import { transformSnapshotData } from "@/utils/dataProcessing";
-import { Card } from "@mui/material";
+import { Card, Box } from "@mui/material";
 import { useFetcher } from "react-router-dom";
 import React from "react";
 import PortfolioStats from "@/components/PortfolioStats";
@@ -20,36 +20,43 @@ const SnapshotChart = React.memo(
 
     return (
       // <div>
-        <Card
-          sx={{
+      <Card
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 4,
+          padding: "15px 15px",
+          flexGrow: 1
+        }}
+      >
+        {dailyTimeFrameData.length === 0 ? (
+          <Box sx={{
             display: "flex",
-            flexDirection: "column",
-            gap: 4,
-            padding: "15px 15px",
-            flexGrow: 1
-          }}
-        >
-          {dailyTimeFrameData.length === 0 ? (
-            <div>Ai driven Data will be shown as activity will increase</div>
-          ) : (
-            <>
-              <PortfolioStats
-                trend={trend}
-                formattedDate={formattedDate}
-                incrementalChange={incrementalChange}
-                percentageChange={percentageChange}
-                stockTickers={stockTickers}
-                value={value}
-              />
-              <CurrentStockChart
-                data={transformedData}
-                enableAdvancedFeatures={true}
-                trend={trend}
-                height={220}
-              />
-            </>
-          )}
-        </Card>
+            justifyContent: "center",
+            alignItems: "center",
+            height: "100%",
+            width: "100%",
+          }}>
+            Ai driven Data will be shown as activity will increase</Box>
+        ) : (
+          <>
+            <PortfolioStats
+              trend={trend}
+              formattedDate={formattedDate}
+              incrementalChange={incrementalChange}
+              percentageChange={percentageChange}
+              stockTickers={stockTickers}
+              value={value}
+            />
+            <CurrentStockChart
+              data={transformedData}
+              enableAdvancedFeatures={true}
+              trend={trend}
+              height={220}
+            />
+          </>
+        )}
+      </Card>
       // </div>
     );
   }

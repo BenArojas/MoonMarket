@@ -301,7 +301,6 @@ export function processLeaderboardsData(stocksList, stocksInfo) {
   LeaderboardsData.sort(
     (a, b) => b.priceChangePercentage - a.priceChangePercentage
   );
-  console.log("LeaderboardsData is: ", LeaderboardsData)
 
   return LeaderboardsData;
 }

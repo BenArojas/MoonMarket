@@ -6,6 +6,7 @@ from models.stock import Stock
 from models.friendRequest import FriendRequest, FriendRequestAnswer
 from util.current_user import current_user
 from routes.user import get_user_transactions_by_type
+from bson import ObjectId
 
 
 router = APIRouter(tags=["Friends"])
@@ -88,12 +89,12 @@ async def handle_friend_request(
 @router.get("/get_friendList")
 async def get_friendList(current_user: User = Depends(current_user)):
     friend_list = []
-    for user_id in current_user.friends:
-        user = await User.get(user_id)
+    for friend_id in current_user.friends:
+        user = await User.get(friend_id)
         if not user:
             continue
         friend_detail = {
-            "id":user_id,
+            "id": str(friend_id),  # Convert ObjectId to string
             "username": user.username,
             "email": user.email,
         }
@@ -175,3 +176,23 @@ async def get_all_friends(current_user: User = Depends(current_user)):
         friend_info_list.append(friend_info)
 
     return friend_info_list
+
+@router.delete("/remove-friend/{friend_id}")
+async def remove_friend(friend_id: str, current_user: User = Depends(current_user)):
+    # Convert string ID to ObjectId
+    friend_object_id = ObjectId(friend_id)
+    
+    if friend_object_id not in current_user.friends:
+        raise HTTPException(status_code=404, detail="Friend not found in your friend list")
+    
+    # Remove friend from the list
+    current_user.friends.remove(friend_object_id)
+    friend = await User.find_one(User.id == friend_object_id)
+    if friend:
+        friend.friends.remove(current_user.id)
+        await friend.save()
+    # Update the user in the database
+    await current_user.save()
+    
+    return {"message": "Friend removed successfully"}
+    

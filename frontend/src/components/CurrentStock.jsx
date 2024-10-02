@@ -25,7 +25,7 @@ export default function CurrentStockCard({
   const queryClient = useQueryClient()
   const buyShares = useMutation({
     mutationFn: addUserPurchase,
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries(["userData"]) 
     },
     onError: (error) => {
@@ -35,7 +35,7 @@ export default function CurrentStockCard({
 
   const sellShares = useMutation({
     mutationFn: addUserSale,
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries(["userData"]) 
     },
     onError: (error) => {
@@ -88,9 +88,7 @@ export default function CurrentStockCard({
         display: "flex",
         flexDirection: "column",
         gap: 2,
-        // margin: "auto",
         padding: "10px 15px",
-        // flexGrow: 1
       }}
     >
       <Box

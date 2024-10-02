@@ -98,7 +98,7 @@ export async function addDeposit(money) {
 
 export async function searchUser(username,) {
     const response = await api.get(
-      `/user/user_friend/${username}`,
+      `/user/user_friend/${username}`
     );
     return response.data;
 }
