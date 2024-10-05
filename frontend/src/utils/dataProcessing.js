@@ -338,3 +338,94 @@ export function transformSnapshotData(historicalData) {
     }))
     .sort((a, b) => a.time - b.time); // Sort in ascending order
 }
+
+export const calculateTransactionSummary = (transactions, holdings, currentStockPrices) => {
+  let totalTrades = 0;
+  let closedTrades = 0;
+  let profitableTrades = 0;
+  let totalProfit = 0;
+
+  // Sort transactions by date
+  const sortedTransactions = [...transactions].sort(
+    (a, b) => new Date(a.transaction_date) - new Date(b.transaction_date)
+  );
+
+  // Track trades by position opening
+  const tradePositions = [];
+  let currentPosition = null;
+
+  sortedTransactions.forEach(transaction => {
+    const isNewPosition = transaction.text.includes("Started a position:");
+    const isClosedPosition = transaction.text.includes("Closed position:");
+    
+    if (isNewPosition) {
+      // Start tracking a new position
+      totalTrades++;
+      currentPosition = {
+        ticker: transaction.ticker,
+        openDate: new Date(transaction.transaction_date),
+        initialQuantity: transaction.quantity,
+        initialPrice: transaction.price,
+        transactions: [transaction],
+        isClosed: false,
+        profit: 0
+      };
+      tradePositions.push(currentPosition);
+    } else if (isClosedPosition && currentPosition && currentPosition.ticker === transaction.ticker) {
+      // Close the current position
+      currentPosition.isClosed = true;
+      currentPosition.closeDate = new Date(transaction.transaction_date);
+      currentPosition.transactions.push(transaction);
+      
+      // Calculate profit for the closed position
+      const totalBought = currentPosition.transactions
+        .filter(t => t.type === 'purchase')
+        .reduce((sum, t) => sum + (t.price * t.quantity), 0);
+        
+      const totalSold = currentPosition.transactions
+        .filter(t => t.type === 'sale')
+        .reduce((sum, t) => sum + (t.price * t.quantity), 0);
+        
+      currentPosition.profit = totalSold - totalBought;
+      
+      if (currentPosition.profit > 0) {
+        profitableTrades++;
+      }
+      
+      totalProfit += currentPosition.profit;
+      closedTrades++;
+      currentPosition = null;
+    } else if (currentPosition && currentPosition.ticker === transaction.ticker) {
+      // Add transaction to current position
+      currentPosition.transactions.push(transaction);
+    }
+  });
+
+  // Calculate unrealized profit for open positions
+  tradePositions.forEach(position => {
+    if (!position.isClosed && currentStockPrices[position.ticker]) {
+      const currentPrice = currentStockPrices[position.ticker];
+      const remainingQuantity = position.transactions.reduce((sum, t) => 
+        sum + (t.type === 'purchase' ? t.quantity : -t.quantity), 0);
+      
+      if (remainingQuantity > 0) {
+        const avgCost = position.transactions
+          .filter(t => t.type === 'purchase')
+          .reduce((sum, t) => sum + (t.price * t.quantity), 0) / position.initialQuantity;
+        
+        const unrealizedProfit = (currentPrice - avgCost) * remainingQuantity;
+        totalProfit += unrealizedProfit;
+      }
+    }
+  });
+
+  const winRate = closedTrades > 0 ? (profitableTrades / closedTrades) * 100 : 0;
+
+  return {
+    totalTrades,
+    closedTrades,
+    profitableTrades,
+    totalProfit: Number(totalProfit.toFixed(2)),
+    winRate: Number(winRate.toFixed(1))
+  };
+};

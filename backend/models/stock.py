@@ -5,7 +5,7 @@ from datetime import datetime
 
 
 class Stock(Document):
-    name: Annotated[str, Indexed(unique=True)]
+    name: str
     ticker: Annotated[str, Indexed(unique=True)]
     price: float
     earnings: Optional[datetime] = None

@@ -85,7 +85,7 @@ export default function Leaderboards({ data, width, height}) {
       }}>
         <Box sx={{ minWidth: 120 }}>
           <FormControl fullWidth>
-            <InputLabel id="demo-simple-select-label">Category</InputLabel>
+            <InputLabel id="demo-simple-select-label">Sort By</InputLabel>
             <Select
               labelId="demo-simple-select-label"
               id="demo-simple-select"

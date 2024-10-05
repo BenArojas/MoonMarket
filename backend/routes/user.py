@@ -8,6 +8,8 @@ from fastapi.responses import JSONResponse
 from jwt import access_security
 from util.current_user import current_user
 from models.transaction import Transaction
+from models.stock import Stock
+from models.PortfolioSnapshot import PortfolioSnapshot
 from util.password import hash_password, verify_password
 
 
@@ -32,6 +34,19 @@ async def get_user_transactions(user: User = Depends(current_user)):
     transactions = await Transaction.find(Transaction.user_id.id == user.id).to_list()
     # Return the list of transactions
     return transactions
+
+@router.get("/holdings")
+async def get_holdings(user: User = Depends(current_user)):
+    # Retrieve holdings for the specified user ID
+    return user.holdings
+
+@router.get("/stocks")
+async def get_stocks(user: User = Depends(current_user)):
+    # Get unique tickers from user's holdings
+    tickers = set(holding.ticker for holding in user.holdings)
+    # Fetch only the stocks that the user holds
+    stocks = await Stock.find({"ticker": {"$in": list(tickers)}}).to_list()
+    return stocks
 
 @router.get("/user_transactions/{type}",response_model=UserOut, operation_id="retrieve_user_transactions_by_type")
 async def get_user_transactions_by_type(type: str, user: User = Depends(current_user)):
@@ -111,6 +126,7 @@ async def delete_user(
     
     # Find and delete transactions associated with the user
     await Transaction.find(Transaction.user_id.id == user.id).delete()
+    await PortfolioSnapshot.find(PortfolioSnapshot.userId.id == user.id).delete()
 
     # Delete the user
     await user.delete()

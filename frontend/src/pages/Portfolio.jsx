@@ -35,6 +35,7 @@ function Portfolio({ userName }) {
     queryKey: ["userData", userName],
     queryFn: () => getUserData(),
   });
+  console.log(userData)
 
   const { data: stockData, isPending: stockDataLoading } = useQuery({
     queryKey: ["stockData", selectedTicker],
@@ -57,9 +58,8 @@ function Portfolio({ userName }) {
       sx={{
         display: "grid",
         gridTemplateColumns: "1000px auto",
-        padding: 2,
-        gap: 4,
-        marginX: 9,
+        padding: 5,
+        marginX: 5,
         height: "100%",
       }}
     >
@@ -78,7 +78,7 @@ function Portfolio({ userName }) {
           )}
         </ErrorBoundary>
       </Box>
-      <Box sx={{ width: 600, ml: "auto", overflow: "hidden",  height:'100%' }}>
+      <Box sx={{ width: 600, ml: "auto" }}>
         <Stack spacing={2} sx={{ height: "100%" }}>
           <ErrorBoundary FallbackComponent={ErrorFallback}>
             {dailyTimeFrameLoading || userDataLoading ? (
@@ -91,16 +91,18 @@ function Portfolio({ userName }) {
             )}
           </ErrorBoundary>
 
-            <ErrorBoundary FallbackComponent={ErrorFallback}>
-              {stockDataLoading ? (
-                <GraphSkeleton />
-              ) : (
-                <CurrentStockCard
-                  stockData={stockData.historical}
-                  stockTicker={selectedTicker}
-                />
-              )}
-            </ErrorBoundary>
+          <ErrorBoundary FallbackComponent={ErrorFallback}>
+            {stockDataLoading ? (
+              <Box sx={{
+                height: 350
+              }}><GraphSkeleton /></Box>
+            ) : (
+              <CurrentStockCard
+                stockData={stockData.historical}
+                stockTicker={selectedTicker}
+              />
+            )}
+          </ErrorBoundary>
         </Stack>
       </Box>
     </Box>

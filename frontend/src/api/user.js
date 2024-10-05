@@ -16,26 +16,33 @@ export async function getUserName() {
   return userName.data;
 }
 
+export async function getUserHoldings() {
+  const holdings = await api.get(`/user/holdings`);
+  return holdings.data;
+}
 
-export async function addUserPurchase({ price, ticker, quantity }) {
+export async function getUserStocks() {
+  const stocks = await api.get(`/user/stocks`);
+  return stocks.data;
+}
 
+export async function addUserPurchase({ price, ticker, quantity, date }) {
   const response = await api.post(
     `/transaction/buy_stock`,
     null, // Set the request body to null if your API doesn't expect a request body
     {
-      params: { price, ticker, quantity }, // Send the required fields as query parameters
+      params: { price, ticker, quantity, transaction_date: date.toISOString()  }, // Send the required fields as query parameters
     }
   );
   return response.data;
 }
 
-export async function addUserSale({ ticker, quantity, price }) {
-
+export async function addUserSale({ ticker, quantity, price, date }) {
   const response = await api.post(
     `/transaction/sell_stock`,
     null, // Set the request body to null if your API doesn't expect a request body
     {
-      params: { ticker, quantity, price }, // Send the required fields as query parameters
+      params: { ticker, quantity, price, transaction_date: date.toISOString()  }, // Send the required fields as query parameters
     }
   );
   return response.data;
@@ -45,18 +52,24 @@ export async function addStockToPortfolio(
   portfolioStock,
   price,
   quantity,
+  date
 ) {
   const ticker = portfolioStock.ticker;
   const stock = await api.post(
     `/stock/add_stock`,
     portfolioStock,
   );
+  
   const user = await api.post(
     `/transaction/buy_stock`,
-    null, // Set the request body to null if your API doesn't expect a request body
+    null,
     {
-      params: { price, ticker, quantity }, // Send the required fields as query parameters
-
+      params: { 
+        price, 
+        ticker, 
+        quantity,
+        transaction_date: date.toISOString() 
+      },
     }
   );
 }

@@ -87,9 +87,6 @@ async def list_stocks( user: User = Depends(current_user)):
     stocks = await Stock.find_all().to_list()
     return stocks
 
-@router.get("/dailyChart/{ticker}")
-
-
 
 @router.get("/{ticker}")
 async def get_stock(ticker: str,  user: User = Depends(current_user)):

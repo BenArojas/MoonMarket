@@ -1,6 +1,6 @@
-import { z } from "zod";
+import { z } from 'zod';
+import dayjs from 'dayjs';
 
-// Define a schema
 export const transactionSchema = z.object({
   price: z
     .number({
@@ -16,5 +16,10 @@ export const transactionSchema = z.object({
       invalid_type_error: "Quantity must be a number",
     })
     .positive({ message: "Quantity must be positive" }),
+  date: z.custom((val) => dayjs.isDayjs(val), {
+    message: "Invalid date"
+  })
+    .refine((date) => date.isBefore(dayjs().add(1, 'day')), {
+      message: "Transaction date cannot be in the future"
+    })
 });
-

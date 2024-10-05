@@ -26,6 +26,7 @@ function GraphMenu({ selectedGraph, setSelectedGraph }) {
         flexDirection: "row",
         justifyContent: "space-between", // Center the menu horizontally
         padding: "10px 0", 
+        mb:1
       }}
     >
       <nav aria-label="main mailbox folders">

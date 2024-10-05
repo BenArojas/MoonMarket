@@ -18,8 +18,8 @@ async def migrate_users():
 
     for user in users:
         # Check if the new fields don't exist and add them
-        if not hasattr(user, 'enabled'):
-            user.enabled = False
+        if not hasattr(user, 'profit'):
+            user.profit = 0
 
         # Save the updated user
         await user.save()

@@ -64,6 +64,7 @@ class UserUpdate(BaseModel):
     transactions: List[PydanticObjectId] = []  # Use PydanticObjectId for transactions
     deposits: List[Deposit] | None = []
     current_balance: float | None = 0
+    profit: float | None = 0
     last_refresh: datetime | None = None
     username: Optional[str] = None
     enabled: bool
@@ -82,6 +83,7 @@ class User(Document):
     transactions: List[PydanticObjectId] = []
     deposits: List[Deposit] = []
     current_balance: float = 0
+    profit: float = 0
     last_refresh: Optional[datetime] = None
     friends: List[PydanticObjectId] = []
     friend_requests_sent: List[Link["FriendRequest"]] = []
