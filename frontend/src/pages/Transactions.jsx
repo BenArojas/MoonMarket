@@ -14,16 +14,9 @@ import { getUserHoldings, getUserStocks } from '@/api/user'
 
 // Loader function - called once when route is loaded
 export const loader = async () => {
-  const [transactions, holdings, stocks] = await Promise.all([
-    getUserTransactions(),
-    getUserHoldings(),
-    getUserStocks()
-  ]);
-
   return defer({
-    transactions,
-    holdings,
-    stocks
+    transactions: getUserTransactions(),
+    stocks: getUserStocks()
   });
 };
 
@@ -31,21 +24,32 @@ export const loader = async () => {
 
 // Main component
 const TransactionsPage = () => {
-  // This data is from the loader above
   const data = useLoaderData();
-
+  
   return (
-    <Suspense fallback={<SkeletonTable />}>
-      <Await resolve={data.transactions}>
-        {(resolvedTransactions) => (
-          <TransactionsContent
-            transactions={resolvedTransactions}
-          />
-        )}
-      </Await>
-    </Suspense>
+    <div className="p-6 space-y-6">
+      <Suspense fallback={<SkeletonTable/>}>
+        <Await resolve={Promise.all([data.transactions,data.stocks])}>
+          {([transactions,  stocks]) => (
+            <>
+              <SummaryCards 
+                summaryData={useTransactionSummary({ 
+                  transactions, 
+                  stocks 
+                })} 
+              />
+              <TransactionsContent 
+                transactions={transactions}
+                stocks={stocks}
+              />
+            </>
+          )}
+        </Await>
+      </Suspense>
+    </div>
   );
 };
+
 // Separate component for summary cards
 const SummaryCards = ({ summaryData }) => (
   <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -150,10 +154,8 @@ const PerformanceChart = ({ transactions }) => (
   </Card>
 );
 
-// Main content component
-const TransactionsContent = ({ transactions }) => {
-  console.log(transactions)
-  const summaryData = useTransactionSummary();
+// TransactionsContent component
+const TransactionsContent = ({ transactions, stocks }) => {
   const [activeTab, setActiveTab] = useState('all');
   const [filters, setFilters] = useState({
     ticker: '',
@@ -177,31 +179,25 @@ const TransactionsContent = ({ transactions }) => {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <Suspense fallback={<div>Loading summary...</div>}>
-        <SummaryCards summaryData={summaryData} />
-      </Suspense>
-
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col space-y-4">
-            <h3 className="text-lg font-semibold">Transactions</h3>
-            <TransactionFilters
-              activeTab={activeTab}
-              filters={filters}
-              onTabChange={handleTabChange}
-              onFilterChange={handleFilterChange}
-            />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <TransactionsTable
-            data={transactions}
+    <Card>
+      <CardHeader>
+        <div className="flex flex-col space-y-4">
+          <h3 className="text-lg font-semibold">Transactions</h3>
+          <TransactionFilters
+            activeTab={activeTab}
             filters={filters}
+            onTabChange={handleTabChange}
+            onFilterChange={handleFilterChange}
           />
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <TransactionsTable
+          data={transactions}
+          filters={filters}
+        />
+      </CardContent>
+    </Card>
   );
 };
 
