@@ -1,16 +1,21 @@
 import { teal, red } from '@mui/material/colors';
 
 export function getPortfolioStats(stocksList, stocksInfo) {
-  console.log("stocksList", stocksList)
-  console.log("stocksInfo", stocksInfo)
+  console.log("stocksInfo: " , stocksInfo)
+  console.log("stocksList: " , stocksList)
   let tickers = [];
   let sum = 0;
   let totalSpent = 0;
-  for (let i = 0; i < stocksList.length; i++) {
-    const res = stocksInfo[i];
-    const holding = stocksList[i];
-
-    // Add null checks
+  
+  // Create a map of stocksInfo for O(1) lookup
+  const stocksInfoMap = {};
+  stocksInfo.forEach(stock => {
+    stocksInfoMap[stock.ticker] = stock;
+  });
+  
+  for (const holding of stocksList) {
+    const res = stocksInfoMap[holding.ticker];
+    
     if (holding && res) {
       const value = holding.quantity * res.price;
       sum += value;
@@ -18,6 +23,8 @@ export function getPortfolioStats(stocksList, stocksInfo) {
       tickers.push(holding.ticker);
     }
   }
+  console.log("sum: " + sum)
+  console.log("total: " + totalSpent)
 
   return { tickers, sum, totalSpent };
 }
@@ -342,6 +349,8 @@ export function transformSnapshotData(historicalData) {
 }
 
 export const calculateTransactionSummary = (transactions, currentStockPrices) => {
+  console.log("currentStockPrices", currentStockPrices);
+  console.log("transactions", transactions);
   let totalTrades = 0;
   let closedTrades = 0;
   let profitableTrades = 0;

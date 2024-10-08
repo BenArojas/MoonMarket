@@ -128,7 +128,7 @@ async def sell_stock_shares(ticker: str, quantity: int, price: float, transactio
         # If the user does not have a holding of this stock
         raise HTTPException(status_code=404, detail="You can't sell a stock you don't own")
 
-    # Calculate the total cost of the purchase
+    # Calculate the total cost of the sale
     profit = price * quantity
 
     # add the profit to the user's current_balance

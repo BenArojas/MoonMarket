@@ -21,7 +21,6 @@ export const loader = async () => {
 };
 
 
-
 // Main component
 const TransactionsPage = () => {
   const data = useLoaderData();
