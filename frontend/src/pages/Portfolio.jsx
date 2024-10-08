@@ -58,7 +58,8 @@ function Portfolio({ userName }) {
       sx={{
         display: "grid",
         gridTemplateColumns: "1000px auto",
-        padding: 5,
+        paddingY: 1,
+        paddingX: 5,
         marginX: 5,
         height: "100%",
       }}

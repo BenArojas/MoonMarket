@@ -56,9 +56,9 @@ export function processTreemapData(stocksList, stocksInfo) {
         avgSharePrice: stock_avg_price.toFixed(2),
         quantity: holding.quantity,
         last_price: res.price.toFixed(2),
-        priceChangePercentage: Math.round(
-          ((res.price - stock_avg_price) / stock_avg_price) * 100
-        ),
+        priceChangePercentage:
+          (((res.price - stock_avg_price) / stock_avg_price) * 100
+        ).toFixed(2),
       });
     } else {
       negativeStocks.push({
@@ -69,9 +69,8 @@ export function processTreemapData(stocksList, stocksInfo) {
         avgSharePrice: stock_avg_price,
         quantity: holding.quantity,
         last_price: Math.round(res.price * 100) / 100,
-        priceChangePercentage: Math.round(
-          ((res.price - stock_avg_price) / stock_avg_price) * 100
-        ),
+        priceChangePercentage: (((res.price - stock_avg_price) / stock_avg_price) * 100
+      ).toFixed(2)
       });
     }
   }

@@ -53,7 +53,7 @@ async def buy_stock_shares(
                 (holding.avg_bought_price * holding.quantity) + (price * quantity)
             ) / (holding.quantity + quantity)
             holding.quantity += quantity
-            text = f"Bought {quantity} shares of {ticker}"
+            text = f"Bought {quantity} shares of {ticker} at {price}$ per share"
             break
     else:
         # If the user does not have a holding of this stock, create a new one
