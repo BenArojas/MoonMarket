@@ -39,7 +39,6 @@ const TransactionsPage = () => {
               />
               <TransactionsContent 
                 transactions={transactions}
-                stocks={stocks}
               />
             </>
           )}
@@ -154,7 +153,7 @@ const PerformanceChart = ({ transactions }) => (
 );
 
 // TransactionsContent component
-const TransactionsContent = ({ transactions, stocks }) => {
+const TransactionsContent = ({ transactions }) => {
   const [activeTab, setActiveTab] = useState('all');
   const [filters, setFilters] = useState({
     ticker: '',
