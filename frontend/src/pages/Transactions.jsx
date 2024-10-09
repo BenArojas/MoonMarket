@@ -27,6 +27,7 @@ import {
   TradingActivityDistribution,
   TransactionsByQuarter,
 } from "@/components/TransactionsGraphs";
+import "@/styles/App.css"
 
 // Loader function - called once when route is loaded
 export const loader = async () => {
@@ -42,7 +43,7 @@ const TransactionsPage = () => {
 
   return (
     <div className="h-[calc(100vh-10rem)] flex flex-col">
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar" >
         <Suspense fallback={<SkeletonTable />}>
           <Await resolve={Promise.all([data.transactions, data.stocks])}>
             {([transactions, stocks]) => (
