@@ -35,7 +35,7 @@ function Portfolio({ userName }) {
     queryKey: ["userData", userName],
     queryFn: () => getUserData(),
   });
-  console.log(userData)
+  // console.log(userData)
 
   const { data: stockData, isPending: stockDataLoading } = useQuery({
     queryKey: ["stockData", selectedTicker],
