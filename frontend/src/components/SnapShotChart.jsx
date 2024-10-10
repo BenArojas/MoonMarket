@@ -1,10 +1,9 @@
 import { CurrentStockChart } from "@/components/CurrentStockChart.jsx";
-import GraphCardSkeleton from "@/Skeletons/GraphCardSkeleton";
 import { transformSnapshotData } from "@/utils/dataProcessing";
 import { Card, Box } from "@mui/material";
-import { useFetcher } from "react-router-dom";
 import React from "react";
 import PortfolioStats from "@/components/PortfolioStats";
+import '@/styles/cardflipping.css';
 
 const SnapshotChart = React.memo(
   ({
@@ -19,45 +18,53 @@ const SnapshotChart = React.memo(
     const trend = percentageChange > 0 ? "positive" : "negative";
 
     return (
-      // <div>
-      <Card
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 4,
-          padding: "15px 15px",
-          flexGrow: 1
-        }}
-      >
-        {dailyTimeFrameData.length === 0 ? (
-          <Box sx={{
+       <div id="cards-wrapper">
+        <div className="front-card">
+        <Card
+          sx={{
             display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            height: "100%",
-            width: "100%",
-          }}>
-            Ai driven Data will be shown as activity will increase</Box>
-        ) : (
-          <>
-            <PortfolioStats
-              trend={trend}
-              formattedDate={formattedDate}
-              incrementalChange={incrementalChange}
-              percentageChange={percentageChange}
-              stockTickers={stockTickers}
-              value={value}
-            />
-            <CurrentStockChart
-              data={transformedData}
-              enableAdvancedFeatures={true}
-              trend={trend}
-              height={220}
-            />
-          </>
-        )}
-      </Card>
-      // </div>
+            flexDirection: "column",
+            gap: 4,
+            padding: "15px 15px",
+            flexGrow: 1,
+          }}
+        >
+          {dailyTimeFrameData.length === 0 ? (
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                height: "100%",
+                width: "100%",
+              }}
+            >
+              Ai driven Data will be shown as activity will increase
+            </Box>
+          ) : (
+            <>
+              <PortfolioStats
+                trend={trend}
+                formattedDate={formattedDate}
+                incrementalChange={incrementalChange}
+                percentageChange={percentageChange}
+                stockTickers={stockTickers}
+                value={value}
+              />
+              <CurrentStockChart
+                data={transformedData}
+                enableAdvancedFeatures={true}
+                trend={trend}
+                height={250}
+              />
+            </>
+          )}
+        </Card>
+        </div>
+        <div className="back-card">
+          <p>get</p>
+        </div>
+       </div>
     );
   }
 );

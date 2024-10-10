@@ -54,7 +54,6 @@ const TradingActivityDistribution = ({ transactions }) => {
             <CartesianGrid strokeDasharray="5 2" />
             <XAxis dataKey="symbol" />
             <YAxis />
-            <Tooltip />
             <Bar dataKey="trades" fill={theme.palette.primary.main} />
           </BarChart>
         </ResponsiveContainer>
