@@ -82,7 +82,7 @@ async def buy_stock_shares(
     
     await transaction.insert()
     user.transactions.append(transaction.id)
-    
+
     # Save the updated user document back to the database
     await user.save()
 

@@ -5,7 +5,7 @@ import { BrushableAreaSeries } from "@/plugins/brushable-area-series/brushable-a
 import { DeltaTooltipPrimitive } from "@/plugins/delta-tooltip/delta-tooltip";
 import { TooltipPrimitive } from "@/plugins/tooltip/tooltip";
 
-export const CurrentStockChart = (props) => {
+export const AreaChart = (props) => {
   const theme = useTheme();
 
   const {

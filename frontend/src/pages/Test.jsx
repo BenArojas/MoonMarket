@@ -1,10 +1,10 @@
 import React, { useEffect, useRef } from 'react';
-import TabsSkeleton from "@/Skeletons/TabsSkeleton";
+import StackedCards from '@/components/StackedCards';
 
 function Test() {
   return (
-    <div>
-      <TabsSkeleton></TabsSkeleton>
+    <div className="p-8">
+      <StackedCards/>
     </div>
   );
 }

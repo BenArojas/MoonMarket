@@ -16,6 +16,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import GraphSkeleton from "@/Skeletons/GraphSkeleton";
 import { ErrorBoundary } from "react-error-boundary";
+import StackedCards from '@/components/StackedCards';
 
 function ErrorFallback({ error }) {
   return (
@@ -80,12 +81,12 @@ function Portfolio({ userName }) {
         </ErrorBoundary>
       </Box>
       <Box sx={{ width: 600, ml: "auto" }}>
-        <Stack spacing={2} sx={{ height: "100%" }}>
+        <Stack spacing={3} sx={{ height: "100%" }}>
           <ErrorBoundary FallbackComponent={ErrorFallback}>
             {dailyTimeFrameLoading || userDataLoading ? (
               <GraphSkeleton />
             ) : (
-              <SnapshotChartWrapper
+              <StackedCardsWrapper
                 dailyTimeFrame={dailyTimeFrame}
                 userData={userData}
               />
@@ -154,7 +155,7 @@ function PortfolioContent({ userData }) {
   );
 }
 
-const SnapshotChartWrapper = ({ dailyTimeFrame, userData }) => {
+const StackedCardsWrapper = ({ dailyTimeFrame, userData }) => {
   const { percentageChange, setPercentageChange } =
     useContext(PercentageChange);
   const { stockTickers, value, moneySpent } = useGraphData(userData, "Treemap");
@@ -170,6 +171,7 @@ const SnapshotChartWrapper = ({ dailyTimeFrame, userData }) => {
 
   return (
     <SnapshotChart
+      moneySpent={moneySpent}
       formattedDate={formattedDate}
       stockTickers={stockTickers}
       incrementalChange={incrementalChange}

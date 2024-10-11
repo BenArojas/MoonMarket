@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Box, Card, Stack, Typography, useTheme, Button } from "@mui/material";
 import { addUserPurchase, addUserSale } from "@/api/user";
 import SharesDialog from "@/components/SharesDialog.jsx";
-import { CurrentStockChart } from "@/components/CurrentStockChart.jsx";
+import { AreaChart } from "@/components/CurrentStockChart.jsx";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 function transformData(historicalData) {
@@ -111,7 +111,7 @@ export default function CurrentStockCard({
           </Button>
         </Box>
       </Box>
-      <CurrentStockChart  data={transformedData} colors={{
+      <AreaChart  data={transformedData} colors={{
             lineColor : '#E1E5EB',
             areaTopColor : '#E1E5EB',
         }} height={260}/>

@@ -6,16 +6,16 @@ export function getPortfolioStats(stocksList, stocksInfo) {
   let tickers = [];
   let sum = 0;
   let totalSpent = 0;
-  
+
   // Create a map of stocksInfo for O(1) lookup
   const stocksInfoMap = {};
   stocksInfo.forEach(stock => {
     stocksInfoMap[stock.ticker] = stock;
   });
-  
+
   for (const holding of stocksList) {
     const res = stocksInfoMap[holding.ticker];
-    
+
     if (holding && res) {
       const value = holding.quantity * res.price;
       sum += value;
@@ -58,7 +58,7 @@ export function processTreemapData(stocksList, stocksInfo) {
         last_price: res.price.toFixed(2),
         priceChangePercentage:
           (((res.price - stock_avg_price) / stock_avg_price) * 100
-        ).toFixed(2),
+          ).toFixed(2),
       });
     } else {
       negativeStocks.push({
@@ -70,7 +70,7 @@ export function processTreemapData(stocksList, stocksInfo) {
         quantity: holding.quantity,
         last_price: Math.round(res.price * 100) / 100,
         priceChangePercentage: (((res.price - stock_avg_price) / stock_avg_price) * 100
-      ).toFixed(2)
+        ).toFixed(2)
       });
     }
   }
@@ -338,13 +338,22 @@ export function transformData(historicalData) {
     .sort((a, b) => a.time - b.time); // Sort in ascending order
 }
 
-export function transformSnapshotData(historicalData) {
+export function transformSnapshotData(historicalData,) {
   return historicalData
     .map(item => ({
       time: new Date(item.timestamp).getTime() / 1000, // Convert to Unix timestamp
       value: item.value
     }))
     .sort((a, b) => a.time - b.time); // Sort in ascending order
+}
+
+export function calculatePerformanceData(data, moneySpent) {
+  if (!moneySpent || moneySpent === 0) return [];
+  
+  return data.map(item => ({
+    time: Math.floor(new Date(item.timestamp).getTime() / 1000),
+    value: Number(((item.value - moneySpent) / moneySpent) * 100)
+  })).sort((a, b) => a.time - b.time);
 }
 
 export const calculateTransactionSummary = (transactions, currentStockPrices) => {
@@ -363,7 +372,7 @@ export const calculateTransactionSummary = (transactions, currentStockPrices) =>
 
   sortedTransactions.forEach(transaction => {
     const { ticker } = transaction;
-    
+
     if (!positionsByTicker[ticker]) {
       positionsByTicker[ticker] = {
         transactions: [],
@@ -386,7 +395,7 @@ export const calculateTransactionSummary = (transactions, currentStockPrices) =>
       const saleValue = transaction.price * transaction.quantity;
       const avgCost = position.totalCost / position.totalQuantity;
       const costBasis = avgCost * transaction.quantity;
-      
+
       position.realizedProfit += saleValue - costBasis;
       position.totalQuantity -= transaction.quantity;
       position.totalCost = avgCost * position.totalQuantity; // Adjust remaining cost basis
@@ -395,11 +404,11 @@ export const calculateTransactionSummary = (transactions, currentStockPrices) =>
       if (position.totalQuantity === 0 || transaction.text.includes("Closed position:")) {
         position.isFullyClosed = true;
         closedTrades++;
-        
+
         if (position.realizedProfit > 0) {
           profitableTrades++;
         }
-        
+
         totalProfit += position.realizedProfit;
       }
     }
