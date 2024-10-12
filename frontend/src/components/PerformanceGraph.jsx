@@ -1,20 +1,55 @@
-import React, { useEffect, useRef } from 'react';
-import { createChart, ColorType, CrosshairMode,PriceScaleMode } from 'lightweight-charts';
+import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react';
+import { createChart, ColorType, CrosshairMode } from 'lightweight-charts';
 import { useTheme } from "@mui/material";
+import { debounce } from 'lodash'; // Make sure to install lodash if not already in your project
 
 const PerformanceChart = ({ data }) => {
-    //todo: make priceScaleMode percentage
     const chartContainerRef = useRef();
+    const chartRef = useRef();
+    const tooltipRef = useRef();
     const theme = useTheme();
+    const [tooltipVisible, setTooltipVisible] = useState(false);
+    const [tooltipData, setTooltipData] = useState({ value: 0, time: '' });
+    const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+
+    const memoizedData = useMemo(() => data, [data]);
+
+    const { maxValue, minValue } = useMemo(() => ({
+        maxValue: Math.max(...memoizedData.map(item => item.value)),
+        minValue: Math.min(...memoizedData.map(item => item.value))
+    }), [memoizedData]);
+
+    const updateTooltip = useCallback(
+        debounce((param, series) => {
+            if (param.point && param.time && param.point.x >= 0 && param.point.y >= 0) {
+                const dataPoint = param.seriesData.get(series);
+                if (dataPoint) {
+                    const date = new Date(dataPoint.time * 1000);
+                    setTooltipData({
+                        value: dataPoint.value.toFixed(2),
+                        time: date.toLocaleDateString()
+                    });
+                    setTooltipVisible(true);
+
+                    const coordinate = series.priceToCoordinate(dataPoint.value);
+                    const shiftedCoordinate = param.point.x - 50;
+                    setTooltipPosition({ x: shiftedCoordinate, y: coordinate });
+                }
+            } else {
+                setTooltipVisible(false);
+            }
+        }, 20),
+        []
+    );
 
     useEffect(() => {
-        const handleResize = () => {
-            chart.applyOptions({ width: chartContainerRef.current.clientWidth });
-        };
+        if (!chartContainerRef.current) return;
 
-        // Find the maximum value in the dataset
-        // const minValue = Math.min(...data.map(item => item.value));
-        const MaxValue = Math.max(...data.map(item => item.value));
+        const handleResize = () => {
+            if (chartRef.current) {
+                chartRef.current.applyOptions({ width: chartContainerRef.current.clientWidth });
+            }
+        };
 
         const chart = createChart(chartContainerRef.current, {
             layout: {
@@ -23,16 +58,20 @@ const PerformanceChart = ({ data }) => {
                 attributionLogo: false,
             },
             grid: {
-                horzLines: {
-                    color: theme.palette.text.disabled,
-                    visible: false,
-                },
-                vertLines: {
-                    visible: false,
-                }
+                horzLines: { visible: false },
+                vertLines: { visible: false },
             },
             crosshair: {
-                mode: CrosshairMode.Hidden,
+                mode: CrosshairMode.Normal,
+                vertLine: {
+                    width: 1,
+                    color: theme.palette.text.secondary,
+                    style: 2,
+                },
+                horzLine: {
+                    visible: false,
+                    labelVisible: false,
+                },
             },
             width: chartContainerRef.current.clientWidth,
             height: 250,
@@ -43,20 +82,23 @@ const PerformanceChart = ({ data }) => {
                     top: 0.35,
                     bottom: 0.15,
                 },
+                borderVisible: false,
             },
-            // mode: PriceScaleMode.Percentage
+            timeScale: {
+                borderVisible: false,
+                fixLeftEdge: true,
+                fixRightEdge: true,
+            },
         });
-        // chart.applyOptions({
-        //     localization: {
-        //         priceFormatter: (price) => `${price}%`
-        //     },
-        // });
+
+        chart.applyOptions({
+            localization: {
+                priceFormatter: (price) => `${price.toFixed(2)}%`
+            },
+        });
 
         const baselineSeries = chart.addBaselineSeries({
-            baseValue: {
-                type: 'price',
-                price: 0,
-            },
+            baseValue: { type: 'price', price: 0 },
             lastValueVisible: false,
             priceLineVisible: false,
             topLineColor: 'rgba(38, 166, 154, 1)',
@@ -67,15 +109,8 @@ const PerformanceChart = ({ data }) => {
             bottomFillColor2: 'rgba(239, 83, 80, 0.28)'
         });
 
-        baselineSeries.setData(data);
+        baselineSeries.setData(memoizedData);
 
-        // Set the visible range to include some space above zero
-        const priceScale = chart.priceScale('right');
-        priceScale.applyOptions({
-            autoScale: true,
-        });
-
-        // Make the zero line more visible
         const zeroLine = {
             price: 0,
             color: theme.palette.text.primary,
@@ -85,27 +120,24 @@ const PerformanceChart = ({ data }) => {
 
         baselineSeries.createPriceLine(zeroLine);
 
-        // Ensure zero is visible by adjusting the price scale
-        if (MaxValue < 0) {
+        if (maxValue < 0) {
             chart.applyOptions({
                 rightPriceScale: {
-                    borderColor: "transparent",
                     scaleMargins: {
-                        top: 0.55,  // Increased top margin to make sure 0 is visible
+                        top: 0.55,
                         bottom: 0.36,
                     },
-                    visible: true,
                 },
             });
         }
-        
+
         chart.timeScale().fitContent();
-        chart.timeScale().applyOptions({
-            borderColor: "white",
-            fixLeftEdge: true,
-            fixRightEdge: true,
+
+        chart.subscribeCrosshairMove((param) => {
+            updateTooltip(param, baselineSeries);
         });
 
+        chartRef.current = chart;
 
         window.addEventListener('resize', handleResize);
 
@@ -113,11 +145,42 @@ const PerformanceChart = ({ data }) => {
             window.removeEventListener('resize', handleResize);
             chart.remove();
         };
-    }, [data, theme]);
+    }, [memoizedData, theme, maxValue, updateTooltip]);
 
-    return <div ref={chartContainerRef} />;
+    return (
+        <div 
+            ref={chartContainerRef} 
+            style={{ 
+                position: "relative", 
+                width: "100%", 
+                height: 250,
+                minWidth: "300px"
+            }}
+        >
+            {tooltipVisible && (
+                <div
+                    ref={tooltipRef}
+                    style={{
+                        position: 'absolute',
+                        padding: '4px',
+                        backgroundColor: theme.palette.background.paper,
+                        border: `1px solid ${theme.palette.divider}`,
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        color: theme.palette.text.primary,
+                        zIndex: 1000,
+                        left: `${tooltipPosition.x}px`,
+                        top: `${tooltipPosition.y}px`,
+                        transition: 'left 0.1s, top 0.1s',
+                        pointerEvents: 'none',
+                    }}
+                >
+                    <div>Value: {tooltipData.value}%</div>
+                    <div>Date: {tooltipData.time}</div>
+                </div>
+            )}
+        </div>
+    );
 };
 
-export default PerformanceChart;
-
-
+export default React.memo(PerformanceChart);

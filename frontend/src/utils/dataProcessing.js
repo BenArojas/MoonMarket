@@ -1,8 +1,7 @@
 import { teal, red } from '@mui/material/colors';
 
 export function getPortfolioStats(stocksList, stocksInfo) {
-  // console.log("stocksInfo: " , stocksInfo)
-  // console.log("stocksList: " , stocksList)
+
   let tickers = [];
   let sum = 0;
   let totalSpent = 0;
@@ -23,8 +22,6 @@ export function getPortfolioStats(stocksList, stocksInfo) {
       tickers.push(holding.ticker);
     }
   }
-  // console.log("sum: " + sum)
-  // console.log("total: " + totalSpent)
 
   return { tickers, sum, totalSpent };
 }
@@ -66,9 +63,9 @@ export function processTreemapData(stocksList, stocksInfo) {
         id: res._id,
         ticker: holding.ticker,
         value: value,
-        avgSharePrice: stock_avg_price,
+        avgSharePrice: stock_avg_price.toFixed(2),
         quantity: holding.quantity,
-        last_price: Math.round(res.price * 100) / 100,
+        last_price: res.price.toFixed(2),
         priceChangePercentage: (((res.price - stock_avg_price) / stock_avg_price) * 100
         ).toFixed(2)
       });
