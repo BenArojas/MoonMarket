@@ -1,20 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import Spaceship from "@/components/space/Spaceship";
 
-function SpaceshipsFleet({ spaceships, centerX, centerY, radius }) {
-  const [activeSpaceship, setActiveSpaceship] = useState(null);
-  // console.log("spaceships: " , spaceships)
-
-  const handleSpaceshipClick = (index) => {
-    if (activeSpaceship === null) {
-      setActiveSpaceship(index);
-    }
-  };
-
-  const handleCloseHologram = () => {
-    setActiveSpaceship(null);
-  };
-
+function SpaceshipsFleet({ spaceships, centerX, centerY, radius, activeSpaceship, onSpaceshipClick }) {
   const isHologramMode = activeSpaceship !== null;
 
   return (
@@ -28,8 +15,8 @@ function SpaceshipsFleet({ spaceships, centerX, centerY, radius }) {
           Percentage={spaceship.portfolio_value_change_percentage}
           data={spaceship}
           isActive={activeSpaceship === index}
-          onClick={() => handleSpaceshipClick(index)}
-          onCloseHologram={handleCloseHologram}
+          onClick={() => onSpaceshipClick(index)}
+          onCloseHologram={() => onSpaceshipClick(null)}
           isHologramMode={isHologramMode}
         />
       ))}

@@ -8,7 +8,6 @@ import { Await, defer, useLoaderData } from "react-router-dom";
 import FriendsSideBar from "@/components/FriendsSideBar";
 import { useThemeHook } from "@/contexts/ThemeContext";
 
-
 export const loader = async () => {
   const friends = getFriendsAndUserHoldings();
   return defer({ friends });
@@ -20,6 +19,7 @@ function Space() {
   const galaxy = useRef(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [radius, setRadius] = useState(0);
+  const [activeSpaceship, setActiveSpaceship] = useState(null);
 
   useEffect(() => {
     forceDarkMode();
@@ -30,7 +30,7 @@ function Space() {
       if (galaxy.current) {
         const { clientWidth, clientHeight } = galaxy.current;
         setDimensions({ width: clientWidth, height: clientHeight });
-        setRadius((Math.min(clientWidth, clientHeight) / 2) * 0.60); // 60% of the smaller dimension
+        setRadius((Math.min(clientWidth, clientHeight) / 2) * 0.60);
       }
     };
 
@@ -42,12 +42,22 @@ function Space() {
   const centerX = dimensions.width / 2;
   const centerY = dimensions.height / 2;
 
+  const handleSpaceshipActivation = (index) => {
+    setActiveSpaceship(activeSpaceship === index ? null : index);
+  };
+
   return (
     <div className="page">
       <div className="floating-sidebar">
         <Suspense fallback={null}>
           <Await resolve={data.friends}>
-            {(resolvedFriends) => <FriendsSideBar friends={resolvedFriends} />}
+            {(resolvedFriends) => (
+              <FriendsSideBar 
+                friends={resolvedFriends} 
+                onAvatarClick={handleSpaceshipActivation}
+                activeSpaceship={activeSpaceship}
+              />
+            )}
           </Await>
         </Suspense>
       </div>
@@ -67,6 +77,8 @@ function Space() {
                 centerY={centerY}
                 radius={radius}
                 spaceships={resolvedFriends}
+                activeSpaceship={activeSpaceship}
+                onSpaceshipClick={handleSpaceshipActivation}
               />
             )}
           </Await>

@@ -2,29 +2,23 @@ import LeaderboardCard from "@/components/LeaderboardCard";
 import { Box } from "@mui/material";
 import * as React from 'react';
 
-
 function TopLeaders({ leaderboardsData, category }) {
-
-  const renderLeaderboardCard = (index, position) => {
-    if (leaderboardsData.length > index) {
-      const data = leaderboardsData[index];
-      return (
-        <LeaderboardCard
-          stock={data}
-          Number={position}
-          // ticker={data.ticker}
-          changeCount={
-            category === "percentage"
-              ? data.priceChangePercentage + "%"
-              : category === "positionSize"
-              ? data.value + "$"
-              : data.gainLoss + "$"
-          }
-        />
-      );
+  const getChangeCount = (data) => {
+    switch (category) {
+      case "percentage":
+        return `${data.priceChangePercentage}%`;
+      case "positionSize":
+        return `${data.value}$`;
+      default:
+        return `${data.gainLoss}$`;
     }
-    return null;
   };
+
+  const sortedData = [...leaderboardsData].sort((a, b) => {
+    const aValue = category === "percentage" ? a.priceChangePercentage : category === "positionSize" ? a.value : a.gainLoss;
+    const bValue = category === "percentage" ? b.priceChangePercentage : category === "positionSize" ? b.value : b.gainLoss;
+    return bValue - aValue;
+  });
 
   return (
     <Box
@@ -48,13 +42,28 @@ function TopLeaders({ leaderboardsData, category }) {
           display: "flex",
           flexDirection: "row",
           gap: 1,
+          justifyContent: "center",
+          alignItems: "flex-end",
         }}
       >
-        {renderLeaderboardCard(1, 2)}
-        {renderLeaderboardCard(0, 1)}
-        {renderLeaderboardCard(2, 3)}
+        {sortedData.slice(0, 3).map((data, index) => (
+          <Box
+            key={data.ticker}
+            sx={{
+              order: index === 0 ? 2 : index === 1 ? 1 : 3,
+              transform: index === 0 ? 'scale(1.02)' : 'none',
+              zIndex: index === 0 ? 2 : 1,
+              marginBottom: index === 0 ? '20px' : '0',
+            }}
+          >
+            <LeaderboardCard
+              stock={data}
+              Number={index + 1}
+              changeCount={getChangeCount(data)}
+            />
+          </Box>
+        ))}
       </Box>
-      
     </Box>
   );
 }
