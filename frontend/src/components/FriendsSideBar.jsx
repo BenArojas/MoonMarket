@@ -33,8 +33,15 @@ function FriendsSideBar({ friends, onAvatarClick, activeSpaceship }) {
           >
             <Avatar 
               sx={{
-                border: activeSpaceship === index ? '2px solid yellow' : '2px solid white',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                '&:hover': {
+                  border: '2px solid white',
+                  boxShadow: '0 0 10px 2px white',
+                },
+                ...(activeSpaceship === index && {
+                  border: '2px solid white',
+                  boxShadow: '0 0 10px 2px white',
+                }),
               }}
               onClick={() => onAvatarClick(index)}
             >
