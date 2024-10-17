@@ -2,38 +2,38 @@ import OrbitingCircles from "@/components/ui/orbiting-circles";
 
 export default function Test() {
   return (
-    <div className="relative flex h-[800px] w-full flex-col items-center justify-center overflow-hidden rounded-lg border bg-background md:shadow-xl">
-
+    <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-lg  md:shadow-xl">
+ 
       {/* Inner Circles */}
       <OrbitingCircles
-        className="w-[30px] h-[30px] border-none bg-transparent"
+        className="size-[30px] border-none bg-transparent"
         duration={20}
         delay={20}
-        radius={100}
+        radius={110}
       >
         <Icons.whatsapp />
       </OrbitingCircles>
       <OrbitingCircles
-        className="w-[30px] h-[30px] border-none bg-transparent"
+        className="size-[30px] border-none bg-transparent"
         duration={20}
         delay={10}
-        radius={200}
+        radius={160}
       >
         <Icons.notion />
       </OrbitingCircles>
-
+ 
       {/* Outer Circles (reverse) */}
       <OrbitingCircles
-        className="w-[50px] h-[50px] border-none bg-transparent"
-        radius={300}
+        className="size-[50px] border-none bg-transparent"
+        radius={210}
         duration={20}
         reverse
       >
         <Icons.googleDrive />
       </OrbitingCircles>
       <OrbitingCircles
-        className="w-[50px] h-[50px] border-none bg-transparent"
-        radius={400}
+        className="size-[50px] border-none bg-transparent"
+        radius={260}
         duration={20}
         delay={20}
         reverse

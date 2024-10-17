@@ -5,7 +5,7 @@
 }
 
 .spaceshipContainer {
-  transform: translate(-50%, -50%);
+  /* transform: translate(-50%, -50%); */
   position: absolute;
   left: var(--positionX);
   top: var(--positionY);
@@ -28,7 +28,7 @@
   animation-delay: 0.2s;
 }
 
-.spaceshipContainer[aria-selected="true"]::after {
+/* .spaceshipContainer[aria-selected="true"]::after {
   content: "";
   position: absolute;
   left: calc(100% + 1rem);
@@ -37,7 +37,7 @@
   clip-path: polygon(50% 0, 100% 100%, 0 100%);
   width: 200px;
   height: 200px;
-}
+} */
 
 .portal {
   width: 100px;
@@ -72,6 +72,7 @@
     transform: scale(0);
   }
 }
+
 
 .hologramWrapper {
   position: fixed;

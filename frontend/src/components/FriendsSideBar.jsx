@@ -15,7 +15,7 @@ function FriendsSideBar({ friends, onAvatarClick, activeSpaceship }) {
         <Divider flexItem sx={{ m: 0 }} />
       </div>
       {friends && friends.length > 0 ? (
-        friends.map((friend, index) => (
+        friends.map((friend) => (
           <Tooltip
             key={friend.id}
             title={
@@ -38,12 +38,12 @@ function FriendsSideBar({ friends, onAvatarClick, activeSpaceship }) {
                   border: '2px solid white',
                   boxShadow: '0 0 10px 2px white',
                 },
-                ...(activeSpaceship === index && {
+                ...(activeSpaceship === friend.id && {
                   border: '2px solid white',
                   boxShadow: '0 0 10px 2px white',
                 }),
               }}
-              onClick={() => onAvatarClick(index)}
+              onClick={() => onAvatarClick(friend.id)}
             >
               {friend.username.charAt(0).toUpperCase()}
             </Avatar>
