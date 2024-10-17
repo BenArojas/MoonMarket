@@ -2,45 +2,19 @@ import OrbitingCircles from "@/components/ui/orbiting-circles";
 
 export default function Test() {
   return (
-    <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-lg  md:shadow-xl">
- 
-      {/* Inner Circles */}
-      <OrbitingCircles
-        className="size-[30px] border-none bg-transparent"
-        duration={20}
-        delay={20}
-        radius={110}
-      >
-        <Icons.whatsapp />
-      </OrbitingCircles>
-      <OrbitingCircles
-        className="size-[30px] border-none bg-transparent"
-        duration={20}
-        delay={10}
-        radius={160}
-      >
-        <Icons.notion />
-      </OrbitingCircles>
- 
-      {/* Outer Circles (reverse) */}
-      <OrbitingCircles
-        className="size-[50px] border-none bg-transparent"
-        radius={210}
-        duration={20}
-        reverse
-      >
-        <Icons.googleDrive />
-      </OrbitingCircles>
-      <OrbitingCircles
-        className="size-[50px] border-none bg-transparent"
-        radius={260}
-        duration={20}
-        delay={20}
-        reverse
-      >
-        <Icons.gitHub />
-      </OrbitingCircles>
-    </div>
+<div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-lg md:shadow-xl">
+    <OrbitingCircles
+      className="w-[30px] h-[30px] border-none bg-transparent"
+      duration={20}
+      delay={10}
+      radius={160}
+    >
+      <Icons.whatsapp />
+      <Icons.notion />
+      <Icons.googleDrive />
+      <Icons.gitHub />
+    </OrbitingCircles>
+  </div>
   );
 }
 

@@ -15,7 +15,6 @@ function Spaceship({
   return (
     <div
       className={styles.spaceshipContainer}
-      onClick={handleClick}
       aria-selected={isActive}
     >
       <img
@@ -23,15 +22,15 @@ function Spaceship({
         draggable={false}
         src={HumanSpaceship}
         alt="Spaceship"
-        style={{ width: '50px', height: '50px' }}
+        style={{ width: '40px', height: '35px' }}
+        onClick={handleClick}
       />
       <div className={styles.portal} />
       {isActive && (
         <Hologram
-          isActive={isActive}
-          showHologram={true}
           data={data}
           Percentage={data.portfolio_value_change_percentage}
+          handleExit = {onClick}
         />
       )}
     </div>

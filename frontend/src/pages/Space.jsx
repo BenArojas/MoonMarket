@@ -3,6 +3,7 @@ import Starfield from "react-starfield";
 import "@/styles/space.css";
 import Moon from "@/components/space/Moon";
 import SpaceshipsFleet from "@/components/space/SpaceshipsFleet";
+import Spaceship from "@/components/space/Spaceship";
 import { getFriendsAndUserHoldings } from "@/api/friend";
 import { Await, defer, useLoaderData } from "react-router-dom";
 import FriendsSideBar from "@/components/FriendsSideBar";
@@ -69,21 +70,6 @@ function Space() {
     });
   };
 
-  const renderSpaceships = (friends, radius) => (
-    <OrbitingCircles
-      className="size-[30px] border-none bg-transparent"
-      duration={30}
-      delay={20}
-      radius={radius}
-    >
-      <SpaceshipsFleet
-        spaceships={friends}
-        activeSpaceship={activeSpaceship}
-        onSpaceshipClick={handleSpaceshipActivation}
-      />
-    </OrbitingCircles>
-  );
-
   return (
     <div className="page">
       <div className="floating-sidebar">
@@ -108,75 +94,71 @@ function Space() {
         />
         <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-lg md:shadow-xl">
           <Moon centerX={centerX} centerY={centerY} />
+          <Suspense fallback={null}>
+            <Await resolve={data.friends}>
+              {(resolvedFriends) => {
+                const categorizedFriends = categorizeFriends(resolvedFriends);
+                return (
+                  <>
+                    {/* High Performers (70% and above) */}
+                    {categorizedFriends.highPerformers.length > 0 && <OrbitingCircles
+                      className="size-[30px] border-none bg-transparent"
+                      duration={30}
+                      delay={20}
+                      radius={150}
+                    >
+                      {categorizedFriends.highPerformers.map(friend => (
+                        <Spaceship
+                          key={friend.id}
+                          data={friend}
+                          isActive={activeSpaceship === friend.id}
+                          onClick={() => handleSpaceshipActivation(friend.id)}
+                        />
+                      ))}
+                    </OrbitingCircles>}
 
-          {/* High Performers (70% and above) */}
-          <OrbitingCircles
-            className="size-[30px] border-none bg-transparent"
-            duration={30}
-            delay={20}
-            radius={150}
-          >
-            <Suspense fallback={null}>
-              <Await resolve={data.friends}>
-                {(resolvedFriends) => {
-                  const categorizedFriends = categorizeFriends(resolvedFriends);
-                  return (
-                    <SpaceshipsFleet
-                      spaceships={categorizedFriends.highPerformers}
-                      activeSpaceship={activeSpaceship}
-                      onSpaceshipClick={handleSpaceshipActivation}
-                    />
-                  );
-                }}
-              </Await>
-            </Suspense>
-          </OrbitingCircles>
 
-          {/* Moderate Performers (20% to 70%) */}
-          <OrbitingCircles
-            className="size-[30px] border-none bg-transparent"
-            duration={25}
-            delay={10}
-            radius={250}
-          >
-            <Suspense fallback={null}>
-              <Await resolve={data.friends}>
-                {(resolvedFriends) => {
-                  const categorizedFriends = categorizeFriends(resolvedFriends);
-                  return (
-                    <SpaceshipsFleet
-                      spaceships={categorizedFriends.moderatePerformers}
-                      activeSpaceship={activeSpaceship}
-                      onSpaceshipClick={handleSpaceshipActivation}
-                    />
-                  );
-                }}
-              </Await>
-            </Suspense>
-          </OrbitingCircles>
+                    {/* Moderate Performers (20% to 70%) */}
+                    {categorizedFriends.moderatePerformers.length > 0 && <OrbitingCircles
+                      className="size-[30px] border-none bg-transparent"
+                      duration={25}
+                      delay={10}
+                      radius={250}
+                      reverse
+                    >
+                      {categorizedFriends.moderatePerformers.map(friend => (
+                        <Spaceship
+                          key={friend.id}
+                          data={friend}
+                          isActive={activeSpaceship === friend.id}
+                          onClick={() => handleSpaceshipActivation(friend.id)}
+                        />
+                      ))}
+                    </OrbitingCircles>}
 
-          {/* Low Performers (below 20%) */}
-          <OrbitingCircles
-            className="size-[30px] border-none bg-transparent"
-            duration={20}
-            delay={15}
-            radius={350}
-          >
-            <Suspense fallback={null}>
-              <Await resolve={data.friends}>
-                {(resolvedFriends) => {
-                  const categorizedFriends = categorizeFriends(resolvedFriends);
-                  return (
-                    <SpaceshipsFleet
-                      spaceships={categorizedFriends.lowPerformers}
-                      activeSpaceship={activeSpaceship}
-                      onSpaceshipClick={handleSpaceshipActivation}
-                    />
-                  );
-                }}
-              </Await>
-            </Suspense>
-          </OrbitingCircles>
+
+                    {/* Low Performers (below 20%) */}
+                    {categorizedFriends.lowPerformers.length > 0 && <OrbitingCircles
+                      className="size-[30px] border-none bg-transparent"
+                      duration={20}
+                      delay={15}
+                      radius={350}
+                    >
+                      {categorizedFriends.lowPerformers.map(friend => (
+                        <Spaceship
+                          key={friend.id}
+                          data={friend}
+                          isActive={activeSpaceship === friend.id}
+                          onClick={() => handleSpaceshipActivation(friend.id)}
+                        />
+                      ))}
+                    </OrbitingCircles>}
+
+                  </>
+                );
+              }}
+            </Await>
+          </Suspense>
         </div>
       </div>
     </div>

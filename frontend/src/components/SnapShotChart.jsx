@@ -20,7 +20,6 @@ const SnapshotChart = React.memo(
     const performanceChartData = calculatePerformanceData(dailyTimeFrameData, moneySpent)
     const trend = percentageChange > 0 ? "positive" : "negative";
 
-    console.log('performanceChartData', performanceChartData)
 
     return (
       <div className="relative w-full" style={{ height: '400px' }}>
