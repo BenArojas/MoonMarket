@@ -53,7 +53,6 @@ def get_intraday_chart(symbol: str, range: str = '1month', api_key: ApiKey = Dep
             endpoint = f'historical-chart/{fmp_timeframe}/{symbol}'
             url = f"{BASE_URL}{endpoint}?from={from_date.strftime('%Y-%m-%d')}&to={current_date.strftime('%Y-%m-%d')}&apikey={api_key.key}"
         
-        print(url)
         response = requests.get(url)
         response.raise_for_status()
         data = response.json()

@@ -30,7 +30,6 @@ export default function OrbitingCircles({
       )}
       {childrenArray.map((child, index) => {
         const angle = (index / numberOfChildren) * 360;
-        console.log(`Child ${index} angle:`, angle);
         return (
           <div
             key={index}

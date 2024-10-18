@@ -36,7 +36,7 @@ function Portfolio({ userName }) {
     queryKey: ["userData", userName],
     queryFn: () => getUserData(),
   });
-  // console.log(userData)
+  console.log(userData)
 
   const { data: stockData, isPending: stockDataLoading } = useQuery({
     queryKey: ["stockData", selectedTicker],
@@ -122,7 +122,7 @@ function PortfolioContent({ userData }) {
   const postSnapshotMutation = useMutation({
     mutationFn: postSnapshot,
     onSuccess: () => {
-      queryClient.invalidateQueries(["dailyTimeFrame"]); // Invalidate the dailyTimeFrame query when the snapshot is posted
+      queryClient.invalidateQueries(["dailyTimeFrame"]); 
     },
     onError: (error) => {
       console.error("Error posting a snapshot", error);

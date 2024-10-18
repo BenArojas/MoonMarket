@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Typography, Input, Button } from '@mui/material';
 // Changed date adapter imports
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -23,6 +23,7 @@ function BuyStockForm({ stock }) {
     handleSubmit,
     formState: { errors },
     control,
+    setValue,
   } = useForm({
     defaultValues: {
       price: stock?.price.toFixed(2),
@@ -31,6 +32,15 @@ function BuyStockForm({ stock }) {
     resolver: zodResolver(transactionSchema),
     criteriaMode: 'all',
   });
+
+  useEffect(() => {
+    if (stock) {
+      setPrice(stock.price.toFixed(2));
+      setQuantity(0);
+      setValue('price', stock.price.toFixed(2));
+      setValue('quantity', 0);
+    }
+  }, [stock, setValue]);
 
   const queryClient = useQueryClient();
   const { mutateAsync: addStockMutation } = useMutation({

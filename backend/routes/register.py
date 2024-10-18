@@ -10,12 +10,14 @@ router = APIRouter( tags=["Register"])
 
 
 @router.post("", response_model=UserRegister)
-async def user_registration(user_register: UserRegister):  # type: ignore[no-untyped-def]
+async def user_registration(user_register: UserRegister):  
     """Create a new user."""
-    user = await User.by_email(user_register.email)
-    if user is not None:
+    email_check = await User.by_email(user_register.email) 
+    if email_check is not None:
         raise HTTPException(409, "User with that email already exists")
-
+    username_check = await User.by_username(user_register.username)
+    if username_check is not None:
+        raise HTTPException(409, "User with that username already exists")
     if not user_register.deposits or len(user_register.deposits) == 0:
         raise HTTPException(400, "At least one deposit is required")
     

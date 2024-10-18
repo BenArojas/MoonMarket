@@ -14,7 +14,7 @@ function FriendsSideBar({ friends, onAvatarClick, activeSpaceship }) {
       <div>
         <Divider flexItem sx={{ m: 0 }} />
       </div>
-      {friends && friends.length > 0 ? (
+      {friends.length > 0 ? (
         friends.map((friend) => (
           <Tooltip
             key={friend.id}

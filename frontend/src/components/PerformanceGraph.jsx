@@ -67,12 +67,14 @@ const PerformanceChart = ({ data }) => {
                     width: 1,
                     color: theme.palette.text.secondary,
                     style: 2,
+                    labelVisible: false,
                 },
                 horzLine: {
                     visible: false,
                     labelVisible: false,
                 },
             },
+            
             width: chartContainerRef.current.clientWidth,
             height: 250,
             handleScroll: false,
@@ -88,6 +90,7 @@ const PerformanceChart = ({ data }) => {
                 borderVisible: false,
                 fixLeftEdge: true,
                 fixRightEdge: true,
+                
             },
         });
 

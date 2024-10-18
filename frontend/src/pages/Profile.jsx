@@ -5,7 +5,7 @@ import "@/styles/profile.css";
 import TabsSkeleton from "@/Skeletons/TabsSkeleton";
 import ErrorPage from "./ErrorPage";
 import { getUserData} from "@/api/user";
-import {getFriendList, getFriendRequestUsers} from '@/api/friend'
+import {getFriendList, getFriendRequestUsers, getSentFriendRequest} from '@/api/friend'
 import { MemoizedProfileTabs } from '@/components/ProfileTabs'
 import { useOutletContext } from "react-router-dom";
 
@@ -26,12 +26,17 @@ const Profile = () => {
     queryFn: getFriendRequestUsers
   });
 
+  const { data: sentFriendRequestsData, isLoading: sentFriendRequestsLoading, error: sentFriendRequestsError } = useQuery({
+    queryKey: ['sentFriendRequests'],
+    queryFn: getSentFriendRequest
+  });
 
-  if (userLoading || friendListLoading || friendRequestsLoading) {
+
+  if (userLoading || friendListLoading || friendRequestsLoading || sentFriendRequestsLoading) {
     return <TabsSkeleton />;
   }
 
-  if (userError || friendListError || friendRequestsError) {
+  if (userError || friendListError || friendRequestsError || sentFriendRequestsError) {
     return <ErrorPage />;
   }
 
@@ -65,6 +70,7 @@ const Profile = () => {
           username={userData.username}
           current_balance={userData.current_balance}
           friendRequests={friendRequestsData || []}
+          sentFriendRequestsData={sentFriendRequestsData || []}
           friendList={friendListData || []}
           friendRequestsCount={friendRequestsCount}
         />

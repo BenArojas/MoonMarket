@@ -30,7 +30,7 @@ async def get_pending_friend_requests_users(current_user: User = Depends(current
     from_users = []
     for request in pending_requests:
         from_user_id = request.from_user.ref.id
-        from_user = await User.get(from_user_id)
+        from_user =await User.get(from_user_id)
         if from_user:
             from_users.append(FriendShow(
                 email=from_user.email,
@@ -40,6 +40,23 @@ async def get_pending_friend_requests_users(current_user: User = Depends(current
 
     return from_users
 
+@router.get("/sent_friend_requests")
+async def get_sent_friend_requests(current_user: User = Depends(current_user)):
+    pending_requests = await FriendRequest.find(
+    FriendRequest.from_user.id == current_user.id,
+    FriendRequest.status == "pending").to_list()
+    to_users =[]
+    for request in pending_requests:
+        to_user_id = request.to_user.ref.id
+        to_user =await User.get(to_user_id)
+        if to_user:
+            to_users.append(FriendShow(
+                email=to_user.email,
+                username=to_user.username,
+                request_id=str(request.id)
+            ))
+    return to_users
+        
 
 @router.post("/send_friend_request/{username}")
 async def send_friend_request(username: str, current_user: User = Depends(current_user)):
@@ -48,6 +65,11 @@ async def send_friend_request(username: str, current_user: User = Depends(curren
         raise HTTPException(status_code=404, detail="User not found")
     if to_user in current_user.friends:
         raise HTTPException(status_code=400, detail="User is already a friend")
+    pending_request = FriendRequest.find(
+    FriendRequest.from_user.id == current_user.id,
+    FriendRequest.to_user.id == to_user.id)
+    if pending_request:
+        raise HTTPException(status_code=400, detail="There are pending requests")
     await current_user.send_friend_request(to_user)
     return {"message": "Friend request sent"}
 
@@ -94,7 +116,7 @@ async def get_friendList(current_user: User = Depends(current_user)):
         if not user:
             continue
         friend_detail = {
-            "id": str(friend_id),  # Convert ObjectId to string
+            "id": str(friend_id),  
             "username": user.username,
             "email": user.email,
         }

@@ -57,28 +57,32 @@ async def get_user_transactions_by_type(type: str, user: User = Depends(current_
 
 @router.get("/user_friend/{username}", response_model=UserFriend)
 async def get_user_by_username(username: str, current_user: User = Depends(current_user)):
-    print(f"Searching for user: {username}")
-    print(f"Current user: {current_user.username}")
 
     if username == current_user.username:
-        print("User tried to retrieve own profile")
         raise HTTPException(status_code=400, detail="Cannot retrieve your own profile as a friend")
 
-    user = await User.find_one(User.username == username)
-    print(f"Found user: {user}")
+    user =await User.find_one(User.username == username)
 
     if user:
         if user.id in current_user.friends:
-            print("User is already a friend")
             raise HTTPException(status_code=400, detail="User is already your friend")
-        
-        print(f"Returning user: {user.username}, {user.email}")
         return UserFriend(email=user.email, username=user.username)
-    
-    print("User not found")
     raise HTTPException(status_code=404, detail="User not found")
 
-    
+@router.get("/users_list")
+async def users_list(current_user: User = Depends(current_user)):
+    users = [{"id": str(current_user.id), "username": current_user.username, "email": current_user.email}]
+    for friend_id in current_user.friends:
+        user = await User.get(friend_id)
+        if not user:
+            continue
+        friend_detail = {
+            "id": str(friend_id),  
+            "username": user.username,
+            "email": user.email,
+        }
+        users.append(friend_detail)
+    return users
 
 @router.post("/add_deposit")
 async def add_deposit(deposit:Deposit, user:User = Depends(current_user)):
@@ -91,7 +95,10 @@ async def add_deposit(deposit:Deposit, user:User = Depends(current_user)):
 
 @router.patch("/update-username", operation_id="update_user_details")
 async def update_user(new_username: str, user: User = Depends(current_user)) ->str:  
-    """Update allowed user fields."""
+    """Update username field."""
+    username_check = await User.by_username(new_username)
+    if username_check is not None:
+        raise HTTPException(409, "User with that username already exists")
     user.username = new_username
     await user.save()
     return user.username

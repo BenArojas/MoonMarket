@@ -8,7 +8,7 @@ import Typography from "@mui/material/Typography";
 import { useState } from "react";
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-function SearchFriends() {
+function SearchFriends({handleSendFriendRequest}) {
 
   const [friend, setFriend] = useState({})
   const [searchInput, setSearchInput] = useState("");
@@ -46,7 +46,7 @@ function SearchFriends() {
           <Button variant="outlined" onClick={handleSearchUser}>Search</Button>
         </Stack>
         <Stack spacing={2}>
-          {friend.username && <AddFriend username={friend.username} email={friend.email} setFriend={setFriend}/>}
+          {friend.username && <AddFriend username={friend.username} email={friend.email} setFriend={setFriend} handleSendFriendRequest={handleSendFriendRequest}/>}
         </Stack>
       </Box>
     </>

@@ -1,7 +1,7 @@
-import React, {useState} from "react";
+import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { updateUsername, changePassword, addDeposit } from "@/api/user";
-import { answerFriendRequest } from "@/api/friend";
+import { answerFriendRequest, sendFriendRequest } from "@/api/friend";
 import { useTheme } from '@mui/material/styles';
 import ProfileTabContent from '@/components/profile-tabs/ProfileTabContent'
 import PasswordTabContent from '@/components/profile-tabs/PasswordTabContent'
@@ -12,7 +12,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Badge } from "@mui/material";
 
 
-const ProfileTabs = ({ username, current_balance, friendRequests, friendList, friendRequestsCount }) => {
+const ProfileTabs = ({ username, current_balance, friendRequests, friendList, friendRequestsCount, sentFriendRequestsData }) => {
   const theme = useTheme();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('profile');
@@ -34,6 +34,12 @@ const ProfileTabs = ({ username, current_balance, friendRequests, friendList, fr
       queryClient.invalidateQueries('userData');
     },
   });
+  const sendFriendMutation = useMutation({
+    mutationFn: sendFriendRequest,
+    onSuccess: () => {
+      queryClient.invalidateQueries('sentFriendRequests');
+    },
+  });
 
   const answerFriendRequestMutation = useMutation({
     mutationFn: answerFriendRequest,
@@ -43,18 +49,22 @@ const ProfileTabs = ({ username, current_balance, friendRequests, friendList, fr
     },
   });
 
+  const handleSendFriendRequest = (username) => {
+    sendFriendMutation.mutate(username);
+  };
+
   const handleUsernameSubmit = (newUsername) => {
     updateUsernameMutation.mutate(newUsername);
   };
-  
+
   const handlePasswordSubmit = (oldPassword, newPassword) => {
     changePasswordMutation.mutate({ oldPassword, newPassword });
   };
-  
+
   const handleDepositSubmit = (amount) => {
     addDepositMutation.mutate(amount);
   };
-  
+
   const handleFriendRequestAnswer = (request_Id, answer) => {
     answerFriendRequestMutation.mutate({ request_Id, answer });
   };
@@ -72,38 +82,39 @@ const ProfileTabs = ({ username, current_balance, friendRequests, friendList, fr
       </TabsList>
 
       <TabsContent value="profile">
-          <ProfileTabContent
-            username={username}
-            onSubmit={handleUsernameSubmit}
-            isLoading={updateUsernameMutation.isLoading}
-          />
+        <ProfileTabContent
+          username={username}
+          onSubmit={handleUsernameSubmit}
+          isLoading={updateUsernameMutation.isLoading}
+        />
       </TabsContent>
 
-      <TabsContent value="password">    
-          <PasswordTabContent
-            onSubmit={handlePasswordSubmit}
-            isLoading={changePasswordMutation.isLoading}
-          />
+      <TabsContent value="password">
+        <PasswordTabContent
+          onSubmit={handlePasswordSubmit}
+          isLoading={changePasswordMutation.isLoading}
+        />
       </TabsContent>
 
       <TabsContent value="money">
-          <MoneyTabContent
-            currentBalance={current_balance}
-            onSubmit={handleDepositSubmit}
-            isLoading={addDepositMutation.isLoading}
-          />
+        <MoneyTabContent
+          currentBalance={current_balance}
+          onSubmit={handleDepositSubmit}
+          isLoading={addDepositMutation.isLoading}
+        />
       </TabsContent>
 
       <TabsContent value="friends">
-          <FriendsTabContent friendList={friendList} />
+        <FriendsTabContent friendList={friendList} handleSendFriendRequest={handleSendFriendRequest} />
       </TabsContent>
 
       <TabsContent value="friend_requests">
-          <FriendRequestsTabContent
-            friendRequests={friendRequests}
-            onAnswer={handleFriendRequestAnswer}
-            isLoading={answerFriendRequestMutation.isLoading}
-          />
+        <FriendRequestsTabContent
+          friendRequests={friendRequests}
+          sentFriendRequests={sentFriendRequestsData}
+          onAnswer={handleFriendRequestAnswer}
+          isLoading={answerFriendRequestMutation.isLoading}
+        />
       </TabsContent>
     </Tabs>
   );

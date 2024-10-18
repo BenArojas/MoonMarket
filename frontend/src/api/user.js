@@ -136,3 +136,12 @@ export async function addApiKey(api_key) {
       throw error;
   }
 }
+
+export async function getUsersList() {
+  try {
+    const response = await api.get(`/user/users_list`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+}

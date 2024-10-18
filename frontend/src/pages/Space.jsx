@@ -4,15 +4,19 @@ import "@/styles/space.css";
 import Moon from "@/components/space/Moon";
 import SpaceshipsFleet from "@/components/space/SpaceshipsFleet";
 import Spaceship from "@/components/space/Spaceship";
-import { getFriendsAndUserHoldings } from "@/api/friend";
+import { getFriendsAndUserHoldings, getFriendList } from "@/api/friend";
+import { getUsersList } from "@/api/user";
 import { Await, defer, useLoaderData } from "react-router-dom";
 import FriendsSideBar from "@/components/FriendsSideBar";
 import { useThemeHook } from "@/contexts/ThemeContext";
 import OrbitingCircles from "@/components/ui/orbiting-circles";
 
+const INITIAL_SPACESHIP_COUNT = 6;
+
 export const loader = async () => {
-  const friends = getFriendsAndUserHoldings();
-  return defer({ friends });
+  const friendsWithHolings = getFriendsAndUserHoldings();
+  const friendList = getUsersList()
+  return defer({ friendsWithHolings, friendList });
 };
 
 function Space() {
@@ -22,6 +26,7 @@ function Space() {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [radius, setRadius] = useState(0);
   const [activeSpaceship, setActiveSpaceship] = useState(null);
+  const [displayedFriends, setDisplayedFriends] = useState([]);
 
   useEffect(() => {
     forceDarkMode();
@@ -74,7 +79,8 @@ function Space() {
     <div className="page">
       <div className="floating-sidebar">
         <Suspense fallback={null}>
-          <Await resolve={data.friends}>
+          <Await resolve={data.friendList}>
+            
             {(resolvedFriends) => (
               <FriendsSideBar
                 friends={resolvedFriends}
@@ -95,7 +101,7 @@ function Space() {
         <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-lg md:shadow-xl">
           <Moon centerX={centerX} centerY={centerY} />
           <Suspense fallback={null}>
-            <Await resolve={data.friends}>
+            <Await resolve={data.friendsWithHolings}>
               {(resolvedFriends) => {
                 const categorizedFriends = categorizeFriends(resolvedFriends);
                 return (

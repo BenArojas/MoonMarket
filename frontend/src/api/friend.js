@@ -12,7 +12,7 @@ export async function sendFriendRequest(username ) {
     toast.success("Friend request sent successfully");
     return response.data;
   } catch (error) {
-    toast.error("Error while adding friend");
+    // toast.error("Error while adding friend");
     throw error;
   }
 }
@@ -32,6 +32,17 @@ export async function getFriendRequestUsers() {
   try {
     const response = await api.get(
       `/friends/pending_friend_requests_users`
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+}
+
+export async function getSentFriendRequest() {
+  try {
+    const response = await api.get(
+      `/friends/sent_friend_requests`
     );
     return response.data;
   } catch (error) {

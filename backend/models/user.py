@@ -4,8 +4,7 @@ from datetime import datetime
 from typing import Annotated, Any, Optional, List, Optional, TYPE_CHECKING
 from beanie import Document, Indexed, PydanticObjectId, Link
 from pydantic import BaseModel, EmailStr, Field
-from bson import ObjectId
-from fastapi import  HTTPException
+
 
 if TYPE_CHECKING:
     from .friendRequest import FriendRequest
@@ -78,7 +77,7 @@ class User(Document):
 
     email: Annotated[str, Indexed(EmailStr, unique=True)]
     password: str
-    username: Optional[str] = None
+    username: Annotated[str, Indexed(str, unique=True)]
     holdings: List[Holding] = []
     transactions: List[PydanticObjectId] = []
     deposits: List[Deposit] = []
@@ -161,6 +160,11 @@ class User(Document):
     async def by_email(cls, email: str) -> Optional["User"]:
         """Get a user by email."""
         return await cls.find_one({"email": email})
+    
+    @classmethod
+    async def by_username(cls, username: str) -> Optional["User"]:
+        """Get a user by username."""
+        return await cls.find_one({"username": username})
 
     def update_email(self, new_email: str) -> None:
         """Update email logging and replace."""

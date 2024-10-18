@@ -38,7 +38,7 @@ import { removeFriend } from '@/api/friend'
 //   }
 // ]
 
-const FriendsTabContent = ({ friendList }) => {
+const FriendsTabContent = ({ friendList, handleSendFriendRequest }) => {
   const queryClient = useQueryClient();
   const removeFriendMutation = useMutation({
     mutationFn: removeFriend,
@@ -65,7 +65,7 @@ const FriendsTabContent = ({ friendList }) => {
         <CardTitle>Friends</CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
-        <SearchFriends />
+        <SearchFriends handleSendFriendRequest={handleSendFriendRequest}/>
         <Stack
           direction="column"
           spacing={3}
