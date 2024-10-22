@@ -8,7 +8,7 @@ import useGraphData from "@/hooks/useGraphData";
 import { PercentageChange } from "@/pages/Layout";
 import { lastUpdateDate } from "@/utils/dataProcessing";
 import { Box, Stack, CircularProgress, Card } from "@mui/material";
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useState, useRef  } from "react";
 import DataGraph from "@/components/DataGraph";
 import SnapshotChart from "@/components/SnapShotChart";
 import CurrentStockCard from "@/components/CurrentStock";
@@ -16,7 +16,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import GraphSkeleton from "@/Skeletons/GraphSkeleton";
 import { ErrorBoundary } from "react-error-boundary";
-  
+import { useStockPriceUpdate } from '@/hooks/useStockPriceUpdate'
+import { useLocation } from "react-router-dom";
+
 
 function ErrorFallback({ error }) {
   return (
@@ -29,14 +31,25 @@ function ErrorFallback({ error }) {
 
 function Portfolio({ userName }) {
   const [searchParams] = useSearchParams();
+  const { state } = useLocation(); // Get location state
+  console.log("state", state);
   const selectedTicker = searchParams.get("selected") || "BTCUSD"; // Default to 'BTCUSD' if not specified
   const queryClient = useQueryClient();
+  const updateStockPricesMutation = useStockPriceUpdate();
+  const initialFetchRef = useRef(false);  // Add this
 
   const { data: userData, isPending: userDataLoading } = useQuery({
     queryKey: ["userData", userName],
-    queryFn: () => getUserData(),
+    queryFn: getUserData,
   });
-  console.log(userData)
+  // console.log(userData)
+  useEffect(() => {
+    if (!initialFetchRef.current && userData && state?.shouldUpdatePrices && userData?.holdings?.length > 0) {
+      const tickers = userData.holdings.map(holding => holding.ticker);
+      updateStockPricesMutation.mutate(tickers);
+      initialFetchRef.current = true;  // Mark as run
+    }
+  }, [userData, state?.shouldUpdatePrices]);
 
   const { data: stockData, isPending: stockDataLoading } = useQuery({
     queryKey: ["stockData", selectedTicker],
@@ -89,6 +102,7 @@ function Portfolio({ userName }) {
               <StackedCardsWrapper
                 dailyTimeFrame={dailyTimeFrame}
                 userData={userData}
+                updateStockPricesMutation={updateStockPricesMutation}
               />
             )}
           </ErrorBoundary>
@@ -122,7 +136,7 @@ function PortfolioContent({ userData }) {
   const postSnapshotMutation = useMutation({
     mutationFn: postSnapshot,
     onSuccess: () => {
-      queryClient.invalidateQueries(["dailyTimeFrame"]); 
+      queryClient.invalidateQueries(["dailyTimeFrame"]);
     },
     onError: (error) => {
       console.error("Error posting a snapshot", error);
@@ -155,7 +169,7 @@ function PortfolioContent({ userData }) {
   );
 }
 
-const StackedCardsWrapper = ({ dailyTimeFrame, userData }) => {
+const StackedCardsWrapper = ({ dailyTimeFrame, userData, updateStockPricesMutation }) => {
   const { percentageChange, setPercentageChange } =
     useContext(PercentageChange);
   const { stockTickers, value, moneySpent } = useGraphData(userData, "Treemap");
@@ -178,6 +192,7 @@ const StackedCardsWrapper = ({ dailyTimeFrame, userData }) => {
       percentageChange={percentageChange}
       value={value}
       dailyTimeFrameData={dailyTimeFrame}
+      updateStockPricesMutation={updateStockPricesMutation}
     />
   );
 };

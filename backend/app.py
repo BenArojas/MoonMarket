@@ -16,6 +16,13 @@ from models.friendRequest import FriendRequest
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from models.APIKeyManager import ApiKey
+import logging
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
+from datetime import datetime
+import requests
+from util.api_key import get_api_key
+
 
 
 DESCRIPTION = """
@@ -27,6 +34,60 @@ It supports:
 - Something really cool that will blow your socks off
 """
 
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Initialize scheduler
+scheduler = AsyncIOScheduler()
+
+async def daily_stock_update():
+    """
+    Updates all stock prices in the database. Runs daily at noon.
+    """
+    logger.info(f"Starting daily stock update at {datetime.now()}")
+    
+    try:
+        api_key = await get_api_key()
+        if not api_key:
+            logger.error("No API key available")
+            return
+        all_stocks = await Stock.find_all().to_list()
+        successful_updates = 0
+        failed_tickers = []
+        
+        for stock in all_stocks:
+            try:
+                # Get updated price from API
+                url = f"https://financialmodelingprep.com/api/v3/quote-short/{stock.ticker}?apikey={api_key.key}"
+                response = requests.get(url).json()
+                price = response[0]['price']
+                
+                # Update stock price in database
+                await stock.set({Stock.price: price})
+                successful_updates += 1
+                logger.info(f"Successfully updated {stock.ticker} price to {price}")
+                await api_key.increment_usage()
+                
+            except Exception as e:
+                error_msg = f"Failed to update {stock.ticker}: {str(e)}"
+                logger.error(error_msg)
+                failed_tickers.append(stock.ticker)
+                continue
+        
+        # Log summary
+        total_stocks = len(all_stocks)
+        logger.info(f"""
+            Daily update completed:
+            Total stocks: {total_stocks}
+            Successful updates: {successful_updates}
+            Failed updates: {len(failed_tickers)}
+            Failed tickers: {', '.join(failed_tickers)}
+        """)
+        
+    except Exception as e:
+        logger.error(f"Error in daily stock update: {str(e)}")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize application services."""
@@ -34,15 +95,32 @@ async def lifespan(app: FastAPI):
     try:
         client = AsyncIOMotorClient(CONFIG.DB_URL, maxPoolSize=50, minPoolSize=10)
         await init_beanie(database=client[CONFIG.DB_NAME], document_models=[User, Stock, Transaction, PortfolioSnapshot, FriendRequest, ApiKey])
-        print("Database initialized")
+        logger.info("Database initialized")
+        # Schedule the stock update job
+        scheduler.add_job(
+            daily_stock_update,
+            CronTrigger(hour=12, minute=0),  # Run at 12:00 PM
+            id='daily_stock_update',
+            name='Update all stock prices',
+            replace_existing=True
+        )
+        
+        # Start the scheduler
+        scheduler.start()
+        logger.info("Scheduled daily stock update task for 12:00 PM")
         
         yield
     finally:
+        # Shutdown scheduler
+        scheduler.shutdown()
+        logger.info("Scheduler shut down")
+        
+        # Close database connection
         await asyncio.sleep(1)  # Allow pending operations to complete
         if client:
             client.close()
-            print("Database connection closed")
-
+            logger.info("Database connection closed")
+            
 # Create the main app that combines both API and static file serving
 app = FastAPI(title ="My server",
     lifespan=lifespan)
@@ -73,3 +151,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Optional: Endpoint to manually trigger the update
+@app.post("/trigger_stock_update")
+async def trigger_stock_update():
+    """Manually trigger the stock update process."""
+    await daily_stock_update()
+    return {"message": "Manual stock update completed"}

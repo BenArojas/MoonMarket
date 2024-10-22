@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import styles from './spaceship.module.css';
 import { DonutBarplotTransition } from '@/components/space/DonutBarplotTransition';
 import { LinearProgress, Typography, Box } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import IconButton from "@mui/material/IconButton";
 
 function Hologram({ data, Percentage, handleExit }) {
   const handleClick = () => {
@@ -34,9 +36,9 @@ function Hologram({ data, Percentage, handleExit }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.3 }}
           >
-            <button className={styles.closeButton} onClick={handleClick}>
-              X
-            </button>
+            <IconButton onClick={handleClick} size="small" className={styles.closeButton}>
+              <CloseIcon />
+            </IconButton>
             <Typography variant="h6" component="h2" sx={{ color: 'white', mb: 1 }}>
               {data.username + "'" + 's'} Portfolio
             </Typography>

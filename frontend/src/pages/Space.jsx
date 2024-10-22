@@ -10,6 +10,8 @@ import { Await, defer, useLoaderData } from "react-router-dom";
 import FriendsSideBar from "@/components/FriendsSideBar";
 import { useThemeHook } from "@/contexts/ThemeContext";
 import OrbitingCircles from "@/components/ui/orbiting-circles";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
 
 const INITIAL_SPACESHIP_COUNT = 6;
 
@@ -24,9 +26,18 @@ function Space() {
   const { forceDarkMode } = useThemeHook();
   const galaxy = useRef(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-  const [radius, setRadius] = useState(0);
   const [activeSpaceship, setActiveSpaceship] = useState(null);
-  const [displayedFriends, setDisplayedFriends] = useState([]);
+  const queryClient = useQueryClient();
+
+  const { data: usersWithHoldingsData, isPending: usersWithHoldingsLoading } = useQuery({
+    queryKey: ["usersHoldings"],
+    queryFn: getFriendsAndUserHoldings(),
+  });
+
+  const { data: usersListData, isPending: usersListLoading } = useQuery({
+    queryKey: ["usersList"],
+    queryFn: getUsersList(),
+  });
 
   useEffect(() => {
     forceDarkMode();
@@ -37,7 +48,6 @@ function Space() {
       if (galaxy.current) {
         const { clientWidth, clientHeight } = galaxy.current;
         setDimensions({ width: clientWidth, height: clientHeight });
-        setRadius((Math.min(clientWidth, clientHeight) / 2) * 0.60);
       }
     };
 

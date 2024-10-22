@@ -13,7 +13,8 @@ const SnapshotChart = React.memo(
     formattedDate,
     stockTickers,
     dailyTimeFrameData,
-    moneySpent
+    moneySpent, 
+    updateStockPricesMutation
   }) => {
     const [isFlipped, setIsFlipped] = useState(false);
     const areaChartData = transformSnapshotData(dailyTimeFrameData);
@@ -52,6 +53,7 @@ const SnapshotChart = React.memo(
                     percentageChange={percentageChange}
                     stockTickers={stockTickers}
                     value={value}
+                    updateStockPricesMutation={updateStockPricesMutation}
                   />
                   <AreaChart
                     data={areaChartData}
@@ -104,6 +106,7 @@ const SnapshotChart = React.memo(
                     percentageChange={percentageChange}
                     stockTickers={stockTickers}
                     value={value}
+                    updateStockPricesMutation={updateStockPricesMutation}
                   />
 
                   <PerformanceChart data={performanceChartData}/>
