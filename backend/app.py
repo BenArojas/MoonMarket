@@ -17,13 +17,13 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from models.APIKeyManager import ApiKey
 import logging
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import requests
 from util.api_key import get_api_key
-
-
+from pytz import timezone
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.jobstores.mongodb import MongoDBJobStore
 
 DESCRIPTION = """
 This API powers whatever I want to make
@@ -38,8 +38,25 @@ It supports:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize scheduler
-scheduler = AsyncIOScheduler()
+# Near the top of your file, modify the scheduler initialization:
+def create_scheduler(client: AsyncIOMotorClient):
+    """Create AsyncIOScheduler with MongoDB jobstore"""
+    # Define the jobstores
+    jobstores = {
+        'default': MongoDBJobStore(
+            database=CONFIG.DB_NAME,  # Use the same database as your app
+            collection='scheduler_jobs',  # Collection to store scheduler jobs
+            client=client  # Use the same client as your app
+        )
+    }
+
+    # Create scheduler with MongoDB jobstore
+    scheduler = AsyncIOScheduler(
+        jobstores=jobstores,
+        timezone=timezone('UTC')
+    )
+    
+    return scheduler
 
 async def daily_stock_update():
     """
@@ -49,9 +66,6 @@ async def daily_stock_update():
     
     try:
         api_key = await get_api_key()
-        if not api_key:
-            logger.error("No API key available")
-            return
         all_stocks = await Stock.find_all().to_list()
         successful_updates = 0
         failed_tickers = []
@@ -64,7 +78,10 @@ async def daily_stock_update():
                 price = response[0]['price']
                 
                 # Update stock price in database
-                await stock.set({Stock.price: price})
+                await stock.set({
+                        Stock.price: price,
+                        Stock.last_updated: datetime.now(timezone.utc)
+                    })
                 successful_updates += 1
                 logger.info(f"Successfully updated {stock.ticker} price to {price}")
                 await api_key.increment_usage()
@@ -88,32 +105,63 @@ async def daily_stock_update():
     except Exception as e:
         logger.error(f"Error in daily stock update: {str(e)}")
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize application services."""
     client = None
     try:
+        # Initialize MongoDB client
         client = AsyncIOMotorClient(CONFIG.DB_URL, maxPoolSize=50, minPoolSize=10)
-        await init_beanie(database=client[CONFIG.DB_NAME], document_models=[User, Stock, Transaction, PortfolioSnapshot, FriendRequest, ApiKey])
+        
+        # Initialize Beanie
+        await init_beanie(
+            database=client[CONFIG.DB_NAME], 
+            document_models=[User, Stock, Transaction, PortfolioSnapshot, FriendRequest, ApiKey]
+        )
         logger.info("Database initialized")
-        # Schedule the stock update job
+
+        # Create and initialize scheduler
+        scheduler = create_scheduler(client)
+        
+        # Add your jobs
         scheduler.add_job(
             daily_stock_update,
-            CronTrigger(hour=12, minute=0),  # Run at 12:00 PM
-            id='daily_stock_update',
-            name='Update all stock prices',
+            CronTrigger(
+                hour=12, 
+                minute=0, 
+                timezone=timezone('America/New_York')
+            ),
+            id='daily_stock_update_noon',
+            name='Update all stock prices at noon ET',
             replace_existing=True
         )
         
+        scheduler.add_job(
+            daily_stock_update,
+            CronTrigger(
+                hour=16, 
+                minute=30, 
+                timezone=timezone('America/New_York')
+            ),
+            id='daily_stock_update_close',
+            name='Update all stock prices at market close ET',
+            replace_existing=True
+        )
+
         # Start the scheduler
         scheduler.start()
-        logger.info("Scheduled daily stock update task for 12:00 PM")
+        logger.info("Scheduler started with MongoDB jobstore")
+        
+        # Store scheduler in app state for access in other parts of the application
+        app.state.scheduler = scheduler
         
         yield
     finally:
         # Shutdown scheduler
-        scheduler.shutdown()
-        logger.info("Scheduler shut down")
+        if hasattr(app.state, 'scheduler'):
+            app.state.scheduler.shutdown()
+            logger.info("Scheduler shut down")
         
         # Close database connection
         await asyncio.sleep(1)  # Allow pending operations to complete
@@ -158,3 +206,34 @@ async def trigger_stock_update():
     """Manually trigger the stock update process."""
     await daily_stock_update()
     return {"message": "Manual stock update completed"}
+
+# Add a utility endpoint to check scheduled jobs
+@app.get("/scheduled-jobs")
+async def get_scheduled_jobs():
+    """Get all scheduled jobs"""
+    scheduler = app.state.scheduler
+    jobs = []
+    for job in scheduler.get_jobs():
+        jobs.append({
+            "id": job.id,
+            "name": job.name,
+            "next_run_time": str(job.next_run_time),
+            "trigger": str(job.trigger)
+        })
+    return {"jobs": jobs}
+
+# Add price staleness checker
+# async def check_price_staleness():
+#     """Check for stale prices and update them if needed"""
+#     logger.info("Checking for stale stock prices")
+    
+#     try:
+#         # Find stocks not updated in the last 4 hours
+#         four_hours_ago = datetime.now(timezone.utc) - timedelta(hours=4)
+#         stale_stocks = await Stock.find(Stock.last_updated < four_hours_ago).to_list()
+        
+#         if stale_stocks:
+#             logger.info(f"Found {len(stale_stocks)} stocks with stale prices")
+#             # await update_specific_stocks([stock.ticker for stock in stale_stocks])
+#     except Exception as e:
+#         logger.error(f"Error in price staleness check: {str(e)}")

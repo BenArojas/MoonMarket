@@ -32,7 +32,6 @@ function ErrorFallback({ error }) {
 function Portfolio({ userName }) {
   const [searchParams] = useSearchParams();
   const { state } = useLocation(); // Get location state
-  console.log("state", state);
   const selectedTicker = searchParams.get("selected") || "BTCUSD"; // Default to 'BTCUSD' if not specified
   const queryClient = useQueryClient();
   const updateStockPricesMutation = useStockPriceUpdate();

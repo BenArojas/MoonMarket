@@ -6,7 +6,7 @@ from beanie import PydanticObjectId
 class HoldingInfo(BaseModel):
     name: str
     portfolio_percentage: float
-    value_change_percentage: float
+    # value_change_percentage: float
 
 class FriendInfo(BaseModel):
     id: PydanticObjectId

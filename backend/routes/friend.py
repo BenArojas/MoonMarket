@@ -124,6 +124,81 @@ async def get_friendList(current_user: User = Depends(current_user)):
     return friend_list
     
 
+# @router.get("/get_friends_and_user_holdings", response_model=List[FriendInfo])
+# async def get_all_friends(current_user: User = Depends(current_user)):
+#     friend_info_list = []
+#     stock_cache = {}
+#     users = [current_user.id] + current_user.friends
+
+#     for user_id in users:
+#         user = await User.get(user_id)
+#         if not user:
+#             continue
+        
+
+#         # Calculate portfolio value change percentage
+#         user_purchases = await get_user_transactions_by_type("purchase", user)
+#         initial_portfolio_value = sum(transaction.price * transaction.quantity for transaction in user_purchases)
+#         # print("Initial portfolio value is", initial_portfolio_value)
+
+#         user_sales = await get_user_transactions_by_type("sale", user)
+#         cash_from_sales = sum(transaction.price * transaction.quantity for transaction in user_sales)
+#         # print("cash from sales is:", cash_from_sales)
+
+#         holdings_value = 0
+#         holdings_info = []
+
+#         # First pass: Calculate total holdings value
+#         for holding in user.holdings:
+#             stock = stock_cache.get(holding.ticker)
+#             if not stock:
+#                 stock = await Stock.find_one(Stock.ticker == holding.ticker)
+#                 if stock:
+#                     stock_cache[holding.ticker] = stock
+#             if stock:
+#                 holding_value = stock.price * holding.quantity
+#                 holdings_value += holding_value
+
+#         # Calculate total portfolio value
+#         total_portfolio_value = holdings_value + cash_from_sales
+#         # print("total portfolio value is:", total_portfolio_value)
+
+#         # Second pass: Calculate portfolio percentages and create HoldingInfo objects
+#         for holding in user.holdings:
+#             stock = stock_cache.get(holding.ticker)
+#             if stock:
+#                 holding_value = stock.price * holding.quantity
+
+#                 # Calculate holding percentage of the portfolio
+#                 portfolio_percentage = (holding_value / total_portfolio_value) * 100 if total_portfolio_value > 0 else 0
+
+#                 # Calculate value change percentage for this holding
+#                 value_change_percentage = ((stock.price - holding.avg_bought_price) / holding.avg_bought_price) * 100 if holding.avg_bought_price > 0 else 0
+
+#                 holdings_info.append(HoldingInfo(
+#                     name=stock.name,
+#                     portfolio_percentage=portfolio_percentage,
+#                     value_change_percentage=value_change_percentage
+#                 ))
+
+#         # Handle case where initial_portfolio_value is zero
+#         if initial_portfolio_value == 0:
+#             portfolio_percentage_change = 0 if total_portfolio_value == 0 else 100  # 100% increase if starting from 0
+#         else:
+#             portfolio_percentage_change = ((total_portfolio_value - initial_portfolio_value) / initial_portfolio_value) * 100
+
+#         friend_info = FriendInfo(
+#             id=user.id,
+#             username=user.username,
+#             email=user.email,
+#             portfolio_value_change_percentage=portfolio_percentage_change,
+#             holdings=holdings_info
+#         )
+
+#         friend_info_list.append(friend_info)
+
+#     return friend_info_list
+
 @router.get("/get_friends_and_user_holdings", response_model=List[FriendInfo])
 async def get_all_friends(current_user: User = Depends(current_user)):
     friend_info_list = []
@@ -135,20 +210,11 @@ async def get_all_friends(current_user: User = Depends(current_user)):
         if not user:
             continue
         
-
-        # Calculate portfolio value change percentage
-        user_purchases = await get_user_transactions_by_type("purchase", user)
-        initial_portfolio_value = sum(transaction.price * transaction.quantity for transaction in user_purchases)
-        # print("Initial portfolio value is", initial_portfolio_value)
-
-        user_sales = await get_user_transactions_by_type("sale", user)
-        cash_from_sales = sum(transaction.price * transaction.quantity for transaction in user_sales)
-        # print("cash from sales is:", cash_from_sales)
-
         holdings_value = 0
+        cost_basis = 0  # Total cost of current holdings
         holdings_info = []
 
-        # First pass: Calculate total holdings value
+        # First pass: Calculate total current holdings value and cost basis
         for holding in user.holdings:
             stock = stock_cache.get(holding.ticker)
             if not stock:
@@ -158,10 +224,7 @@ async def get_all_friends(current_user: User = Depends(current_user)):
             if stock:
                 holding_value = stock.price * holding.quantity
                 holdings_value += holding_value
-
-        # Calculate total portfolio value
-        total_portfolio_value = holdings_value + cash_from_sales
-        # print("total portfolio value is:", total_portfolio_value)
+                cost_basis += holding.avg_bought_price * holding.quantity
 
         # Second pass: Calculate portfolio percentages and create HoldingInfo objects
         for holding in user.holdings:
@@ -170,22 +233,22 @@ async def get_all_friends(current_user: User = Depends(current_user)):
                 holding_value = stock.price * holding.quantity
 
                 # Calculate holding percentage of the portfolio
-                portfolio_percentage = (holding_value / total_portfolio_value) * 100 if total_portfolio_value > 0 else 0
+                portfolio_percentage = (holding_value / holdings_value) * 100 if holdings_value > 0 else 0
 
                 # Calculate value change percentage for this holding
-                value_change_percentage = ((stock.price - holding.avg_bought_price) / holding.avg_bought_price) * 100 if holding.avg_bought_price > 0 else 0
+                # value_change_percentage = ((stock.price - holding.avg_bought_price) / holding.avg_bought_price) * 100 if holding.avg_bought_price > 0 else 0
 
                 holdings_info.append(HoldingInfo(
                     name=stock.name,
                     portfolio_percentage=portfolio_percentage,
-                    value_change_percentage=value_change_percentage
+                    # value_change_percentage=value_change_percentage
                 ))
 
-        # Handle case where initial_portfolio_value is zero
-        if initial_portfolio_value == 0:
-            portfolio_percentage_change = 0 if total_portfolio_value == 0 else 100  # 100% increase if starting from 0
+        # Calculate unrealized gains/losses percentage for current holdings only
+        if cost_basis == 0:
+            portfolio_percentage_change = 0 if holdings_value == 0 else 100
         else:
-            portfolio_percentage_change = ((total_portfolio_value - initial_portfolio_value) / initial_portfolio_value) * 100
+            portfolio_percentage_change = ((holdings_value - cost_basis) / cost_basis) * 100
 
         friend_info = FriendInfo(
             id=user.id,

@@ -131,3 +131,5 @@ async def delete_stock(ticker: str, user: User = Depends(current_user)):
         raise HTTPException(status_code=404, detail=f"Stock with ticker {ticker} does not exist")
     await existing_stock.delete()
     return {"message": "Stock deleted successfully"}
+
+

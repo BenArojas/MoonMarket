@@ -154,7 +154,7 @@ export function processDonutData(stocksList, stocksInfo) {
   }
 
   stocks.othersStocks = othersStocks;
-
+  console.log(stocks);
   return stocks;
 }
 

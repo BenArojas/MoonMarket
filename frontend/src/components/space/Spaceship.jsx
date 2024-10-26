@@ -11,7 +11,7 @@ function Spaceship({
   const handleClick = () => {
     onClick();
   };
-
+console.log("spaceship data is ", data)
   return (
     <div
       className={styles.spaceshipContainer}

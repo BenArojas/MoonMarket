@@ -27,17 +27,17 @@ function Space() {
   const galaxy = useRef(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [activeSpaceship, setActiveSpaceship] = useState(null);
-  const queryClient = useQueryClient();
+  // const queryClient = useQueryClient();
 
-  const { data: usersWithHoldingsData, isPending: usersWithHoldingsLoading } = useQuery({
-    queryKey: ["usersHoldings"],
-    queryFn: getFriendsAndUserHoldings(),
-  });
+  // const { data: usersWithHoldingsData, isPending: usersWithHoldingsLoading } = useQuery({
+  //   queryKey: ["usersHoldings"],
+  //   queryFn: getFriendsAndUserHoldings(),
+  // });
 
-  const { data: usersListData, isPending: usersListLoading } = useQuery({
-    queryKey: ["usersList"],
-    queryFn: getUsersList(),
-  });
+  // const { data: usersListData, isPending: usersListLoading } = useQuery({
+  //   queryKey: ["usersList"],
+  //   queryFn: getUsersList(),
+  // });
 
   useEffect(() => {
     forceDarkMode();

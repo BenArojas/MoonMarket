@@ -44,7 +44,7 @@ function Hologram({ data, Percentage, handleExit }) {
             </Typography>
             <Box sx={{ width: '50%' }}>
               <Typography variant="body2" sx={{ color: 'white', mb: 1 }}>
-                Mission to the moon: {Math.round(Percentage)}% Completed!
+                Mission to the moon: {Percentage.toFixed(2)}% Completed!
               </Typography>
               <LinearProgress
                 variant="determinate"
