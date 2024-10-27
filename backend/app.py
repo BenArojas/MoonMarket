@@ -39,24 +39,24 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Near the top of your file, modify the scheduler initialization:
-def create_scheduler(client: AsyncIOMotorClient):
-    """Create AsyncIOScheduler with MongoDB jobstore"""
-    # Define the jobstores
-    jobstores = {
-        'default': MongoDBJobStore(
-            database=CONFIG.DB_NAME,  # Use the same database as your app
-            collection='scheduler_jobs',  # Collection to store scheduler jobs
-            client=client  # Use the same client as your app
-        )
-    }
+# def create_scheduler(client: AsyncIOMotorClient):
+#     """Create AsyncIOScheduler with MongoDB jobstore"""
+#     # Define the jobstores
+#     jobstores = {
+#         'default': MongoDBJobStore(
+#             database=CONFIG.DB_NAME,  # Use the same database as your app
+#             collection='scheduler_jobs',  # Collection to store scheduler jobs
+#             client=client  # Use the same client as your app
+#         )
+#     }
 
-    # Create scheduler with MongoDB jobstore
-    scheduler = AsyncIOScheduler(
-        jobstores=jobstores,
-        timezone=timezone('UTC')
-    )
+#     # Create scheduler with MongoDB jobstore
+#     scheduler = AsyncIOScheduler(
+#         jobstores=jobstores,
+#         timezone=timezone('UTC')
+#     )
     
-    return scheduler
+#     return scheduler
 
 async def daily_stock_update():
     """
@@ -121,47 +121,47 @@ async def lifespan(app: FastAPI):
         )
         logger.info("Database initialized")
 
-        # Create and initialize scheduler
-        scheduler = create_scheduler(client)
+        # # Create and initialize scheduler
+        # scheduler = create_scheduler(client)
         
-        # Add your jobs
-        scheduler.add_job(
-            daily_stock_update,
-            CronTrigger(
-                hour=12, 
-                minute=0, 
-                timezone=timezone('America/New_York')
-            ),
-            id='daily_stock_update_noon',
-            name='Update all stock prices at noon ET',
-            replace_existing=True
-        )
+        # # Add your jobs
+        # scheduler.add_job(
+        #     daily_stock_update,
+        #     CronTrigger(
+        #         hour=12, 
+        #         minute=0, 
+        #         timezone=timezone('America/New_York')
+        #     ),
+        #     id='daily_stock_update_noon',
+        #     name='Update all stock prices at noon ET',
+        #     replace_existing=True
+        # )
         
-        scheduler.add_job(
-            daily_stock_update,
-            CronTrigger(
-                hour=16, 
-                minute=30, 
-                timezone=timezone('America/New_York')
-            ),
-            id='daily_stock_update_close',
-            name='Update all stock prices at market close ET',
-            replace_existing=True
-        )
+        # scheduler.add_job(
+        #     daily_stock_update,
+        #     CronTrigger(
+        #         hour=16, 
+        #         minute=30, 
+        #         timezone=timezone('America/New_York')
+        #     ),
+        #     id='daily_stock_update_close',
+        #     name='Update all stock prices at market close ET',
+        #     replace_existing=True
+        # )
 
-        # Start the scheduler
-        scheduler.start()
-        logger.info("Scheduler started with MongoDB jobstore")
+        # # Start the scheduler
+        # scheduler.start()
+        # logger.info("Scheduler started with MongoDB jobstore")
         
-        # Store scheduler in app state for access in other parts of the application
-        app.state.scheduler = scheduler
+        # # Store scheduler in app state for access in other parts of the application
+        # app.state.scheduler = scheduler
         
         yield
     finally:
-        # Shutdown scheduler
-        if hasattr(app.state, 'scheduler'):
-            app.state.scheduler.shutdown()
-            logger.info("Scheduler shut down")
+        # # Shutdown scheduler
+        # if hasattr(app.state, 'scheduler'):
+        #     app.state.scheduler.shutdown()
+        #     logger.info("Scheduler shut down")
         
         # Close database connection
         await asyncio.sleep(1)  # Allow pending operations to complete
