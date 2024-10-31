@@ -4,7 +4,8 @@ import 'react-toastify/dist/ReactToastify.css';
 
 
 const apiConfig = {
-  baseURL: 'http://localhost:8000',
+  // baseURL: 'http://localhost:8000', for local developing
+  baseURL: '/api',
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
