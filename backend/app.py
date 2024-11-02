@@ -116,21 +116,21 @@ app = FastAPI(lifespan=lifespan)
 
 #when developing comment these:
 # Create the API app
-api_app = FastAPI(
-    title="My Server API",
-    description=DESCRIPTION,
-    version="0.1.0",
-)
+# api_app = FastAPI(
+#     title="My Server API",
+#     description=DESCRIPTION,
+#     version="0.1.0",
+# )
 
-# Mount the API app
-app.mount("/api", api_app)
+# # Mount the API app
+# app.mount("/api", api_app)
 
-# Mount the static files directly to the root
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+# # Mount the static files directly to the root
+# app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
-@app.exception_handler(404)
-async def custom_404_handler(request, exc):
-    return FileResponse('static/index.html')
+# @app.exception_handler(404)
+# async def custom_404_handler(request, exc):
+#     return FileResponse('static/index.html')
 
 
 # Add CORS middleware to the main app

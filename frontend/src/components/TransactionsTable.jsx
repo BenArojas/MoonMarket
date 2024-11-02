@@ -14,7 +14,18 @@ import FirstPageIcon from "@mui/icons-material/FirstPage";
 import KeyboardArrowLeft from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRight from "@mui/icons-material/KeyboardArrowRight";
 import LastPageIcon from "@mui/icons-material/LastPage";
-
+import { Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 function TablePaginationActions(props) {
   const theme = useTheme();
@@ -100,7 +111,7 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
 }));
 
 
-export default function TransactionsTable({ data, filters }) {
+export default function TransactionsTable({ data, filters, onDeleteTransaction }) {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
 
@@ -167,6 +178,7 @@ export default function TransactionsTable({ data, filters }) {
             <StyledTableCell align="right">Description</StyledTableCell>
             <StyledTableCell align="right">Position price</StyledTableCell>
             <StyledTableCell align="right">Date</StyledTableCell>
+            <StyledTableCell align="right">Actions</StyledTableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -189,6 +201,33 @@ export default function TransactionsTable({ data, filters }) {
               </StyledTableCell>
               <StyledTableCell style={{ width: 160 }} align="right">
                 {formatDate(transaction.transaction_date)}
+              </StyledTableCell>
+              <StyledTableCell style={{ width: 80 }} align="right">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button className="p-2 hover:bg-gray-100 rounded-full">
+                      <Trash2 className="h-4 w-4 text-gray-500 hover:text-red-500" />
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Transaction</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete this {transaction.type} transaction for {transaction.ticker}? 
+                        This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-red-500 hover:bg-red-600"
+                        onClick={() => onDeleteTransaction(transaction._id)}
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </StyledTableCell>
             </StyledTableRow>
           ))}

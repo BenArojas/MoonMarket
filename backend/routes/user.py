@@ -94,7 +94,7 @@ async def add_deposit(deposit:Deposit, user:User = Depends(current_user)):
 
 
 @router.patch("/update-username", operation_id="update_user_details")
-async def update_user(new_username: str, user: User = Depends(current_user)) ->str:  
+async def update_user(new_username: str, user: User = Depends(current_user)) -> str:  
     """Update username field."""
     username_check = await User.by_username(new_username)
     if username_check is not None:

@@ -73,10 +73,10 @@ export function processTreemapData(stocksList, stocksInfo) {
   }
 
   positiveStocks.forEach((stock) => {
-    stock.percentageOfPortfolio = Math.round((stock.value / sum) * 100);
+    stock.percentageOfPortfolio = ((stock.value / sum) * 100).toFixed(2);
   });
   negativeStocks.forEach((stock) => {
-    stock.percentageOfPortfolio = Math.round((stock.value / sum) * 100);
+    stock.percentageOfPortfolio = ((stock.value / sum) * 100).toFixed(2);
   });
 
   const newStocksTree = {
@@ -178,7 +178,7 @@ export function processSankeyData(stocksList, stocksInfo) {
     const stock_avg_price = holding.avg_bought_price;
     const value = holding.quantity * res.price;
     const ticker = holding.ticker;
-    const percentageChange = Math.round(((res.price - stock_avg_price) / stock_avg_price) * 100);
+    const percentageChange = (((res.price - stock_avg_price) / stock_avg_price) * 100).toFixed(2);
 
     const nodeData = {
       id: ticker,
@@ -233,9 +233,9 @@ export function processCircularData(stocksList, stocksInfo) {
     const ticker = holding.ticker;
     sum += value;
     const stock_avg_price = holding.avg_bought_price;
-    const percentageOfPortfolio = Math.round(
+    const percentageOfPortfolio = (
       (value / totalPortfolioValue) * 100
-    );
+    ).toFixed(2);
     let stockType;
     if (res.price > stock_avg_price) {
       stockType = "positive";
@@ -281,12 +281,12 @@ export function processLeaderboardsData(stocksList, stocksInfo) {
     const name = stocksInfo[i].name;
     const avg_bought_price = stock.avg_bought_price;
     const priceChange = stocksInfo[i].price - avg_bought_price;
-    const priceChangePercentage = Math.round(
+    const priceChangePercentage = (
       ((stocksInfo[i].price - avg_bought_price) / avg_bought_price) * 100
-    );
-    const percentageOfPortfolio = Math.round(
+    ).toFixed(2);
+    const percentageOfPortfolio = (
       (value / totalPortfolioValue) * 100
-    );
+    ).toFixed(2);
 
     const gainLoss = (value - (stock.avg_bought_price * stock.quantity)).toFixed(2);
 
@@ -356,7 +356,8 @@ export function calculatePerformanceData(data, moneySpent) {
 export const calculateTransactionSummary = (transactions, currentStockPrices) => {
   let totalTrades = 0;
   let closedTrades = 0;
-  let profitableTrades = 0;
+  let profitableTrades = 0;  // Keep this to calculate win rate
+  let moneySpent = 0;
   let totalProfit = 0;
 
   // Sort transactions by date
@@ -378,7 +379,7 @@ export const calculateTransactionSummary = (transactions, currentStockPrices) =>
         totalCost: 0,
         realizedProfit: 0
       };
-      totalTrades++; // Count unique tickers as trades
+      totalTrades++;
     }
 
     const position = positionsByTicker[ticker];
@@ -388,6 +389,7 @@ export const calculateTransactionSummary = (transactions, currentStockPrices) =>
     if (transaction.type === 'purchase') {
       position.totalQuantity += transaction.quantity;
       position.totalCost += transaction.price * transaction.quantity;
+      moneySpent += transaction.price * transaction.quantity;
     } else if (transaction.type === 'sale') {
       const saleValue = transaction.price * transaction.quantity;
       const avgCost = position.totalCost / position.totalQuantity;
@@ -395,17 +397,17 @@ export const calculateTransactionSummary = (transactions, currentStockPrices) =>
 
       position.realizedProfit += saleValue - costBasis;
       position.totalQuantity -= transaction.quantity;
-      position.totalCost = avgCost * position.totalQuantity; // Adjust remaining cost basis
+      position.totalCost = avgCost * position.totalQuantity;
 
-      // Check if position is fully closed
       if (position.totalQuantity === 0 || transaction.text.includes("Closed position:")) {
         position.isFullyClosed = true;
         closedTrades++;
-
+        
+        // Check if the trade was profitable
         if (position.realizedProfit > 0) {
           profitableTrades++;
         }
-
+        
         totalProfit += position.realizedProfit;
       }
     }
@@ -421,13 +423,31 @@ export const calculateTransactionSummary = (transactions, currentStockPrices) =>
     }
   });
 
+  // Calculate win rate: profitable trades divided by closed trades
   const winRate = closedTrades > 0 ? (profitableTrades / closedTrades) * 100 : 0;
 
   return {
     totalTrades,
     closedTrades,
-    profitableTrades,
+    moneySpent: Number(moneySpent.toFixed(2)),
     totalProfit: Number(totalProfit.toFixed(2)),
     winRate: Number(winRate.toFixed(1))
   };
 };
+
+ // Format currency
+ export const formatCurrency = (amount) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD'
+  }).format(amount);
+};
+
+  // Format date
+  export const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };

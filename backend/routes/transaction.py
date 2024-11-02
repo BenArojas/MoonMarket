@@ -6,6 +6,7 @@ from models.stock import Stock
 from models.transaction import Transaction
 from models.user import Holding
 import pytz
+from beanie import PydanticObjectId
 
 router = APIRouter(tags=["Transaction"])
 
@@ -151,3 +152,105 @@ async def sell_stock_shares(ticker: str, quantity: int, price: float, transactio
     await user.save()
 
     return {"message": "Stock sold successfully"}
+
+@router.delete("/delete_transaction/{transaction_id}")
+async def delete_transaction(transaction_id: str, user: User = Depends(current_user)):
+    # Find the transaction
+    # Convert string ID to PydanticObjectId
+    transaction_obj_id = PydanticObjectId(transaction_id)
+    transaction = await Transaction.get(transaction_obj_id)
+    print(transaction)
+    
+    if transaction is None:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+        
+    if str(transaction.user_id.ref.id) != str(user.id):
+        raise HTTPException(status_code=403, detail="Not authorized to delete this transaction")
+
+
+    # Handle the transaction based on its type
+    if transaction.type == "purchase":
+        await _handle_purchase_deletion(user, transaction)
+    elif transaction.type == "sale":
+        await _handle_sale_deletion(user, transaction)
+    else:
+        raise HTTPException(status_code=400, detail="Invalid transaction type")
+    
+    # Remove transaction from user's transactions list
+    if transaction.id in user.transactions:
+        user.transactions.remove(transaction.id)
+    
+    # Delete the transaction and save user changes
+    await transaction.delete()
+    await user.save()
+    
+    return {"message": "Transaction deleted successfully"}
+
+async def _handle_purchase_deletion(user: User, transaction: Transaction):
+    """Handle deletion of a purchase transaction"""
+    # Find the corresponding holding
+    holding = next((h for h in user.holdings if h.ticker == transaction.ticker), None)
+    
+    if not holding:
+        raise HTTPException(
+            status_code=400,
+            detail="Holding not found. Data inconsistency detected."
+        )
+    
+    # Check if we can remove these shares
+    if holding.quantity < transaction.quantity:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete transaction: would result in negative shares"
+        )
+    
+    # Refund the purchase amount
+    purchase_cost = transaction.price * transaction.quantity
+    user.current_balance += purchase_cost
+    
+    # Update or remove the holding
+    if holding.quantity == transaction.quantity:
+        # This was the only purchase for this stock, remove the holding
+        user.holdings.remove(holding)
+    else:
+        # Recalculate average purchase price by removing this transaction's impact
+        remaining_quantity = holding.quantity - transaction.quantity
+        total_cost = holding.avg_bought_price * holding.quantity
+        transaction_cost = transaction.price * transaction.quantity
+        
+        if remaining_quantity > 0:
+            new_avg_price = (total_cost - transaction_cost) / remaining_quantity
+            holding.quantity = remaining_quantity
+            holding.avg_bought_price = new_avg_price
+        else:
+            # If no shares remain, remove the holding
+            user.holdings.remove(holding)
+
+async def _handle_sale_deletion(user: User, transaction: Transaction):
+    """Handle deletion of a sale transaction"""
+    # Find or create corresponding holding
+    holding = next((h for h in user.holdings if h.ticker == transaction.ticker), None)
+    
+    # Remove the profit from the user's account
+    sale_amount = transaction.price * transaction.quantity
+    if user.current_balance < sale_amount:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete transaction: insufficient funds to reverse sale"
+        )
+    
+    user.profit -= sale_amount
+    
+    if holding:
+        # Add back the sold shares to existing holding
+        holding.quantity += transaction.quantity
+    else:
+        # Create new holding if it was fully sold before
+        user.holdings.append(
+            Holding(
+                ticker=transaction.ticker,
+                avg_bought_price=transaction.price,  # Use the sale price as we don't have the original purchase price
+                quantity=transaction.quantity,
+                position_started=transaction.transaction_date
+            )
+        )

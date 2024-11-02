@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import { createChart, ColorType, CrosshairMode } from 'lightweight-charts';
 import { useTheme } from "@mui/material";
-import { debounce } from 'lodash'; // Make sure to install lodash if not already in your project
+import { debounce } from 'lodash'; 
+import {formatCurrency, formatDate} from '@/utils/dataProcessing'
+
 
 const PerformanceChart = ({ data }) => {
     const chartContainerRef = useRef();
@@ -27,7 +29,7 @@ const PerformanceChart = ({ data }) => {
                     const date = new Date(dataPoint.time * 1000);
                     setTooltipData({
                         value: dataPoint.value.toFixed(2),
-                        time: date.toLocaleDateString()
+                        time: date
                     });
                     setTooltipVisible(true);
 
@@ -90,7 +92,11 @@ const PerformanceChart = ({ data }) => {
                 borderVisible: false,
                 fixLeftEdge: true,
                 fixRightEdge: true,
-                
+                timeVisible: true, // Enables full dates
+                tickMarkFormatter: (time, tickMarkType) => {
+                    const date = new Date(time * 1000);
+                    return `${date.getUTCDate()} ${date.toLocaleString('default', { month: 'short' })}`;
+                }
             },
         });
 
@@ -179,7 +185,7 @@ const PerformanceChart = ({ data }) => {
                     }}
                 >
                     <div>Value: {tooltipData.value}%</div>
-                    <div>Date: {tooltipData.time}</div>
+                    <div>Date: {formatDate(tooltipData.time)}</div>
                 </div>
             )}
         </div>

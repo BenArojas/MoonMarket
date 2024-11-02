@@ -3,8 +3,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { updateUsername, changePassword, addDeposit } from "@/api/user";
 import { answerFriendRequest, sendFriendRequest } from "@/api/friend";
 import { useTheme } from '@mui/material/styles';
+import AccountTabContent from '@/components/profile-tabs/AccountTabContent'
 import ProfileTabContent from '@/components/profile-tabs/ProfileTabContent'
-import PasswordTabContent from '@/components/profile-tabs/PasswordTabContent'
 import MoneyTabContent from '@/components/profile-tabs/MoneyTabContent'
 import FriendsTabContent from '@/components/profile-tabs/FriendsTabContent'
 import FriendRequestsTabContent from '@/components/profile-tabs/FriendRequestsTabContent'
@@ -12,10 +12,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Badge } from "@mui/material";
 
 
-const ProfileTabs = ({ username, current_balance, friendRequests, friendList, friendRequestsCount, sentFriendRequestsData }) => {
+const ProfileTabs = ({ username, current_balance, friendRequests, friendList, friendRequestsCount, sentFriendRequestsData, profit, deposits }) => {
   const theme = useTheme();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState('account');
 
   const updateUsernameMutation = useMutation({
     mutationFn: updateUsername,
@@ -70,10 +70,10 @@ const ProfileTabs = ({ username, current_balance, friendRequests, friendList, fr
   };
 
   return (
-    <Tabs defaultValue="profile" value={activeTab} onValueChange={setActiveTab} className="w-[650px]">
+    <Tabs defaultValue="account" value={activeTab} onValueChange={setActiveTab} className="w-[650px]">
       <TabsList className="grid w-full grid-cols-5" style={{ backgroundColor: theme.palette.trinary.main }}>
-        <TabsTrigger value="profile">Profile</TabsTrigger>
-        <TabsTrigger value="password">Settings</TabsTrigger>
+        <TabsTrigger value="account">Account</TabsTrigger>
+        <TabsTrigger value="profile">Settings</TabsTrigger>
         <TabsTrigger value="money">Money</TabsTrigger>
         <TabsTrigger value="friends">Friends</TabsTrigger>
         <Badge badgeContent={friendRequestsCount} color="primary">
@@ -81,18 +81,20 @@ const ProfileTabs = ({ username, current_balance, friendRequests, friendList, fr
         </Badge>
       </TabsList>
 
-      <TabsContent value="profile">
-        <ProfileTabContent
-          username={username}
-          onSubmit={handleUsernameSubmit}
-          isLoading={updateUsernameMutation.isLoading}
+      <TabsContent value="account">
+        <AccountTabContent
+          currentBalance={current_balance}
+          profit={profit}
+          deposits={deposits}
         />
       </TabsContent>
 
-      <TabsContent value="password">
-        <PasswordTabContent
-          onSubmit={handlePasswordSubmit}
-          isLoading={changePasswordMutation.isLoading}
+      <TabsContent value="profile">
+        <ProfileTabContent
+          username={username}
+          handlePasswordSubmit={handlePasswordSubmit}
+          handleUsernameSubmit={handleUsernameSubmit}
+          isLoading={changePasswordMutation.isLoading || updateUsernameMutation.isLoading}
         />
       </TabsContent>
 

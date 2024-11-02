@@ -4,6 +4,7 @@ import { useTheme } from "@mui/material";
 import { BrushableAreaSeries } from "@/plugins/brushable-area-series/brushable-area-series";
 import { DeltaTooltipPrimitive } from "@/plugins/delta-tooltip/delta-tooltip";
 import { TooltipPrimitive } from "@/plugins/tooltip/tooltip";
+import {formatCurrency} from '@/utils/dataProcessing'
 
 export const AreaChart = (props) => {
   const theme = useTheme();
@@ -89,7 +90,16 @@ export const AreaChart = (props) => {
     let series;
     if (enableAdvancedFeatures) {
       const style = trend === 'positive' ? positiveStyle : negativeStyle;
-
+      chart.timeScale().applyOptions({
+        borderVisible: false,
+            fixLeftEdge: true,
+            fixRightEdge: true,
+            timeVisible: true, // Enables full dates
+            tickMarkFormatter: (time, tickMarkType) => {
+                const date = new Date(time * 1000);
+                return `${date.getUTCDate()} ${date.toLocaleString('default', { month: 'short' })}`;
+            }
+      });
       const brushableAreaSeries = new BrushableAreaSeries(style);
 
       series = chart.addCustomSeries(brushableAreaSeries, {
@@ -138,7 +148,9 @@ export const AreaChart = (props) => {
         priceLineVisible: false,
       })
 
-      const tooltipPrimitive = new TooltipPrimitive();
+      const tooltipPrimitive = new TooltipPrimitive({
+        priceExtractor: (dataPoint) => formatCurrency(dataPoint.value), // Apply formatCurrency here
+      });
       series.attachPrimitive(tooltipPrimitive);
     }
 

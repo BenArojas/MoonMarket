@@ -6,9 +6,7 @@ import ErrorPage from "@/pages/ErrorPage";
 import StockItem, { loader as stockItemLoader } from "@/pages/StockItem";
 import Login from "@/pages/Login";
 import Profile from "@/pages/Profile";
-import Transactions, {
-  loader as transactionsLoader,
-} from "@/pages/Transactions";
+import Transactions from "@/pages/Transactions";
 import Register from "@/pages/Register";
 import Space, { loader as spaceLoader } from "@/pages/Space";
 import Test from "@/pages/Test";
@@ -42,7 +40,7 @@ const Routes = () => {
               path: "/transactions",
               element: <Transactions />,
               errorElement: <ErrorPage />,
-              loader: transactionsLoader,
+              // loader: transactionsLoader,
             },
             {
               path: "/space",
