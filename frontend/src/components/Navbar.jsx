@@ -10,9 +10,11 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import { useThemeHook } from "@/contexts/ThemeContext";
-import { useAuth } from "@/contexts/AuthProvider"; // Import the AuthProvider
-import { useQueryClient } from "@tanstack/react-query"; // Import react-query for cache clearing
+import { useAuth } from "@/contexts/AuthProvider"; 
+import { useQueryClient } from "@tanstack/react-query"; 
 import { useTheme } from "@mui/material";
+import useLogout from '@/hooks/useLogOut';
+
 
 function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
@@ -22,9 +24,7 @@ function Navbar({ friendRequestsCount }) {
   const theme = useTheme();
   const { toggleTheme, mode } = useThemeHook();
   const { pathname } = useLocation();
-  const navigate = useNavigate(); // Use the navigate function from react-router
-  const { logout } = useAuth(); // Get the logout function from AuthProvider
-  const queryClient = useQueryClient(); // Get the query client to clear cache
+  const handleLogout = useLogout();
 
   const isSpacePage = pathname === "/space";
   const mainNavItems = [
@@ -33,19 +33,6 @@ function Navbar({ friendRequestsCount }) {
     { icon: ArrowLeftRight, text: "transactions" },
     { icon: BriefcaseBusiness, text: "home" },
   ];
-
-  // Define the logout process
-  const handleLogout = async () => {
-    try {
-      queryClient.clear(); // Clear the query cache
-      await logout(); // Execute the logout function
-      navigate("/login", { replace: true }); // Redirect to login page
-    } catch (error) {
-      console.error("Error during logout", error);
-      // Optionally, you can handle the error here, such as showing a notification
-    }
-  };
-
   const rightNavItems = [
     {
       icon: mode === "dark" ? LightModeIcon : DarkModeIcon,
