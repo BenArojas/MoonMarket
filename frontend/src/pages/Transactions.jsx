@@ -21,7 +21,7 @@ import {
   MenuItem,
   useTheme,
 } from "@mui/material";
-import { useTransactionSummary } from "@/hooks/TransactionSummary";
+import { useTransactionSummary } from "@/hooks/useTransactionSummary";
 import { getUserStocks } from "@/api/user";
 import {
   TradingActivityDistribution,

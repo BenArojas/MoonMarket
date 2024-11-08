@@ -1,8 +1,8 @@
   // ProtectedRoute.jsx
   import React from 'react';
-  import { Navigate, useLocation, Outlet, useLoaderData } from 'react-router-dom';
-  import { useAuth } from '@/contexts/AuthProvider';
+  import { Outlet, useLoaderData } from 'react-router-dom';
   import { requireAuth } from '@/utils/auth';
+  import useAutoLogout from '@/hooks/useAutoLogout'
 
   export async function loader (){
     const response = await requireAuth();
@@ -11,6 +11,8 @@
   export const ProtectedRoute = () => {
 
     const isEnabled = useLoaderData()
+    useAutoLogout()
+
     
     return <Outlet context={isEnabled}/>;
 
