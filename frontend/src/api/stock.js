@@ -2,7 +2,7 @@ import api from "@/api/axios";
 
 
 export async function postApiStock(portfolioStock) {
-  return api.post(`/stocks/add_stock`, portfolioStock, );
+  return api.post(`/stock/add_stock`, portfolioStock, );
 }
 
 export async function getStockData(ticker) {
@@ -10,7 +10,7 @@ export async function getStockData(ticker) {
     return false;
   } else {
     const stock = await api.get(
-      `/stocks/quote/${ticker}`
+      `/stock/quote/${ticker}`
     );
     if(stock.data.length == 0) {
     return null;
@@ -25,18 +25,18 @@ export async function getHistoricalData(ticker) {
     return false;
   } else {
     const data = await api.get(
-      `/stocks/historical_data/${ticker}`
+      `/stock/historical_data/${ticker}`
     );
     return data.data;
   }
 }
 
-export async function getIntradyData(ticker) {
+export async function getIntradayData(ticker, range) {
   if (isValidStockTicker(ticker) === false) {
     return false;
   } else {
     const data = await api.get(
-      `/stocks/intrady_chart/${ticker}`
+      `/stock/intraday_chart/${ticker}?range=${range}`
     );
     return data.data;
   }
@@ -56,14 +56,14 @@ function isValidStockTicker(ticker) {
 }
 
 export async function getStockFromPortfolio(ticker) {
-  const stock = await api.get(`/stocks/${ticker}`);
+  const stock = await api.get(`/stock/${ticker}`);
   return stock.data;
 }
 
 export async function updateStockPrice(ticker ) {
   try {
     const response = await api.put(
-      `/stocks/update_stock_price/${ticker}`,
+      `/stock/update_stock_price/${ticker}`,
       {}, // This is the data payload. Use an empty object if no data to send.
      
     );
@@ -76,7 +76,7 @@ export async function updateStockPrice(ticker ) {
 
 export async function deleteStock(tickeroken) {
   const stock = await api.delete(
-    `/stocks/delete/${ticker}`
+    `/stock/delete/${ticker}`
   );
   return stock.data; // Return response data if needed
 }

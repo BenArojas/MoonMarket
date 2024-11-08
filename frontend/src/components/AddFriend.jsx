@@ -1,25 +1,18 @@
+import React, { useState } from "react";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { Avatar } from "@mui/material";
 import { sendFriendRequest } from '@/api/friend';
-import { useState } from "react";
 
-function AddFriend({  username, email}) {
-  const [resultMessage, setResultMessage] = useState("");
+function AddFriend({ username, email, setFriend, handleSendFriendRequest}) {
 
   const handleSubmit = async () => {
-    try {
-      await sendFriendRequest(username);
-      setResultMessage("Friend request sent successfully");
-    } catch (error) {
-      setResultMessage(`Error adding friend: ${error.message}`);
+      await handleSendFriendRequest(username);
+      setFriend({})
     }
-  };
 
   return (
-    resultMessage ? 
-      <p>{resultMessage}</p> : 
       <Stack direction="row" justifyContent="space-between" spacing={2} alignItems="center">
         <Avatar
         />

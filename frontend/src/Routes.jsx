@@ -1,40 +1,29 @@
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthProvider";
-import {
-  ProtectedRoute
-} from "@/pages/ProtectedRoute";
+import { ProtectedRoute, loader as ProtctedRouteLoader } from "@/pages/ProtectedRoute";
+import { PublicRoute, loader as PublicRouteLoader } from "@/pages/PublicRoute";
 import Portfolio from "@/pages/Portfolio";
 import ErrorPage from "@/pages/ErrorPage";
 import StockItem, { loader as stockItemLoader } from "@/pages/StockItem";
 import Login from "@/pages/Login";
-import Logout from "@/pages/Logout";
-import { PublicRoute } from "@/pages/PublicRoute";
-import Profile, { loader as profileLoader } from "@/pages/Profile";
-import Transactions, {
-  loader as transactionsLoader,
-} from "@/pages/Transactions";
-import { action as profileAction } from "@/components/ProfileTabs";
+import Profile from "@/pages/Profile";
+import Transactions from "@/pages/Transactions";
 import Register from "@/pages/Register";
 import Space, { loader as spaceLoader } from "@/pages/Space";
 import Test from "@/pages/Test";
 import "./styles/global.css";
-import Layout, { loader as LayoutLoader } from "@/pages/Layout"
-import { ThemeProvider } from "./contexts/ThemeContext";
+import Layout from "@/pages/Layout";
 import Global from "@/pages/Global";
 
-
 const Routes = () => {
-  
   // Combine and conditionally include routes based on authentication status
   const router = createBrowserRouter([
     {
       element: <ProtectedRoute />,
+      loader: ProtctedRouteLoader,
       children: [
         {
           element: <Layout />,
           path: "/",
-          loader: LayoutLoader,
-          // errorElement: <ErrorPage />,
           children: [
             {
               path: "/home",
@@ -44,27 +33,20 @@ const Routes = () => {
             {
               path: "/profile",
               element: <Profile />,
-              // errorElement: <ErrorPage />,
-              loader: profileLoader,
-              action: profileAction,
+              // loader: profileLoader,
+              // action: profileAction,
             },
             {
               path: "/transactions",
               element: <Transactions />,
               errorElement: <ErrorPage />,
-              loader: transactionsLoader,
+              // loader: transactionsLoader,
             },
             {
               path: "/space",
-              element:
-                <Space />
-              ,
+              element: <Space />,
               loader: spaceLoader,
               errorElement: <ErrorPage />,
-            },
-            {
-              path: "/logout",
-              element: <Logout />,
             },
             {
               path: "/test",
@@ -78,16 +60,15 @@ const Routes = () => {
               path: "stock/:stockTicker",
               element: <StockItem />,
               errorElement: <ErrorPage />,
-              loader: ({ params }) => {
-                return stockItemLoader(params.stockTicker);
-              },
+              loader: stockItemLoader,
             },
-          ]
+          ],
         },
       ],
     },
     {
       element: <PublicRoute />,
+      loader: PublicRouteLoader,
       path: "/",
       errorElement: <ErrorPage />,
       children: [
@@ -105,8 +86,8 @@ const Routes = () => {
     },
     {
       path: "*",
-      element: <div style={{color: 'white'}}>404 - Not Found</div>,
-    },  
+      element: <div style={{ color: "white" }}>404 - Not Found</div>,
+    },
   ]);
 
   // Provide the router configuration using RouterProvider

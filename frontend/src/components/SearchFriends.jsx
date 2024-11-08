@@ -6,19 +6,26 @@ import Input from "@mui/material/Input";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-function SearchFriends() {
+function SearchFriends({handleSendFriendRequest}) {
 
   const [friend, setFriend] = useState({})
   const [searchInput, setSearchInput] = useState("");
+
   const handleInputChange = (event) => {
     setSearchInput(event.target.value);
   };
-
-  const handleSearchClick = async () => {
-    if (searchInput.trim()) {
-      const result = await searchUser(searchInput);
+  const searchUserMutation = useMutation({
+    mutationFn: searchUser,
+    onSuccess: (result) => {
       setFriend(result)
+    },
+  });
+
+  const handleSearchUser = () => {
+    if (searchInput.trim()) {
+      searchUserMutation.mutate(searchInput);
     }
   };
 
@@ -36,10 +43,10 @@ function SearchFriends() {
         >
           <Input sx={{ flexGrow: 1 }} placeholder="Name" value={searchInput}
             onChange={handleInputChange} />
-          <Button variant="outlined" onClick={handleSearchClick}>Search</Button>
+          <Button variant="outlined" onClick={handleSearchUser}>Search</Button>
         </Stack>
         <Stack spacing={2}>
-          {friend.username && <AddFriend username={friend.username} email={friend.email} />}
+          {friend.username && <AddFriend username={friend.username} email={friend.email} setFriend={setFriend} handleSendFriendRequest={handleSendFriendRequest}/>}
         </Stack>
       </Box>
     </>

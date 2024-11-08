@@ -8,11 +8,13 @@ from fastapi.responses import JSONResponse
 from jwt import access_security
 from util.current_user import current_user
 from models.transaction import Transaction
+from models.stock import Stock
+from models.PortfolioSnapshot import PortfolioSnapshot
 from util.password import hash_password, verify_password
 
 
 
-router = APIRouter(prefix="/user", tags=["User"])
+router = APIRouter( tags=["User"])
 
 
 @router.get("", response_model=UserOut, operation_id="retrieve_user")
@@ -33,6 +35,19 @@ async def get_user_transactions(user: User = Depends(current_user)):
     # Return the list of transactions
     return transactions
 
+@router.get("/holdings")
+async def get_holdings(user: User = Depends(current_user)):
+    # Retrieve holdings for the specified user ID
+    return user.holdings
+
+@router.get("/stocks")
+async def get_stocks(user: User = Depends(current_user)):
+    # Get unique tickers from user's holdings
+    tickers = set(holding.ticker for holding in user.holdings)
+    # Fetch only the stocks that the user holds
+    stocks = await Stock.find({"ticker": {"$in": list(tickers)}}).to_list()
+    return stocks
+
 @router.get("/user_transactions/{type}",response_model=UserOut, operation_id="retrieve_user_transactions_by_type")
 async def get_user_transactions_by_type(type: str, user: User = Depends(current_user)):
     # Retrieve transactions for the specified user ID
@@ -42,20 +57,32 @@ async def get_user_transactions_by_type(type: str, user: User = Depends(current_
 
 @router.get("/user_friend/{username}", response_model=UserFriend)
 async def get_user_by_username(username: str, current_user: User = Depends(current_user)):
+
     if username == current_user.username:
         raise HTTPException(status_code=400, detail="Cannot retrieve your own profile as a friend")
 
-    user = await User.find_one(User.username == username)
+    user =await User.find_one(User.username == username)
+
     if user:
-        return UserFriend(email=user.email,username=user.username, holdings=user.holdings)
+        if user.id in current_user.friends:
+            raise HTTPException(status_code=400, detail="User is already your friend")
+        return UserFriend(email=user.email, username=user.username)
     raise HTTPException(status_code=404, detail="User not found")
 
-@router.get("/get_friends")
-async def get_all_friends(current_user: User = Depends(current_user)):
-    friends = current_user.friends
-    # TODO:loop through friends and for each of them return an object with the following properties: ID, Username, calculate the percentage change of the portfolio profit/loss and return an array of holdings with percentage change of each stock and percentage of the stock in the portfolio 
-    return friends
-    
+@router.get("/users_list")
+async def users_list(current_user: User = Depends(current_user)):
+    users = [{"id": str(current_user.id), "username": current_user.username, "email": current_user.email}]
+    for friend_id in current_user.friends:
+        user = await User.get(friend_id)
+        if not user:
+            continue
+        friend_detail = {
+            "id": str(friend_id),  
+            "username": user.username,
+            "email": user.email,
+        }
+        users.append(friend_detail)
+    return users
 
 @router.post("/add_deposit")
 async def add_deposit(deposit:Deposit, user:User = Depends(current_user)):
@@ -67,8 +94,11 @@ async def add_deposit(deposit:Deposit, user:User = Depends(current_user)):
 
 
 @router.patch("/update-username", operation_id="update_user_details")
-async def update_user(new_username: str, user: User = Depends(current_user)) ->str:  
-    """Update allowed user fields."""
+async def update_user(new_username: str, user: User = Depends(current_user)) -> str:  
+    """Update username field."""
+    username_check = await User.by_username(new_username)
+    if username_check is not None:
+        raise HTTPException(409, "User with that username already exists")
     user.username = new_username
     await user.save()
     return user.username
@@ -103,6 +133,7 @@ async def delete_user(
     
     # Find and delete transactions associated with the user
     await Transaction.find(Transaction.user_id.id == user.id).delete()
+    await PortfolioSnapshot.find(PortfolioSnapshot.userId.id == user.id).delete()
 
     # Delete the user
     await user.delete()

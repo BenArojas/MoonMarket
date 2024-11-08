@@ -4,7 +4,7 @@ import {
   processDonutData,
   processCircularData,
   processLeaderboardsData,
-  getPortfolioStats
+  getPortfolioStats, processSankeyData
 } from "@/utils/dataProcessing.js";
 import useHoldingsData from "@/hooks/useHoldingsData";
 
@@ -31,6 +31,8 @@ function useGraphData(userData, selectedGraph, ) {
         return processCircularData(stockList, stocksInfo);
       case "Leaderboards":
         return processLeaderboardsData(stockList, stocksInfo);
+      case "Sankey":
+        return processSankeyData(stockList, stocksInfo);
       default:
         return processTreemapData(stockList, stocksInfo);
     }

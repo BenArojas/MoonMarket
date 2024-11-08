@@ -1,5 +1,5 @@
 import { getPortfolioSnapshots, postSnapshot } from "@/api/portfolioSnapshot";
-import { getIntradyData } from "@/api/stock";
+import { getHistoricalData } from "@/api/stock";
 import { getUserData } from "@/api/user";
 import GraphMenu from "@/components/GraphMenu";
 import NewUserNoHoldings from "@/components/NewUserNoHoldings";
@@ -8,31 +8,17 @@ import useGraphData from "@/hooks/useGraphData";
 import { PercentageChange } from "@/pages/Layout";
 import { lastUpdateDate } from "@/utils/dataProcessing";
 import { Box, Stack, CircularProgress, Card } from "@mui/material";
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useState, useRef  } from "react";
 import DataGraph from "@/components/DataGraph";
 import SnapshotChart from "@/components/SnapShotChart";
 import CurrentStockCard from "@/components/CurrentStock";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import GraphSkeleton from "@/Skeletons/GraphSkeleton";
-
-// function GraphSkeleton() {
-//   return (
-//     <Card
-//       sx={{
-//         width: "100%",
-//         height: "100%",
-//         display: "flex",
-//         justifyContent: "center",
-//         alignItems: "center",
-//       }}
-//     >
-//       <CircularProgress />
-//     </Card>
-//   );
-// }
-
 import { ErrorBoundary } from "react-error-boundary";
+import { useStockPriceUpdate } from '@/hooks/useStockPriceUpdate'
+import { useLocation } from "react-router-dom";
+
 
 function ErrorFallback({ error }) {
   return (
@@ -43,32 +29,43 @@ function ErrorFallback({ error }) {
   );
 }
 
-function Portfolio() {
-
+function Portfolio({ userName }) {
   const [searchParams] = useSearchParams();
+  const { state } = useLocation(); // Get location state
   const selectedTicker = searchParams.get("selected") || "BTCUSD"; // Default to 'BTCUSD' if not specified
   const queryClient = useQueryClient();
+  const updateStockPricesMutation = useStockPriceUpdate();
+  const initialFetchRef = useRef(false);  // Add this
 
   const { data: userData, isPending: userDataLoading } = useQuery({
-    queryKey: ["userData",],
-    queryFn: () => getUserData(),
+    queryKey: ["userData", userName],
+    queryFn: getUserData,
   });
+  // console.log(userData)
+
+  // for developing, on prod we will have an update twice a day
+  useEffect(() => {
+    if (!initialFetchRef.current && userData && state?.shouldUpdatePrices && userData?.holdings?.length > 0) {
+      const tickers = userData.holdings.map(holding => holding.ticker);
+      updateStockPricesMutation.mutate(tickers);
+      initialFetchRef.current = true;  
+    }
+  }, [userData, state?.shouldUpdatePrices]);
 
   const { data: stockData, isPending: stockDataLoading } = useQuery({
-    queryKey: ["stockData", selectedTicker,],
-    queryFn: () => getIntradyData(selectedTicker,),
-    enabled: !!selectedTicker ,
+    queryKey: ["stockData", selectedTicker],
+    queryFn: () => getHistoricalData(selectedTicker),
+    enabled: !!selectedTicker,
     staleTime: 120 * 1000,
   });
 
   const { data: dailyTimeFrame, isPending: dailyTimeFrameLoading } = useQuery({
-    queryKey: ["dailyTimeFrame",],
+    queryKey: ["dailyTimeFrame", userName],
     queryFn: () => getPortfolioSnapshots(),
   });
 
-
   useEffect(() => {
-    queryClient.invalidateQueries(["stockData", selectedTicker,]);
+    queryClient.invalidateQueries(["stockData", selectedTicker]);
   }, [selectedTicker, , queryClient]);
 
   return (
@@ -76,9 +73,9 @@ function Portfolio() {
       sx={{
         display: "grid",
         gridTemplateColumns: "1000px auto",
-        padding: 2,
-        gap: 4,
-        marginX: 9,
+        paddingY: 1,
+        paddingX: 5,
+        marginX: 5,
         height: "100%",
       }}
     >
@@ -97,27 +94,28 @@ function Portfolio() {
           )}
         </ErrorBoundary>
       </Box>
-      <Box sx={{ width: 600, ml: "auto", overflow: "hidden" }}>
-        <Stack spacing={2} sx={{ height: "100%" }}>
+      <Box sx={{ width: 600, ml: "auto" }}>
+        <Stack spacing={3} sx={{ height: "100%" }}>
           <ErrorBoundary FallbackComponent={ErrorFallback}>
-            {(dailyTimeFrameLoading || userDataLoading) ? (
+            {dailyTimeFrameLoading || userDataLoading ? (
               <GraphSkeleton />
             ) : (
-              <SnapshotChartWrapper
+              <StackedCardsWrapper
                 dailyTimeFrame={dailyTimeFrame}
-
                 userData={userData}
+                updateStockPricesMutation={updateStockPricesMutation}
               />
             )}
           </ErrorBoundary>
 
           <ErrorBoundary FallbackComponent={ErrorFallback}>
             {stockDataLoading ? (
-              <GraphSkeleton />
+              <Box sx={{
+                height: 350
+              }}><GraphSkeleton /></Box>
             ) : (
               <CurrentStockCard
-                stockData={stockData}
-
+                stockData={stockData.historical}
                 stockTicker={selectedTicker}
               />
             )}
@@ -128,29 +126,26 @@ function Portfolio() {
   );
 }
 
-function PortfolioContent({ userData, }) {
+function PortfolioContent({ userData }) {
   const [selectedGraph, setSelectedGraph] = useState("Treemap");
   const { visualizationData, isDataProcessed, value } = useGraphData(
     userData,
-    selectedGraph,
-
+    selectedGraph
   );
 
-
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
   const postSnapshotMutation = useMutation({
     mutationFn: postSnapshot,
-    onSuccess: (data) => {
-      queryClient.invalidateQueries(["dailyTimeFrame"]) // Invalidate the dailyTimeFrame query when the snapshot is posted
+    onSuccess: () => {
+      queryClient.invalidateQueries(["dailyTimeFrame"]);
     },
     onError: (error) => {
       console.error("Error posting a snapshot", error);
-    }
-  })
-
+    },
+  });
 
   useEffect(() => {
-    if (value != 0) {
+    if (visualizationData != null) {
       postSnapshotMutation.mutate({ value: value });
     }
   }, [value]);
@@ -175,17 +170,12 @@ function PortfolioContent({ userData, }) {
   );
 }
 
-const SnapshotChartWrapper = ({ dailyTimeFrame, userData }) => {
+const StackedCardsWrapper = ({ dailyTimeFrame, userData, updateStockPricesMutation }) => {
   const { percentageChange, setPercentageChange } =
     useContext(PercentageChange);
-  const { stockTickers, value, moneySpent } = useGraphData(
-    userData,
-    "Treemap",
-
-  );
+  const { stockTickers, value, moneySpent } = useGraphData(userData, "Treemap");
   const formattedDate = lastUpdateDate(userData);
   const incrementalChange = value - moneySpent;
-  // console.log("percentageChange is " + percentageChange )
 
   useEffect(() => {
     if (moneySpent !== 0 && setPercentageChange) {
@@ -196,15 +186,14 @@ const SnapshotChartWrapper = ({ dailyTimeFrame, userData }) => {
 
   return (
     <SnapshotChart
+      moneySpent={moneySpent}
       formattedDate={formattedDate}
       stockTickers={stockTickers}
       incrementalChange={incrementalChange}
       percentageChange={percentageChange}
-
       value={value}
-      width={550}
-      height={250}
       dailyTimeFrameData={dailyTimeFrame}
+      updateStockPricesMutation={updateStockPricesMutation}
     />
   );
 };

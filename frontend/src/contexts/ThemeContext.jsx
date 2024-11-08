@@ -4,7 +4,7 @@ import { darkTheme, lightTheme } from '@/theme';
 
 const ThemeContext = createContext();
 
-export const useTheme = () => useContext(ThemeContext);
+export const useThemeHook = () => useContext(ThemeContext);
 
 export const ThemeProvider = ({ children }) => {
   const [currentTheme, setCurrentTheme] = useState(darkTheme);

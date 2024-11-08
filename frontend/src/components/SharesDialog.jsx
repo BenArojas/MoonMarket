@@ -6,11 +6,15 @@ import Typography from "@mui/material/Typography";
 import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import "@/styles/portfolio.css";
 import TextField from "@mui/material/TextField";
 import { transactionSchema } from "@/schemas/transaction";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs'; // Added dayjs import
 
 function SharesDialog({
   handleClose,
@@ -26,6 +30,7 @@ function SharesDialog({
     handleSubmit,
     setError,
     formState: { errors },
+    control,
   } = useForm({
     resolver: zodResolver(transactionSchema),
     criteriaMode: "all",
@@ -39,18 +44,15 @@ function SharesDialog({
           price: data.price,
           ticker: dialog.ticker,
           quantity: data.quantity,
-          
+          date: data.date,
         });
       } else if (dialog.function === "sell") {
         await sellShares.mutateAsync({
           ticker: dialog.ticker,
           quantity: data.quantity,
           price: data.price,
-    
+          date: data.date,
         });
-      }
-      else {
-        console.log("Unknown function", dialog.function);
       }
       handleClose();
     } catch (error) {
@@ -71,7 +73,7 @@ function SharesDialog({
           <DialogContentText>{dialog.text}</DialogContentText>
           <Box
             component={"form"}
-            sx={{ display: "flex", flexDirection: "column", gap: 3 }}
+            sx={{ display: "flex", flexDirection: "column", gap: 3, mt: 2  }}
             onSubmit={handleSubmit(onSubmit)}
           >
             <Box sx={{ display: "flex", flexDirection: "column" }}>
@@ -89,6 +91,30 @@ function SharesDialog({
                 {serverError}
               </Typography>
             </Box>
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <Controller
+            name="date"
+            control={control}
+            render={({ field }) => (
+              <DatePicker
+                label="Transaction Date"
+                value={field.value}
+                onChange={(newValue) => {
+                  field.onChange(newValue);
+                }}
+                maxDate={dayjs()} // Changed to dayjs
+                slotProps={{
+                  textField: {
+                    helperText: errors.date?.message,
+                    error: !!errors.date,
+                    size: "small",
+                    sx: { width: '200px' } // Added width for better presentation
+                  }
+                }}
+              />
+            )}
+          />
+        </LocalizationProvider>
             <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
               <Button variant="outlined" onClick={handleClose}>
                 Cancel

@@ -33,27 +33,26 @@ function CustomTooltip({
             }}
           >
             <li className="tooltip-data-row">
+              <Typography variant="body2">last price </Typography>
+              <Typography variant="subtitle2">{last_price}$</Typography>
+            </li>
+            <li className="tooltip-data-row">
               <Typography variant="body2">
-                In your portfolio 
+                Avarge bought price
               </Typography>
-               <Typography variant="body2">{percentageOfPortfolio}%</Typography>
+              <Typography variant="subtitle2">{avgSharePrice}$</Typography>
             </li>
             <li className="tooltip-data-row">
               <Typography variant="body2">
                 Value: ({quantity} shares)
               </Typography>
-              <Typography variant="body2">{value.toLocaleString("en-US")}$</Typography>
-              {/* <Typography variant="body2"></Typography> */}
-            </li>
-            <li className="tooltip-data-row">
-              <Typography variant="body2">last price </Typography>
-              <Typography variant="body2">{last_price}$</Typography>
+              <Typography variant="subtitle2">{value.toLocaleString("en-US")}$</Typography>
             </li>
             <li className="tooltip-data-row">
               <Typography variant="body2">
-                Avarge share price 
+                In your portfolio
               </Typography>
-               <Typography variant="body2">{avgSharePrice}$</Typography>
+              <Typography variant="subtitle2">{percentageOfPortfolio}%</Typography>
             </li>
           </ul>
           {/* Add any other properties you want to display */}

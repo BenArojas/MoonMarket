@@ -1,7 +1,7 @@
-// ErrorPage.js
-import React, {useEffect} from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, useRouteError } from 'react-router-dom';
 import { useAuth } from "@/contexts/AuthProvider";
+import { Box, Typography, Button } from '@mui/material';
 
 const ErrorPage = () => {
   const error = useRouteError();
@@ -9,21 +9,52 @@ const ErrorPage = () => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    clears(); // Clear the authentication 
-    navigate("/login", { replace: true }); // Navigate to the login page with replace option set to true
+    clears();
+    navigate("/login", { replace: true });
   };
 
   useEffect(() => {
-    if(error?.response?.status === 401 ){
-      handleLogout(); // Invoke the logout action
+    if (error?.response?.status === 401) {
+      handleLogout();
     }
-  }, [clears, navigate, error]); // Dependency array to avoid unnecessary re-renders
+  }, [clears, navigate, error]);
+
+  const getErrorMessage = () => {
+    if (typeof error === 'string') {
+      return error;
+    }
+    if (error instanceof Error) {
+      return error.message;
+    }
+    if (error?.response?.data) {
+      return JSON.stringify(error.response.data);
+    }
+    if (error?.message) {
+      return error.message;
+    }
+    return 'An unknown error occurred';
+  };
 
   return (
-    <div>
-      <h1>Error</h1>
-      {error?.data }
-    </div>
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+      <Typography variant="h4" gutterBottom>
+        Error
+      </Typography>
+      <Typography variant="body1" gutterBottom>
+        {getErrorMessage()}
+      </Typography>
+      <Button variant="contained" onClick={() => navigate('/')} sx={{ mt: 2 }}>
+        Go to Home
+      </Button>
+      {process.env.NODE_ENV === 'development' && (
+        <Box sx={{ mt: 4, p: 2,  borderRadius: 1, maxWidth: '80%', overflow: 'auto' }}>
+          <Typography variant="h6" gutterBottom>
+            Debug Information:
+          </Typography>
+          <pre>{JSON.stringify(error, null, 2)}</pre>
+        </Box>
+      )}
+    </Box>
   );
 };
 

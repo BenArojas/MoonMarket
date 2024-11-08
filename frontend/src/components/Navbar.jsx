@@ -6,34 +6,41 @@ import {
   User,
   LogOut, Globe
 } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useThemeHook } from "@/contexts/ThemeContext";
+import { useAuth } from "@/contexts/AuthProvider"; 
+import { useQueryClient } from "@tanstack/react-query"; 
+import { useTheme } from "@mui/material";
+import useLogout from '@/hooks/useLogOut';
+
 
 function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
-function Navbar({ friendRequests }) {
-  const { toggleTheme, mode } = useTheme();
+function Navbar({ friendRequestsCount }) {
+  const theme = useTheme();
+  const { toggleTheme, mode } = useThemeHook();
   const { pathname } = useLocation();
+  const handleLogout = useLogout();
+
   const isSpacePage = pathname === "/space";
   const mainNavItems = [
     { icon: Orbit, text: "space" },
     { icon: Globe, text: "global" },
     { icon: ArrowLeftRight, text: "transactions" },
-    { icon: BriefcaseBusiness, text: "Home" },
+    { icon: BriefcaseBusiness, text: "home" },
   ];
-
   const rightNavItems = [
     {
       icon: mode === "dark" ? LightModeIcon : DarkModeIcon,
       onClick: isSpacePage ? null : toggleTheme,
       disabled: isSpacePage,
     },
-    { icon: User, text: "profile", badge: friendRequests.length },
-    { icon: LogOut, text: "logout" },
+    { icon: User, text: "profile", badge: friendRequestsCount },
+    { icon: LogOut, text: "logout", onClick: handleLogout }, // Add the logout handler here
   ];
 
   return (
@@ -51,7 +58,7 @@ function Navbar({ friendRequests }) {
             to={text}
             key={text}
             sx={{
-              color: pathname === `/${text}` ? "#077e5d" : "inherit",
+              color: pathname === `/${text}` ? theme.palette.primary.main : "inherit",
               display: "flex",
               flexDirection: "row",
               alignItems: "center",
@@ -71,7 +78,7 @@ function Navbar({ friendRequests }) {
             }}
           >
             <Icon
-              color={pathname === `/${text}` ? "#077e5d" : "currentColor"}
+              color={pathname === `/${text}` ? theme.palette.primary.main : "currentColor"}
             />
             <Box
               className="nav-text"
@@ -95,9 +102,10 @@ function Navbar({ friendRequests }) {
             {text ? (
               <Box
                 component={Link}
-                to={text}
+                to={text === "logout" ? "" : text} // Don't navigate on logout, just call the handler
+                onClick={text === "logout" ? onClick : undefined} // Call onClick for logout
                 sx={{
-                  color: pathname === `/${text}` ? "#077e5d" : "inherit",
+                  color: pathname === `/${text}` ? theme.palette.primary.main : "inherit",
                   display: "flex",
                   flexDirection: "row",
                   alignItems: "center",
@@ -109,13 +117,13 @@ function Navbar({ friendRequests }) {
                   <Badge badgeContent={badge} color="primary">
                     <Icon
                       color={
-                        pathname === `/${text}` ? "#077e5d" : "currentColor"
+                        pathname === `/${text}` ? theme.palette.primary.main : "currentColor"
                       }
                     />
                   </Badge>
                 ) : (
                   <Icon
-                    color={pathname === `/${text}` ? "#077e5d" : "currentColor"}
+                    color={pathname === `/${text}` ? theme.palette.primary.main : "currentColor"}
                   />
                 )}
                 {capitalizeFirstLetter(text)}

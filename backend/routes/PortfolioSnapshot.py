@@ -11,7 +11,7 @@ from datetime import datetime
 
 
 
-router = APIRouter(prefix="/PortfolioSnapshot", tags=["Stock"])
+router = APIRouter(tags=["Stock"])
 
 
 @router.post("/snapshot")

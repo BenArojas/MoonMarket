@@ -1,13 +1,20 @@
+import { teal, red } from '@mui/material/colors';
 
 export function getPortfolioStats(stocksList, stocksInfo) {
+
   let tickers = [];
   let sum = 0;
   let totalSpent = 0;
-  for (let i = 0; i < stocksList.length; i++) {
-    const res = stocksInfo[i];
-    const holding = stocksList[i];
-    
-    // Add null checks
+
+  // Create a map of stocksInfo for O(1) lookup
+  const stocksInfoMap = {};
+  stocksInfo.forEach(stock => {
+    stocksInfoMap[stock.ticker] = stock;
+  });
+
+  for (const holding of stocksList) {
+    const res = stocksInfoMap[holding.ticker];
+
     if (holding && res) {
       const value = holding.quantity * res.price;
       sum += value;
@@ -28,8 +35,8 @@ export function processTreemapData(stocksList, stocksInfo) {
     const res = stocksInfo[i];
     const holding = stocksList[i];
 
-     // Add null checks
-     if (!res || !holding) continue;
+    // Add null checks
+    if (!res || !holding) continue;
 
 
     const stock_avg_price = holding.avg_bought_price;
@@ -40,37 +47,36 @@ export function processTreemapData(stocksList, stocksInfo) {
     if (res.price > stock_avg_price) {
       positiveStocks.push({
         name: res.name,
-        id: res.id,
+        id: res._id,
         ticker: ticker,
         value: value,
         avgSharePrice: stock_avg_price.toFixed(2),
         quantity: holding.quantity,
         last_price: res.price.toFixed(2),
-        priceChangePercentage: Math.round(
-          ((res.price - stock_avg_price) / stock_avg_price) * 100
-        ),
+        priceChangePercentage:
+          (((res.price - stock_avg_price) / stock_avg_price) * 100
+          ).toFixed(2),
       });
     } else {
       negativeStocks.push({
         name: res.name,
-        id: res.id,
+        id: res._id,
         ticker: holding.ticker,
         value: value,
-        avgSharePrice: stock_avg_price,
+        avgSharePrice: stock_avg_price.toFixed(2),
         quantity: holding.quantity,
-        last_price: Math.round(res.price * 100) / 100,
-        priceChangePercentage: Math.round(
-          ((res.price - stock_avg_price) / stock_avg_price) * 100
-        ),
+        last_price: res.price.toFixed(2),
+        priceChangePercentage: (((res.price - stock_avg_price) / stock_avg_price) * 100
+        ).toFixed(2)
       });
     }
   }
 
   positiveStocks.forEach((stock) => {
-    stock.percentageOfPortfolio = Math.round((stock.value / sum) * 100);
+    stock.percentageOfPortfolio = ((stock.value / sum) * 100).toFixed(2);
   });
   negativeStocks.forEach((stock) => {
-    stock.percentageOfPortfolio = Math.round((stock.value / sum) * 100);
+    stock.percentageOfPortfolio = ((stock.value / sum) * 100).toFixed(2);
   });
 
   const newStocksTree = {
@@ -148,11 +154,67 @@ export function processDonutData(stocksList, stocksInfo) {
   }
 
   stocks.othersStocks = othersStocks;
-
+  console.log(stocks);
   return stocks;
 }
 
+export function processSankeyData(stocksList, stocksInfo) {
+  const nodes = [
+    { id: "Positive", color: teal[500], value: 0 },
+    { id: "Negative", color: red[500], value: 0 }
+  ];
 
+  const links = [];
+
+  let positiveValue = 0;
+  let negativeValue = 0;
+
+  for (let i = 0; i < stocksList.length; i++) {
+    const res = stocksInfo[i];
+    const holding = stocksList[i];
+
+    if (!res || !holding) continue;
+
+    const stock_avg_price = holding.avg_bought_price;
+    const value = holding.quantity * res.price;
+    const ticker = holding.ticker;
+    const percentageChange = (((res.price - stock_avg_price) / stock_avg_price) * 100).toFixed(2);
+
+    const nodeData = {
+      id: ticker,
+      name: res.name,
+      value: value,
+      percentageChange: percentageChange
+    };
+
+    nodes.push(nodeData);
+
+    if (res.price > stock_avg_price) {
+      positiveValue += value;
+      links.push({ source: "Positive", target: ticker, value: value });
+    } else {
+      negativeValue += value;
+      links.push({ source: "Negative", target: ticker, value: value });
+    }
+  }
+
+  // Update Positive and Negative node values
+  nodes[0].value = positiveValue;
+  nodes[1].value = negativeValue;
+
+  return { nodes, links };
+}
+
+
+// Helper function to generate random colors
+function getRandomColor() {
+  const letters = '0123456789ABCDEF';
+  let color = '#';
+  for (let i = 0; i < 6; i++) {
+    color += letters[Math.floor(Math.random() * 16)];
+  }
+  return color;
+}
 export function processCircularData(stocksList, stocksInfo) {
   let children = [];
   let sum = 0;
@@ -171,9 +233,9 @@ export function processCircularData(stocksList, stocksInfo) {
     const ticker = holding.ticker;
     sum += value;
     const stock_avg_price = holding.avg_bought_price;
-    const percentageOfPortfolio = Math.round(
+    const percentageOfPortfolio = (
       (value / totalPortfolioValue) * 100
-    );
+    ).toFixed(2);
     let stockType;
     if (res.price > stock_avg_price) {
       stockType = "positive";
@@ -219,12 +281,12 @@ export function processLeaderboardsData(stocksList, stocksInfo) {
     const name = stocksInfo[i].name;
     const avg_bought_price = stock.avg_bought_price;
     const priceChange = stocksInfo[i].price - avg_bought_price;
-    const priceChangePercentage = Math.round(
+    const priceChangePercentage = (
       ((stocksInfo[i].price - avg_bought_price) / avg_bought_price) * 100
-    );
-    const percentageOfPortfolio = Math.round(
+    ).toFixed(2);
+    const percentageOfPortfolio = (
       (value / totalPortfolioValue) * 100
-    );
+    ).toFixed(2);
 
     const gainLoss = (value - (stock.avg_bought_price * stock.quantity)).toFixed(2);
 
@@ -244,7 +306,6 @@ export function processLeaderboardsData(stocksList, stocksInfo) {
   LeaderboardsData.sort(
     (a, b) => b.priceChangePercentage - a.priceChangePercentage
   );
-  console.log("LeaderboardsData is: " , LeaderboardsData)
 
   return LeaderboardsData;
 }
@@ -274,7 +335,7 @@ export function transformData(historicalData) {
     .sort((a, b) => a.time - b.time); // Sort in ascending order
 }
 
-export function transformSnapshotData(historicalData) {
+export function transformSnapshotData(historicalData,) {
   return historicalData
     .map(item => ({
       time: new Date(item.timestamp).getTime() / 1000, // Convert to Unix timestamp
@@ -282,3 +343,111 @@ export function transformSnapshotData(historicalData) {
     }))
     .sort((a, b) => a.time - b.time); // Sort in ascending order
 }
+
+export function calculatePerformanceData(data, moneySpent) {
+  if (!moneySpent || moneySpent === 0) return [];
+  
+  return data.map(item => ({
+    time: Math.floor(new Date(item.timestamp).getTime() / 1000),
+    value: Number(((item.value - moneySpent) / moneySpent) * 100)
+  })).sort((a, b) => a.time - b.time);
+}
+
+export const calculateTransactionSummary = (transactions, currentStockPrices) => {
+  let totalTrades = 0;
+  let closedTrades = 0;
+  let profitableTrades = 0;  // Keep this to calculate win rate
+  let moneySpent = 0;
+  let totalProfit = 0;
+
+  // Sort transactions by date
+  const sortedTransactions = [...transactions].sort(
+    (a, b) => new Date(a.transaction_date) - new Date(b.transaction_date)
+  );
+
+  // Group transactions by ticker
+  const positionsByTicker = {};
+
+  sortedTransactions.forEach(transaction => {
+    const { ticker } = transaction;
+
+    if (!positionsByTicker[ticker]) {
+      positionsByTicker[ticker] = {
+        transactions: [],
+        isFullyClosed: false,
+        totalQuantity: 0,
+        totalCost: 0,
+        realizedProfit: 0
+      };
+      totalTrades++;
+    }
+
+    const position = positionsByTicker[ticker];
+    position.transactions.push(transaction);
+
+    // Update position quantities and costs
+    if (transaction.type === 'purchase') {
+      position.totalQuantity += transaction.quantity;
+      position.totalCost += transaction.price * transaction.quantity;
+      moneySpent += transaction.price * transaction.quantity;
+    } else if (transaction.type === 'sale') {
+      const saleValue = transaction.price * transaction.quantity;
+      const avgCost = position.totalCost / position.totalQuantity;
+      const costBasis = avgCost * transaction.quantity;
+
+      position.realizedProfit += saleValue - costBasis;
+      position.totalQuantity -= transaction.quantity;
+      position.totalCost = avgCost * position.totalQuantity;
+
+      if (position.totalQuantity === 0 || transaction.text.includes("Closed position:")) {
+        position.isFullyClosed = true;
+        closedTrades++;
+        
+        // Check if the trade was profitable
+        if (position.realizedProfit > 0) {
+          profitableTrades++;
+        }
+        
+        totalProfit += position.realizedProfit;
+      }
+    }
+  });
+
+  // Calculate unrealized profit for open positions
+  Object.entries(positionsByTicker).forEach(([ticker, position]) => {
+    if (!position.isFullyClosed && currentStockPrices[ticker] && position.totalQuantity > 0) {
+      const currentPrice = currentStockPrices[ticker];
+      const avgCost = position.totalCost / position.totalQuantity;
+      const unrealizedProfit = (currentPrice - avgCost) * position.totalQuantity;
+      totalProfit += unrealizedProfit;
+    }
+  });
+
+  // Calculate win rate: profitable trades divided by closed trades
+  const winRate = closedTrades > 0 ? (profitableTrades / closedTrades) * 100 : 0;
+
+  return {
+    totalTrades,
+    closedTrades,
+    moneySpent: Number(moneySpent.toFixed(2)),
+    totalProfit: Number(totalProfit.toFixed(2)),
+    winRate: Number(winRate.toFixed(1))
+  };
+};
+
+ // Format currency
+ export const formatCurrency = (amount) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD'
+  }).format(amount);
+};
+
+  // Format date
+  export const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };

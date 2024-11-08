@@ -1,14 +1,16 @@
 from typing import  Annotated, List, Optional
 from beanie import Document, Indexed
 from pydantic import BaseModel, Field
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class Stock(Document):
-    name: Annotated[str, Indexed(unique=True)]
+    name: str
     ticker: Annotated[str, Indexed(unique=True)]
     price: float
     earnings: Optional[datetime] = None
+    last_updated: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
     
     
     class Config:

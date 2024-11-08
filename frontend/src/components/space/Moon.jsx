@@ -23,13 +23,7 @@ const Moon = ({ centerX, centerY }) => {
       <div className="crater crater-2"></div>
       <div className="crater crater-3"></div>
     </div>
-    // <div className='moon-container'>
-    //   <img
-    //     src="/RealMoon.png"
-    //     alt="Detailed moon"
-    //     className="moon"
-    //   />
-    // </div>
+   
   );
 };
 

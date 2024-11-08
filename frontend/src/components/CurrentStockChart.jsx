@@ -4,14 +4,16 @@ import { useTheme } from "@mui/material";
 import { BrushableAreaSeries } from "@/plugins/brushable-area-series/brushable-area-series";
 import { DeltaTooltipPrimitive } from "@/plugins/delta-tooltip/delta-tooltip";
 import { TooltipPrimitive } from "@/plugins/tooltip/tooltip";
+import {formatCurrency} from '@/utils/dataProcessing'
 
-export const CurrentStockChart = (props) => {
+export const AreaChart = (props) => {
   const theme = useTheme();
 
   const {
     data,
     trend,
     enableAdvancedFeatures = false,
+    height,
     colors: {
       backgroundColor = "transparent",
       lineColor = theme.palette.primary.main,
@@ -88,7 +90,16 @@ export const CurrentStockChart = (props) => {
     let series;
     if (enableAdvancedFeatures) {
       const style = trend === 'positive' ? positiveStyle : negativeStyle;
-
+      chart.timeScale().applyOptions({
+        borderVisible: false,
+            fixLeftEdge: true,
+            fixRightEdge: true,
+            timeVisible: true, // Enables full dates
+            tickMarkFormatter: (time, tickMarkType) => {
+                const date = new Date(time * 1000);
+                return `${date.getUTCDate()} ${date.toLocaleString('default', { month: 'short' })}`;
+            }
+      });
       const brushableAreaSeries = new BrushableAreaSeries(style);
 
       series = chart.addCustomSeries(brushableAreaSeries, {
@@ -137,7 +148,9 @@ export const CurrentStockChart = (props) => {
         priceLineVisible: false,
       })
 
-      const tooltipPrimitive = new TooltipPrimitive();
+      const tooltipPrimitive = new TooltipPrimitive({
+        priceExtractor: (dataPoint) => formatCurrency(dataPoint.value), // Apply formatCurrency here
+      });
       series.attachPrimitive(tooltipPrimitive);
     }
 
@@ -163,7 +176,7 @@ export const CurrentStockChart = (props) => {
   return (
     <div
       ref={chartContainerRef}
-      style={{ position: "relative", width: "100%", height: "250px" }}
+      style={{ position: "relative", width: "100%", height: height }}
     />
   );
 };

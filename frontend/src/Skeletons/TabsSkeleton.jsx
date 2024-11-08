@@ -11,7 +11,7 @@ function TabsSkeleton() {
         justifyContent: "center",
         alignItems: "center",
         margin: "auto",
-        minHeight: "50vh", // Adjust as needed to center vertically within the view
+        // minHeight: "50vh", 
       }}
     >
       <Stack>

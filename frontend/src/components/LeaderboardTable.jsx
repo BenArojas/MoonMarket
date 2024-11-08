@@ -18,7 +18,7 @@ export default function LeaderBoardsTable({ data }) {
     const sign = isPositive ? "+" : "";
     return (
       <span style={{ color }}>
-        {`${sign}${change.toFixed(2)}(${sign}${percentage.toFixed(2)}%)`}
+        {`${sign}${change.toFixed(2)}(${sign}${percentage}%)`}
       </span>
     );
   };

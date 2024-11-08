@@ -1,30 +1,21 @@
-import { Box, Stack, Typography, Tooltip, CircularProgress } from '@mui/material'
 import React, { useState, useEffect } from 'react'
+import { Box, Stack, Typography, Tooltip, CircularProgress } from '@mui/material'
 import PortfolioValue from "@/components/AnimatedNumber";
 import IconButton from "@mui/material/IconButton";
 import SyncIcon from "@mui/icons-material/Sync";
 import { ArrowDown, ArrowUp } from "lucide-react";
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { updateStockPrice } from '@/api/stock';
+// import { useMutation, useQueryClient } from '@tanstack/react-query';
+// import { updateStockPrice } from '@/api/stock';
 
 
 
-function PortfolioStats({ value, percentageChange, stockTickers, incrementalChange,  formattedDate, trend }) {
+function PortfolioStats({ value, percentageChange, stockTickers, incrementalChange,  formattedDate, trend, updateStockPricesMutation }) {
     const trendColor = trend === 'positive' ? "primary" : "error";
-    const queryClient = useQueryClient();
 
-    const updateStockPricesMutation = useMutation({
-        mutationFn: async (tickers) => {
-            const promises = tickers.map((ticker) => updateStockPrice(ticker, ));
-            return Promise.allSettled(promises);
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['userData', ] });
-        },
-    });
     const handleUpdatePrices = () => {
         updateStockPricesMutation.mutate(stockTickers);
-    }
+      };
+
     
     return (
         <Box
