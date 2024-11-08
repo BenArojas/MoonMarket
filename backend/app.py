@@ -139,6 +139,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# for prod
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=["https://your-static-web-app.azurewebsites.net"],
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
+
 # Optional: Endpoint to manually trigger the update
 @app.post("/trigger_stock_update")
 async def trigger_stock_update():
