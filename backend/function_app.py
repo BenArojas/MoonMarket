@@ -2,7 +2,6 @@ import azure.functions as func
 import logging
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
-import asyncio
 from datetime import datetime, timezone
 import requests
 from models.stock import Stock
@@ -21,8 +20,8 @@ async def init_db():
     return client
 
 @app.function_name(name="StockUpdateTimer")
-@app.schedule(schedule="0 0 12,0 * * *", arg_name="timer", 
-              run_on_startup=True, use_monitor=True) 
+@app.schedule(schedule="0 15 21 * * 1-5", arg_name="market_close")  # 21:15 UTC = 4:15 PM ET
+@app.schedule(schedule="0 0 17 * * 1-5", arg_name="market_midday")  # 17:00 UTC = 12:00 PM ET
 async def stock_update_timer(timer: func.TimerRequest) -> None:
     logging.info(f"Starting stock update function at {datetime.now()}")
     client = None
