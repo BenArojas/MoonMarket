@@ -17,13 +17,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from models.APIKeyManager import ApiKey
 import logging
-from apscheduler.triggers.cron import CronTrigger
 from datetime import datetime, timedelta, timezone
 import requests
 from util.api_key import get_api_key
 from pytz import timezone
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.jobstores.mongodb import MongoDBJobStore
 
 DESCRIPTION = """
 This API powers whatever I want to make
@@ -114,23 +111,23 @@ async def lifespan(app: FastAPI):
 # Create the main app that combines both API and static file serving
 app = FastAPI(lifespan=lifespan)
 
-#when developing comment these:
+# when developing comment these:
 # Create the API app
-# api_app = FastAPI(
-#     title="My Server API",
-#     description=DESCRIPTION,
-#     version="0.1.0",
-# )
+api_app = FastAPI(
+    title="My Server API",
+    description=DESCRIPTION,
+    version="0.1.0",
+)
 
-# # Mount the API app
-# app.mount("/api", api_app)
+# Mount the API app
+app.mount("/api", api_app)
 
-# # Mount the static files directly to the root
-# app.mount("/", StaticFiles(directory="static", html=True), name="static")
+# Mount the static files directly to the root
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
-# @app.exception_handler(404)
-# async def custom_404_handler(request, exc):
-#     return FileResponse('static/index.html')
+@app.exception_handler(404)
+async def custom_404_handler(request, exc):
+    return FileResponse('static/index.html')
 
 
 # Add CORS middleware to the main app
