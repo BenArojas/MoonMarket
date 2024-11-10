@@ -24,7 +24,7 @@ app.include_router(APIKeyRouter, prefix="/api-key")
 if __name__ == "__main__":
     uvicorn.run(
         "main:app",
-        host="localhost",
+        host="0.0.0.0",
         reload=False,
         port=8000,
     )

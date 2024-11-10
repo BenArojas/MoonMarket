@@ -57,6 +57,11 @@ async def lifespan(app: FastAPI):
 # Create the main app that combines both API and static file serving
 app = FastAPI(lifespan=lifespan)
 
+@app.get("/")
+def read_root():
+    return {"Hello": "World"}
+
+
 origins = config("FRONTEND_URL")
 # Add CORS middleware to the main app
 app.add_middleware(

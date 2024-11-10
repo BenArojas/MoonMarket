@@ -10,9 +10,15 @@ pnpm-debug.log*
 dist/
 .vite/
 .vscode/
-*.env.local
-*.env.*.local
+
+# Environment files
 .env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.development.local
+.env.production.local
 
 # Log files
 logs
