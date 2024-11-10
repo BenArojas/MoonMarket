@@ -1,6 +1,6 @@
 """Email router."""
 
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, Response
 from models.user import User
@@ -8,7 +8,7 @@ from jwt import user_from_token
 # from util.mail import send_verification_email
 
 
-router = APIRouter(prefix="/mail", tags=["Mail"])
+router = APIRouter( tags=["Mail"])
 
 
 # @router.post("/verify")
@@ -38,6 +38,6 @@ async def verify_email(token: str) -> Response:
         raise HTTPException(400, "Email is already verified")
     if user.disabled:
         raise HTTPException(400, "Your account is disabled")
-    user.email_confirmed_at = datetime.now(tz=UTC)
+    user.email_confirmed_at = datetime.now(tz=timezone.utc)
     await user.save()
     return Response(status_code=200)

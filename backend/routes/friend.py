@@ -1,23 +1,62 @@
 from fastapi import Depends, APIRouter, HTTPException
 from typing import List
-from models.user import User
+from models.user import User, FriendShow
 from models.friend import FriendInfo, HoldingInfo
 from models.stock import Stock
-from models.friendRequest import FriendRequest, FriendRequestAction
+from models.friendRequest import FriendRequest, FriendRequestAnswer
 from util.current_user import current_user
 from routes.user import get_user_transactions_by_type
+from bson import ObjectId
 
 
-router = APIRouter(prefix="/friend")
+router = APIRouter(tags=["Friends"])
 
-@router.get("/pending_friend_requests")
-async def get_pending_friend_requests(current_user: User = Depends(current_user)):
+@router.get("/pending_friend_requests_length")
+async def get_pending_friend_requests_length(current_user: User = Depends(current_user)):
+    pending_requests = await FriendRequest.find(
+        FriendRequest.to_user.id == current_user.id,
+        FriendRequest.status == "pending"
+    ).to_list()
+
+    return len(pending_requests)
+
+@router.get("/pending_friend_requests_users")
+async def get_pending_friend_requests_users(current_user: User = Depends(current_user)):
     pending_requests = await FriendRequest.find(
         FriendRequest.to_user.id == current_user.id,
         FriendRequest.status == "pending"
     ).to_list()
     
-    return pending_requests
+    from_users = []
+    for request in pending_requests:
+        from_user_id = request.from_user.ref.id
+        from_user =await User.get(from_user_id)
+        if from_user:
+            from_users.append(FriendShow(
+                email=from_user.email,
+                username=from_user.username,
+                request_id=str(request.id)
+            ))
+
+    return from_users
+
+@router.get("/sent_friend_requests")
+async def get_sent_friend_requests(current_user: User = Depends(current_user)):
+    pending_requests = await FriendRequest.find(
+    FriendRequest.from_user.id == current_user.id,
+    FriendRequest.status == "pending").to_list()
+    to_users =[]
+    for request in pending_requests:
+        to_user_id = request.to_user.ref.id
+        to_user =await User.get(to_user_id)
+        if to_user:
+            to_users.append(FriendShow(
+                email=to_user.email,
+                username=to_user.username,
+                request_id=str(request.id)
+            ))
+    return to_users
+        
 
 @router.post("/send_friend_request/{username}")
 async def send_friend_request(username: str, current_user: User = Depends(current_user)):
@@ -26,13 +65,18 @@ async def send_friend_request(username: str, current_user: User = Depends(curren
         raise HTTPException(status_code=404, detail="User not found")
     if to_user in current_user.friends:
         raise HTTPException(status_code=400, detail="User is already a friend")
+    pending_request = FriendRequest.find(
+    FriendRequest.from_user.id == current_user.id,
+    FriendRequest.to_user.id == to_user.id)
+    if pending_request:
+        raise HTTPException(status_code=400, detail="There are pending requests")
     await current_user.send_friend_request(to_user)
     return {"message": "Friend request sent"}
 
 @router.post("/handle_friend_request/{request_id}")
 async def handle_friend_request(
     request_id: str,
-    action: FriendRequestAction,
+    answer: FriendRequestAnswer,
     current_user: User = Depends(current_user)
 ):
     friend_request = await FriendRequest.get(request_id)
@@ -49,10 +93,10 @@ async def handle_friend_request(
         raise HTTPException(status_code=400, detail="Friend request is not pending")
 
     try:
-        if action == FriendRequestAction.accept:
+        if answer == FriendRequestAnswer.accept:
             await current_user.accept_friend_request(friend_request, from_user)
             message = "Friend request accepted"
-        elif action == FriendRequestAction.reject:
+        elif answer == FriendRequestAnswer.reject:
             await current_user.reject_friend_request(friend_request, from_user)
             message = "Friend request rejected"
         
@@ -67,18 +111,93 @@ async def handle_friend_request(
 @router.get("/get_friendList")
 async def get_friendList(current_user: User = Depends(current_user)):
     friend_list = []
-    for user_id in current_user.friends:
-        user = await User.get(user_id)
+    for friend_id in current_user.friends:
+        user = await User.get(friend_id)
         if not user:
             continue
         friend_detail = {
-            "id":user_id,
+            "id": str(friend_id),  
             "username": user.username,
             "email": user.email,
         }
         friend_list.append(friend_detail)
     return friend_list
     
+
+# @router.get("/get_friends_and_user_holdings", response_model=List[FriendInfo])
+# async def get_all_friends(current_user: User = Depends(current_user)):
+#     friend_info_list = []
+#     stock_cache = {}
+#     users = [current_user.id] + current_user.friends
+
+#     for user_id in users:
+#         user = await User.get(user_id)
+#         if not user:
+#             continue
+        
+
+#         # Calculate portfolio value change percentage
+#         user_purchases = await get_user_transactions_by_type("purchase", user)
+#         initial_portfolio_value = sum(transaction.price * transaction.quantity for transaction in user_purchases)
+#         # print("Initial portfolio value is", initial_portfolio_value)
+
+#         user_sales = await get_user_transactions_by_type("sale", user)
+#         cash_from_sales = sum(transaction.price * transaction.quantity for transaction in user_sales)
+#         # print("cash from sales is:", cash_from_sales)
+
+#         holdings_value = 0
+#         holdings_info = []
+
+#         # First pass: Calculate total holdings value
+#         for holding in user.holdings:
+#             stock = stock_cache.get(holding.ticker)
+#             if not stock:
+#                 stock = await Stock.find_one(Stock.ticker == holding.ticker)
+#                 if stock:
+#                     stock_cache[holding.ticker] = stock
+#             if stock:
+#                 holding_value = stock.price * holding.quantity
+#                 holdings_value += holding_value
+
+#         # Calculate total portfolio value
+#         total_portfolio_value = holdings_value + cash_from_sales
+#         # print("total portfolio value is:", total_portfolio_value)
+
+#         # Second pass: Calculate portfolio percentages and create HoldingInfo objects
+#         for holding in user.holdings:
+#             stock = stock_cache.get(holding.ticker)
+#             if stock:
+#                 holding_value = stock.price * holding.quantity
+
+#                 # Calculate holding percentage of the portfolio
+#                 portfolio_percentage = (holding_value / total_portfolio_value) * 100 if total_portfolio_value > 0 else 0
+
+#                 # Calculate value change percentage for this holding
+#                 value_change_percentage = ((stock.price - holding.avg_bought_price) / holding.avg_bought_price) * 100 if holding.avg_bought_price > 0 else 0
+
+#                 holdings_info.append(HoldingInfo(
+#                     name=stock.name,
+#                     portfolio_percentage=portfolio_percentage,
+#                     value_change_percentage=value_change_percentage
+#                 ))
+
+#         # Handle case where initial_portfolio_value is zero
+#         if initial_portfolio_value == 0:
+#             portfolio_percentage_change = 0 if total_portfolio_value == 0 else 100  # 100% increase if starting from 0
+#         else:
+#             portfolio_percentage_change = ((total_portfolio_value - initial_portfolio_value) / initial_portfolio_value) * 100
+
+#         friend_info = FriendInfo(
+#             id=user.id,
+#             username=user.username,
+#             email=user.email,
+#             portfolio_value_change_percentage=portfolio_percentage_change,
+#             holdings=holdings_info
+#         )
+
+#         friend_info_list.append(friend_info)
+
+#     return friend_info_list
 
 @router.get("/get_friends_and_user_holdings", response_model=List[FriendInfo])
 async def get_all_friends(current_user: User = Depends(current_user)):
@@ -91,20 +210,11 @@ async def get_all_friends(current_user: User = Depends(current_user)):
         if not user:
             continue
         
-
-        # Calculate portfolio value change percentage
-        user_purchases = await get_user_transactions_by_type("purchase", user)
-        initial_portfolio_value = sum(transaction.price * transaction.quantity for transaction in user_purchases)
-        # print("Initial portfolio value is", initial_portfolio_value)
-
-        user_sales = await get_user_transactions_by_type("sale", user)
-        cash_from_sales = sum(transaction.price * transaction.quantity for transaction in user_sales)
-        # print("cash from sales is:", cash_from_sales)
-
         holdings_value = 0
+        cost_basis = 0  # Total cost of current holdings
         holdings_info = []
 
-        # First pass: Calculate total holdings value
+        # First pass: Calculate total current holdings value and cost basis
         for holding in user.holdings:
             stock = stock_cache.get(holding.ticker)
             if not stock:
@@ -114,10 +224,7 @@ async def get_all_friends(current_user: User = Depends(current_user)):
             if stock:
                 holding_value = stock.price * holding.quantity
                 holdings_value += holding_value
-
-        # Calculate total portfolio value
-        total_portfolio_value = holdings_value + cash_from_sales
-        # print("total portfolio value is:", total_portfolio_value)
+                cost_basis += holding.avg_bought_price * holding.quantity
 
         # Second pass: Calculate portfolio percentages and create HoldingInfo objects
         for holding in user.holdings:
@@ -126,22 +233,22 @@ async def get_all_friends(current_user: User = Depends(current_user)):
                 holding_value = stock.price * holding.quantity
 
                 # Calculate holding percentage of the portfolio
-                portfolio_percentage = (holding_value / total_portfolio_value) * 100 if total_portfolio_value > 0 else 0
+                portfolio_percentage = (holding_value / holdings_value) * 100 if holdings_value > 0 else 0
 
                 # Calculate value change percentage for this holding
-                value_change_percentage = ((stock.price - holding.avg_bought_price) / holding.avg_bought_price) * 100 if holding.avg_bought_price > 0 else 0
+                # value_change_percentage = ((stock.price - holding.avg_bought_price) / holding.avg_bought_price) * 100 if holding.avg_bought_price > 0 else 0
 
                 holdings_info.append(HoldingInfo(
                     name=stock.name,
                     portfolio_percentage=portfolio_percentage,
-                    value_change_percentage=value_change_percentage
+                    # value_change_percentage=value_change_percentage
                 ))
 
-        # Handle case where initial_portfolio_value is zero
-        if initial_portfolio_value == 0:
-            portfolio_percentage_change = 0 if total_portfolio_value == 0 else 100  # 100% increase if starting from 0
+        # Calculate unrealized gains/losses percentage for current holdings only
+        if cost_basis == 0:
+            portfolio_percentage_change = 0 if holdings_value == 0 else 100
         else:
-            portfolio_percentage_change = ((total_portfolio_value - initial_portfolio_value) / initial_portfolio_value) * 100
+            portfolio_percentage_change = ((holdings_value - cost_basis) / cost_basis) * 100
 
         friend_info = FriendInfo(
             id=user.id,
@@ -154,3 +261,23 @@ async def get_all_friends(current_user: User = Depends(current_user)):
         friend_info_list.append(friend_info)
 
     return friend_info_list
+
+@router.delete("/remove-friend/{friend_id}")
+async def remove_friend(friend_id: str, current_user: User = Depends(current_user)):
+    # Convert string ID to ObjectId
+    friend_object_id = ObjectId(friend_id)
+    
+    if friend_object_id not in current_user.friends:
+        raise HTTPException(status_code=404, detail="Friend not found in your friend list")
+    
+    # Remove friend from the list
+    current_user.friends.remove(friend_object_id)
+    friend = await User.find_one(User.id == friend_object_id)
+    if friend:
+        friend.friends.remove(current_user.id)
+        await friend.save()
+    # Update the user in the database
+    await current_user.save()
+    
+    return {"message": "Friend removed successfully"}
+    

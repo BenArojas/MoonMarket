@@ -5,11 +5,31 @@ from models.user import User
 from models.stock import Stock
 from models.transaction import Transaction
 from models.user import Holding
+import pytz
+from beanie import PydanticObjectId
 
-router = APIRouter(prefix="/transaction", tags=["Transaction"])
+router = APIRouter(tags=["Transaction"])
 
 @router.post("/buy_stock")
-async def buy_stock_shares(price: float, ticker: str, quantity: int, user: User = Depends(current_user)):
+async def buy_stock_shares(
+    price: float, 
+    ticker: str, 
+    quantity: int, 
+    transaction_date: datetime,
+    user: User = Depends(current_user)
+):
+    # Convert the received datetime to UTC if it isn't already
+    if transaction_date.tzinfo is None:
+        transaction_date = pytz.UTC.localize(transaction_date)
+    else:
+        transaction_date = transaction_date.astimezone(pytz.UTC)
+
+    # Compare with current UTC time
+    current_time = datetime.now(pytz.UTC)
+    
+    if transaction_date > current_time:
+        raise HTTPException(status_code=400, detail="Transaction date cannot be in the future")
+
     # Fetch the stock from the database
     stock = await Stock.find_one(Stock.ticker == ticker)
 
@@ -26,39 +46,63 @@ async def buy_stock_shares(price: float, ticker: str, quantity: int, user: User 
     # Deduct the cost of the purchase from the user's current_balance
     user.current_balance -= total_cost
 
-
     # Update the user's holdings
     for holding in user.holdings:
         if holding.ticker == ticker:
             # Update the average bought price and quantity of the holding
-            holding.avg_bought_price = ((holding.avg_bought_price * holding.quantity) + (price * quantity)) / (holding.quantity + quantity)
+            holding.avg_bought_price = (
+                (holding.avg_bought_price * holding.quantity) + (price * quantity)
+            ) / (holding.quantity + quantity)
             holding.quantity += quantity
-            text=f"Bought {quantity} shares of {ticker}"
+            text = f"Bought {quantity} shares of {ticker} at {price}$ per share"
             break
     else:
         # If the user does not have a holding of this stock, create a new one
-        user.holdings.append(Holding(ticker=ticker, avg_bought_price=price, quantity=quantity, position_started=datetime.now()))
-        text=f"Started a position: Bought {quantity} shares of {ticker}"
+        user.holdings.append(
+            Holding(
+                ticker=ticker,
+                avg_bought_price=price,
+                quantity=quantity,
+                position_started=transaction_date  # Use the provided date
+            )
+        )
+        text = f"Started a position: Bought {quantity} shares of {ticker}"
 
-     # Create a new Transaction for the purchase
-    transaction = Transaction(user_id=str(user.id), title="Stock purchase",
+    # Create a new Transaction for the purchase
+    transaction = Transaction(
+        user_id=str(user.id),
+        title="Stock purchase",
         text=text,
         type="purchase",
         ticker=ticker,
         name=stock.name,
         price=price,
         quantity=quantity,
-        transaction_date=datetime.now())
+        transaction_date=transaction_date  # Use the provided date
+    )
+    
     await transaction.insert()
     user.transactions.append(transaction.id)
-    
+
     # Save the updated user document back to the database
     await user.save()
 
     return {"message": "Stock purchased successfully"}
 
 @router.post("/sell_stock")
-async def sell_stock_shares(ticker: str, quantity: int, price: float, user: User = Depends(current_user)):
+async def sell_stock_shares(ticker: str, quantity: int, price: float, transaction_date: datetime, user: User = Depends(current_user)):
+    # Convert the received datetime to UTC if it isn't already
+    if transaction_date.tzinfo is None:
+        transaction_date = pytz.UTC.localize(transaction_date)
+    else:
+        transaction_date = transaction_date.astimezone(pytz.UTC)
+
+    # Compare with current UTC time
+    current_time = datetime.now(pytz.UTC)
+    
+    if transaction_date > current_time:
+        raise HTTPException(status_code=400, detail="Transaction date cannot be in the future")
+    
     # Fetch the stock from the database
     stock = await Stock.find_one(Stock.ticker == ticker)
 
@@ -85,11 +129,11 @@ async def sell_stock_shares(ticker: str, quantity: int, price: float, user: User
         # If the user does not have a holding of this stock
         raise HTTPException(status_code=404, detail="You can't sell a stock you don't own")
 
-    # Calculate the total cost of the purchase
+    # Calculate the total cost of the sale
     profit = price * quantity
 
     # add the profit to the user's current_balance
-    user.current_balance += profit
+    user.profit += profit
 
     # Create a new Transaction for the sale
     transaction = Transaction( user_id=str(user.id),  # Assuming user_id is stored as a string
@@ -100,7 +144,7 @@ async def sell_stock_shares(ticker: str, quantity: int, price: float, user: User
         name=stock.name,
         price=price,
         quantity=quantity,
-        transaction_date=datetime.now())
+        transaction_date=transaction_date)
     await transaction.insert()
     user.transactions.append(transaction.id)
 
@@ -108,3 +152,105 @@ async def sell_stock_shares(ticker: str, quantity: int, price: float, user: User
     await user.save()
 
     return {"message": "Stock sold successfully"}
+
+@router.delete("/delete_transaction/{transaction_id}")
+async def delete_transaction(transaction_id: str, user: User = Depends(current_user)):
+    # Find the transaction
+    # Convert string ID to PydanticObjectId
+    transaction_obj_id = PydanticObjectId(transaction_id)
+    transaction = await Transaction.get(transaction_obj_id)
+    print(transaction)
+    
+    if transaction is None:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+        
+    if str(transaction.user_id.ref.id) != str(user.id):
+        raise HTTPException(status_code=403, detail="Not authorized to delete this transaction")
+
+
+    # Handle the transaction based on its type
+    if transaction.type == "purchase":
+        await _handle_purchase_deletion(user, transaction)
+    elif transaction.type == "sale":
+        await _handle_sale_deletion(user, transaction)
+    else:
+        raise HTTPException(status_code=400, detail="Invalid transaction type")
+    
+    # Remove transaction from user's transactions list
+    if transaction.id in user.transactions:
+        user.transactions.remove(transaction.id)
+    
+    # Delete the transaction and save user changes
+    await transaction.delete()
+    await user.save()
+    
+    return {"message": "Transaction deleted successfully"}
+
+async def _handle_purchase_deletion(user: User, transaction: Transaction):
+    """Handle deletion of a purchase transaction"""
+    # Find the corresponding holding
+    holding = next((h for h in user.holdings if h.ticker == transaction.ticker), None)
+    
+    if not holding:
+        raise HTTPException(
+            status_code=400,
+            detail="Holding not found. Data inconsistency detected."
+        )
+    
+    # Check if we can remove these shares
+    if holding.quantity < transaction.quantity:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete transaction: would result in negative shares"
+        )
+    
+    # Refund the purchase amount
+    purchase_cost = transaction.price * transaction.quantity
+    user.current_balance += purchase_cost
+    
+    # Update or remove the holding
+    if holding.quantity == transaction.quantity:
+        # This was the only purchase for this stock, remove the holding
+        user.holdings.remove(holding)
+    else:
+        # Recalculate average purchase price by removing this transaction's impact
+        remaining_quantity = holding.quantity - transaction.quantity
+        total_cost = holding.avg_bought_price * holding.quantity
+        transaction_cost = transaction.price * transaction.quantity
+        
+        if remaining_quantity > 0:
+            new_avg_price = (total_cost - transaction_cost) / remaining_quantity
+            holding.quantity = remaining_quantity
+            holding.avg_bought_price = new_avg_price
+        else:
+            # If no shares remain, remove the holding
+            user.holdings.remove(holding)
+
+async def _handle_sale_deletion(user: User, transaction: Transaction):
+    """Handle deletion of a sale transaction"""
+    # Find or create corresponding holding
+    holding = next((h for h in user.holdings if h.ticker == transaction.ticker), None)
+    
+    # Remove the profit from the user's account
+    sale_amount = transaction.price * transaction.quantity
+    if user.current_balance < sale_amount:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete transaction: insufficient funds to reverse sale"
+        )
+    
+    user.profit -= sale_amount
+    
+    if holding:
+        # Add back the sold shares to existing holding
+        holding.quantity += transaction.quantity
+    else:
+        # Create new holding if it was fully sold before
+        user.holdings.append(
+            Holding(
+                ticker=transaction.ticker,
+                avg_bought_price=transaction.price,  # Use the sale price as we don't have the original purchase price
+                quantity=transaction.quantity,
+                position_started=transaction.transaction_date
+            )
+        )

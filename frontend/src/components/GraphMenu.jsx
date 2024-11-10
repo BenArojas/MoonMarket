@@ -1,5 +1,5 @@
 import { Box } from "@mui/material";
-import React, { useState, useEffect, useContext } from "react";
+import React from "react";
 import AutoAwesomeMosaicIcon from "@mui/icons-material/AutoAwesomeMosaic";
 import DonutLargeIcon from "@mui/icons-material/DonutLarge";
 import TocSharpIcon from "@mui/icons-material/TocSharp";
@@ -8,8 +8,8 @@ import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import BlurCircularIcon from "@mui/icons-material/BlurCircular";
-
 import SearchBar from "@/components/SearchBar.jsx";
+import SchemaIcon from '@mui/icons-material/Schema';
 
 function GraphMenu({ selectedGraph, setSelectedGraph }) {
  
@@ -26,6 +26,7 @@ function GraphMenu({ selectedGraph, setSelectedGraph }) {
         flexDirection: "row",
         justifyContent: "space-between", // Center the menu horizontally
         padding: "10px 0", 
+        mb:1
       }}
     >
       <nav aria-label="main mailbox folders">
@@ -89,6 +90,20 @@ function GraphMenu({ selectedGraph, setSelectedGraph }) {
                 }}
               >
                 <TocSharpIcon />
+              </ListItemIcon>
+            </ListItemButton>
+          </ListItem>
+          <ListItem disablePadding>
+            <ListItemButton
+              selected={selectedGraph === "Sankey"}
+              onClick={() => handleListItemClick("Sankey")}
+            >
+              <ListItemIcon
+                sx={{
+                  justifyContent: "center", // Center the icon
+                }}
+              >
+                <SchemaIcon />
               </ListItemIcon>
             </ListItemButton>
           </ListItem>

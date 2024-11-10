@@ -2,9 +2,9 @@ import { useMemo, useState } from "react";
 import * as d3 from "d3";
 import { ShapeRenderer } from "@/components/space/Shaperender";
 
-const MARGIN = { top: 10, right: 100, bottom: 10, left: 150 };
+const MARGIN = { top: 10, right: 10, bottom: 10, left: 10 };
 const BAR_PADDING = 0.3;
-const MARGIN_PIE = 40;
+const MARGIN_PIE = 50;
 const INFLEXION_PADDING = 25;
 
 const colors = [

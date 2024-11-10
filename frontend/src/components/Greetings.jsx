@@ -5,7 +5,7 @@ import MarketStatus from "@/components/MarketStatus";
 import Navbar from '@/components/Navbar';
 
 
-function Greetings({ username, friendRequests }) {
+function Greetings({ username, friendRequestsCount }) {
 
     const [date, setDate] = useState(new Date());
     const formattedDate = date.toLocaleDateString('en-US', {
@@ -32,7 +32,7 @@ function Greetings({ username, friendRequests }) {
                     <Typography color={"#BDBDBD"} variant='subtitle1'>{formattedDate}</Typography>
                     <MarketStatus />
                 </Box>
-                <Navbar friendRequests={friendRequests}/>
+                <Navbar friendRequestsCount={friendRequestsCount}/>
             </Box>
             <Divider />
         </Box>

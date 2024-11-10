@@ -1,5 +1,6 @@
-import api from "@/api/axios";
-
+import api, {authCheckApi} from "@/api/axios";
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export async function RegisterUser(user) {
   const newUser = await api.post(`/register`, user);
@@ -15,46 +16,33 @@ export async function getUserName() {
   return userName.data;
 }
 
-// export async function loginUser(email, password) {
-//   const response = await api.post(`/auth/login`, {
-//     email,
-//     password,
-//   });
-//   return response;
-// }
+export async function getUserHoldings() {
+  const holdings = await api.get(`/user/holdings`);
+  return holdings.data;
+}
 
-// export async function refreshJwtKey(token) {
-//   const response = await api.post(
-//     "http://localhost:8000/auth/refresh",
-//     {},
-//     {
-//       headers: {
-//         Authorization: `Bearer ${token}`,
-//       },
-//     }
-//   );
-//   return response;
-// }
+export async function getUserStocks() {
+  const stocks = await api.get(`/user/stocks`);
+  return stocks.data;
+}
 
-export async function addUserPurchase({price, ticker, quantity}) {
-  
+export async function addUserPurchase({ price, ticker, quantity, date }) {
   const response = await api.post(
     `/transaction/buy_stock`,
     null, // Set the request body to null if your API doesn't expect a request body
     {
-      params: { price, ticker, quantity }, // Send the required fields as query parameters
+      params: { price, ticker, quantity, transaction_date: date.toISOString()  }, // Send the required fields as query parameters
     }
   );
   return response.data;
 }
 
-export async function addUserSale({ticker, quantity, price}) {
-  
+export async function addUserSale({ ticker, quantity, price, date }) {
   const response = await api.post(
     `/transaction/sell_stock`,
     null, // Set the request body to null if your API doesn't expect a request body
     {
-      params: { ticker, quantity, price }, // Send the required fields as query parameters
+      params: { ticker, quantity, price, transaction_date: date.toISOString()  }, // Send the required fields as query parameters
     }
   );
   return response.data;
@@ -64,28 +52,37 @@ export async function addStockToPortfolio(
   portfolioStock,
   price,
   quantity,
+  date
 ) {
   const ticker = portfolioStock.ticker;
   const stock = await api.post(
-    `/stocks/add_stock`,
+    `/stock/add_stock`,
     portfolioStock,
   );
+  
   const user = await api.post(
     `/transaction/buy_stock`,
-    null, // Set the request body to null if your API doesn't expect a request body
+    null,
     {
-      params: { price, ticker, quantity }, // Send the required fields as query parameters
-  
+      params: { 
+        price, 
+        ticker, 
+        quantity,
+        transaction_date: date.toISOString() 
+      },
     }
   );
 }
 
 export async function updateUsername(newUsername) {
-  const UpdatePayload = {
-    username: newUsername,
-  };
-  const response = await api.patch(`/user/update`, UpdatePayload);
+  const response = await api.patch(`/user/update-username`, null,
+    {
+      params:
+        { new_username: newUsername }
+    });
+  toast.success("Username updated successfully");
   return response;
+
 }
 
 export async function changePassword(oldPassword, newPassword) {
@@ -93,11 +90,8 @@ export async function changePassword(oldPassword, newPassword) {
     password: oldPassword,
     new_password: newPassword,
   };
-  const response = await api.patch(
-    `/user/change_password`,
-    passwordPayload,
-
-  );
+  const response = await api.patch(`/user/change_password`, passwordPayload);
+  toast.success("Password changed successfully");
   return response;
 }
 
@@ -107,25 +101,45 @@ export async function addDeposit(money) {
     amount: money,
     date: currentDate,
   };
+  const response = await api.post(
+    `/user/add_deposit`,
+    depositPayload,
+  );
+  toast.success("Deposit added successfully");
+  return response.data;
+}
 
-  try {
-    const response = await api.post(
-      `/user/add_deposit`,
-      depositPayload,
+export async function searchUser(username,) {
+    const response = await api.get(
+      `/user/user_friend/${username}`
     );
     return response.data;
+}
+
+
+export async function checkAuth() {
+  try {
+    const response = await authCheckApi.get("/auth/protected-route");
+    return response.data;
   } catch (error) {
-    console.error("Error adding deposit:", error);
-    throw error;
+    return null;
   }
 }
 
-export async function searchUser(username, ) {
+export async function addApiKey(api_key) {
   try {
-    const response = await api.get(
-      `/user/user_friend/${username}`,
-     
-    );
+      const response = await api.post(`/api-key/add-api-key`, null, {
+          params: { api_key } // Send api_key as a query parameter
+      });
+      return response.data;
+  } catch (error) {
+      throw error;
+  }
+}
+
+export async function getUsersList() {
+  try {
+    const response = await api.get(`/user/users_list`);
     return response.data;
   } catch (error) {
     throw error;

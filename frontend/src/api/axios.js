@@ -1,12 +1,20 @@
 import axios from 'axios'
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-const api = axios.create({
-  baseURL: 'http://localhost:8000',
+
+const apiConfig = {
+  baseURL: import.meta.env.VITE_BACKEND_BASE_URL ,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
-});
+};
+ // for production
+
+const api = axios.create(apiConfig);
+
+export const authCheckApi = axios.create(apiConfig);
 
 api.interceptors.response.use(
   (response) => response,
@@ -21,9 +29,13 @@ api.interceptors.response.use(
         await api.post('/auth/refresh');
         return api(originalRequest);
       } catch (refreshError) {
-        // Handle refresh failure (e.g., logout user)
+        // Redirect to login on refresh failure
+        window.location.href = '/login';
         return Promise.reject(refreshError);
       }
+    }
+    if (error.response?.status !== 401) {
+      toast.error(error.response.data.detail);
     }
 
     return Promise.reject(error);

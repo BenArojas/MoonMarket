@@ -9,28 +9,20 @@ const MARGIN_X = 150;
 const MARGIN_Y = 50;
 const INFLEXION_PADDING = 25;
 
+// Enhanced color array with more vibrant base colors
+
 const colors_array = [
-  "#1a8cff", // Bright blue
-  "#f94144", // Vibrant red
-  "#f3722c", // Deep orange
-  "#f8961e", // Warm yellow
-  "#43aa8b", // Teal green
-  "#577590", // Muted blue
-  "#b5179e", // Magenta
-  "#90be6d", // Soft green
-  "#f9c74f", // Gold
-  "#ff0054", // Bold pink
-  "#3700ff", // Deep blue
-  "#02c39a", // Bright teal
-  "#e63946", // Bold red
-  "#1d3557", // Dark navy
-  "#457b9d", // Muted blue
-  "#f4a261", // Warm orange
-  "#e9c46a", // Golden yellow
-  "#264653", // Deep teal
+  "hsla(163, 70%, 85%, 0.9)",
+  "hsla(163, 65%, 80%, 0.9)",
+  "hsla(163, 60%, 70%, 0.9)",
+  "hsla(163, 55%, 76%, 0.9)",
+  "hsla(163, 50%, 66%, 0.9)",
+  "hsla(163, 45%, 56%, 0.9)",
+  "hsla(163, 40%, 46%, 0.9)",
+  "hsla(163, 35%, 40%, 0.9)",
+  "hsla(163, 30%, 35%, 0.9)",
 ];
 
-// Create a new array of 9 randomized colors from colors_array
 const colors = colors_array.sort(() => 0.5 - Math.random()).slice(0, 9);
 
 export const DonutChart = ({ width, height, data }) => {
@@ -80,7 +72,7 @@ export const DonutChart = ({ width, height, data }) => {
 
     return (
       <Link
-      key={grp.data.name}
+        key={grp.data.name}
         to={{
           search: grp.data.name === "Others" ? "" : `selected=${ticker}`,
         }}
@@ -90,14 +82,20 @@ export const DonutChart = ({ width, height, data }) => {
       >
         <defs>
           {colors.map((color, i) => (
-            <radialGradient key={i} id={`holographic-gradient-${i}`}>
+            <radialGradient
+              key={i}
+              id={`holographic-gradient-${i}`}
+              gradientUnits="userSpaceOnUse"
+              cx="0"
+              cy="0"
+              r={radius}
+            >
               <stop offset="0%" stopColor={color} />
-              <stop offset="40%" stopColor={color} />
               <stop offset="100%" stopColor={color} />
             </radialGradient>
           ))}
           <filter id="glow">
-            <feGaussianBlur stdDeviation="1" result="coloredBlur" />
+            <feGaussianBlur stdDeviation="2" result="coloredBlur" />
             <feMerge>
               <feMergeNode in="coloredBlur" />
               <feMergeNode in="SourceGraphic" />
@@ -123,15 +121,16 @@ export const DonutChart = ({ width, height, data }) => {
             d={slicePath}
             fill={`url(#holographic-gradient-${i % colors.length})`}
             filter="url(#glow)"
+            stroke="rgba(255,255,255,0.3)"
+            strokeWidth="1"
           />
-          <circle cx={centroid[0]} cy={centroid[1]} r={2} />
           <line
             x1={centroid[0]}
             y1={centroid[1]}
             x2={inflexionPoint[0]}
             y2={inflexionPoint[1]}
             stroke={theme.palette.text.primary}
-            fill={theme.palette.text.primary}
+            strokeWidth="1"
           />
           <line
             x1={inflexionPoint[0]}
@@ -139,7 +138,7 @@ export const DonutChart = ({ width, height, data }) => {
             x2={labelPosX}
             y2={inflexionPoint[1]}
             stroke={theme.palette.text.primary}
-            fill={theme.palette.text.primary}
+            strokeWidth="1"
           />
           <text
             x={labelPosX + (isRightLabel ? 2 : -2)}
@@ -192,3 +191,5 @@ export const DonutChart = ({ width, height, data }) => {
     </Box>
   );
 };
+
+export default DonutChart;

@@ -44,7 +44,7 @@ const Login = () => {
   const onSubmit = async (data) => {
     try {
       await login(data.email, data.password);
-      navigate("/home", { replace: true });
+      navigate("/home", { replace: true, state: { shouldUpdatePrices: true } });
     } catch (error) {
       if (error.response && error.response.data) {
         setError(error.response.data.detail);
@@ -114,7 +114,6 @@ const Login = () => {
             }}
           >
             <Typography variant="h5">Login to your account</Typography>
-            {error && <div style={{ color: "white" }}>{error}</div>}
             <StyledTextField
               {...register("email", {
                 required: true,

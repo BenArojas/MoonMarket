@@ -1,42 +1,126 @@
-import { CurrentStockChart } from "@/components/CurrentStockChart.jsx";
-import GraphCardSkeleton from "@/Skeletons/GraphCardSkeleton";
-import { transformSnapshotData } from "@/utils/dataProcessing";
-import {  Card} from "@mui/material";
-import { useFetcher } from "react-router-dom";
-import React from "react";
-import PortfolioStats from '@/components/PortfolioStats'
+import { AreaChart } from "@/components/CurrentStockChart.jsx";
+import { transformSnapshotData, calculatePerformanceData } from "@/utils/dataProcessing";
+import { Card, Box, Typography } from "@mui/material";
+import React, { useState } from "react";
+import PortfolioStats from "@/components/PortfolioStats";
+import PerformanceChart from "@/components/PerformanceGraph";
 
-const SnapshotChart = React.memo(({
-  incrementalChange,
-  value,
-  percentageChange,
-  formattedDate,
-  stockTickers,
-  dailyTimeFrameData,
-}) => {
+const SnapshotChart = React.memo(
+  ({
+    incrementalChange,
+    value,
+    percentageChange,
+    formattedDate,
+    stockTickers,
+    dailyTimeFrameData,
+    moneySpent, 
+    updateStockPricesMutation
+  }) => {
+    const [isFlipped, setIsFlipped] = useState(false);
+    const areaChartData = transformSnapshotData(dailyTimeFrameData);
+    const performanceChartData = calculatePerformanceData(dailyTimeFrameData, moneySpent)
+    const trend = percentageChange > 0 ? "positive" : "negative";
 
-  const transformedData = transformSnapshotData(dailyTimeFrameData);
-  const trend = percentageChange > 0 ? "positive" : "negative";
 
+    return (
+      <div className="relative w-full" style={{ height: '400px' }}>
+        <div className="relative w-full h-full" style={{ perspective: '2000px' }}>
+          {/* Back Card (Additional Information) */}
+          <div 
+            className={`absolute w-[90%] h-full transition-all duration-500 ease-in-out ${
+              isFlipped 
+                ? 'left-0 z-20 translate-y-0 rotate-0' 
+                : 'left-[10%] z-10 translate-y-2 rotate-2 cursor-pointer hover:translate-y-[-2px]'
+            }`}
+            onClick={() => !isFlipped && setIsFlipped(true)}
+          >
+            <Card
+              sx={{
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 4,
+                padding: '15px 15px',
+                boxShadow: isFlipped 
+                  ? '0 10px 30px -5px rgba(0, 0, 0, 0.3)' 
+                  : '0 25px 30px -15px rgba(0, 0, 0, 0.4)'
+              }}
+            >
+              <PortfolioStats
+                    trend={trend}
+                    formattedDate={formattedDate}
+                    incrementalChange={incrementalChange}
+                    percentageChange={percentageChange}
+                    stockTickers={stockTickers}
+                    value={value}
+                    updateStockPricesMutation={updateStockPricesMutation}
+                  />
+                  <AreaChart
+                    data={areaChartData}
+                    enableAdvancedFeatures={true}
+                    trend={trend}
+                    height={250}
+                  />
+            </Card>
+          </div>
+          
+          {/* Front Card (Main Content) */}
+          <div 
+            className={`absolute w-[90%] h-full transition-all duration-500 ease-in-out ${
+              isFlipped 
+                ? 'left-[10%] z-10 translate-y-2 rotate-2 cursor-pointer hover:translate-y-[-2px]' 
+                : 'left-0 z-20 translate-y-0 rotate-0'
+            }`}
+            onClick={() => isFlipped && setIsFlipped(false)}
+          >
+            <Card
+              sx={{
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 4,
+                padding: '15px 15px',
+                boxShadow: !isFlipped 
+                  ? '0 10px 30px -5px rgba(0, 0, 0, 0.3)' 
+                  : '0 25px 30px -15px rgba(0, 0, 0, 0.4)'
+              }}
+            >
+              {dailyTimeFrameData.length === 0 ? (
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    height: "100%",
+                    width: "100%",
+                  }}
+                >
+                  Ai driven Data will be shown as activity will increase
+                </Box>
+              ) : (
+                <>
+                  <PortfolioStats
+                    trend={trend}
+                    formattedDate={formattedDate}
+                    incrementalChange={incrementalChange}
+                    percentageChange={percentageChange}
+                    stockTickers={stockTickers}
+                    value={value}
+                    updateStockPricesMutation={updateStockPricesMutation}
+                  />
 
-  return (
-    <div>
-      <Card
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 2,
-          margin: "auto",
-          padding: "15px 15px",
-          // backgroundColor: "transparent",
-        }}
-      >
-        <PortfolioStats trend={trend} formattedDate={formattedDate} incrementalChange={incrementalChange} percentageChange={percentageChange} stockTickers={stockTickers} value={value}/>
-        <CurrentStockChart data={transformedData} enableAdvancedFeatures={true} trend={trend} />
-      </Card>
-    </div>
-  );
-});
-
+                  <PerformanceChart data={performanceChartData}/>
+                </>
+              )}
+            </Card>
+          </div>
+        </div>
+        
+        {/* Optional: Ground shadow */}
+        <div className="absolute inset-0 bg-black/5 -z-10 translate-y-4 blur-xl rounded-full" />
+      </div>
+    );
+  }
+);
 
 export default SnapshotChart;

@@ -1,22 +1,26 @@
 
 import api from "@/api/axios";
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export async function sendFriendRequest(username ) {
   try {
     const response = await api.post(
-      `/friend/send_friend_request/${username}`,
+      `/friends/send_friend_request/${username}`,
       {}
     );
+    toast.success("Friend request sent successfully");
     return response.data;
   } catch (error) {
+    // toast.error("Error while adding friend");
     throw error;
   }
 }
 
-export async function getFriendRequest() {
+export async function getFriendRequestLength() {
   try {
     const response = await api.get(
-      `/friend/pending_friend_requests`
+      `/friends/pending_friend_requests_length`
     );
     return response.data;
   } catch (error) {
@@ -24,13 +28,35 @@ export async function getFriendRequest() {
   }
 }
 
-export async function answerFriendRequest(requestId, action, ) {
+export async function getFriendRequestUsers() {
+  try {
+    const response = await api.get(
+      `/friends/pending_friend_requests_users`
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+}
+
+export async function getSentFriendRequest() {
+  try {
+    const response = await api.get(
+      `/friends/sent_friend_requests`
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+}
+
+export async function answerFriendRequest({ request_Id, answer } ) {
   try {
     const response = await api.post(
-      `/friend/handle_friend_request/${requestId}`,
-      { action }, // Send action in the request body
+      `/friends/handle_friend_request/${request_Id}`,
+      { answer }, 
       {
-        params: { action }, // Also include action as a query parameter
+        params: { answer }, 
       }
     );
     return response.data;
@@ -41,7 +67,7 @@ export async function answerFriendRequest(requestId, action, ) {
 
 export async function getFriendsAndUserHoldings() {
   try {
-    const response = await api.get(`/friend/get_friends_and_user_holdings`, );
+    const response = await api.get(`/friends/get_friends_and_user_holdings`, );
     return response.data;
   } catch (error) {
     throw error;
@@ -50,9 +76,20 @@ export async function getFriendsAndUserHoldings() {
 
 export async function getFriendList() {
   try {
-    const response = await api.get(`/friend/get_friendList`);
+    const response = await api.get(`/friends/get_friendList`);
     return response.data;
   } catch (error) {
+    throw error;
+  }
+}
+
+export async function removeFriend(friend_id) {
+  try {
+    const response = await api.delete(`/friends/remove-friend/${friend_id}`);
+    toast.success("Friend removed successfully");
+    return response.data;
+  } catch (error) {
+    toast.error("couldn't remove Friend ");
     throw error;
   }
 }

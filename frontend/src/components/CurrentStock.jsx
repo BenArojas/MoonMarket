@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Box, Card, Stack, Typography, useTheme, Button } from "@mui/material";
 import { addUserPurchase, addUserSale } from "@/api/user";
 import SharesDialog from "@/components/SharesDialog.jsx";
-import { CurrentStockChart } from "@/components/CurrentStockChart.jsx";
+import { AreaChart } from "@/components/CurrentStockChart.jsx";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 function transformData(historicalData) {
@@ -25,7 +25,7 @@ export default function CurrentStockCard({
   const queryClient = useQueryClient()
   const buyShares = useMutation({
     mutationFn: addUserPurchase,
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries(["userData"]) 
     },
     onError: (error) => {
@@ -35,7 +35,7 @@ export default function CurrentStockCard({
 
   const sellShares = useMutation({
     mutationFn: addUserSale,
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries(["userData"]) 
     },
     onError: (error) => {
@@ -88,9 +88,7 @@ export default function CurrentStockCard({
         display: "flex",
         flexDirection: "column",
         gap: 2,
-        margin: "auto",
         padding: "10px 15px",
-        // backgroundColor: "transparent",
       }}
     >
       <Box
@@ -113,10 +111,10 @@ export default function CurrentStockCard({
           </Button>
         </Box>
       </Box>
-      <CurrentStockChart  data={transformedData} colors={{
-            lineColor : '#2962FF',
-            areaTopColor : '#2962FF',
-        }}/>
+      <AreaChart  data={transformedData} colors={{
+            lineColor : '#E1E5EB',
+            areaTopColor : '#E1E5EB',
+        }} height={260}/>
       {dialogOpen && (
         <SharesDialog
           handleClose={handleClose}

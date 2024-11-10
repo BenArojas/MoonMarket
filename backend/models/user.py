@@ -4,8 +4,7 @@ from datetime import datetime
 from typing import Annotated, Any, Optional, List, Optional, TYPE_CHECKING
 from beanie import Document, Indexed, PydanticObjectId, Link
 from pydantic import BaseModel, EmailStr, Field
-from bson import ObjectId
-from fastapi import  HTTPException
+
 
 if TYPE_CHECKING:
     from .friendRequest import FriendRequest
@@ -42,15 +41,20 @@ class UserRegister(UserAuth):
 
     deposits: List[Deposit] = Field(..., min_items=1)  # At least one deposit required
     username: str
-
+    
+    
 class UserFriend(BaseModel):
     """User fields that will be shown when searching a user in order to send a friend request"""
+    email: str
+    username: str
      
-    email: EmailStr | None = None
-    username: Optional[str] = None
-    holdings: List[Holding] = []
 
-        
+# Update FriendShow to include request_id
+class FriendShow(UserFriend):
+    request_id: Optional[str] = None
+    
+
+
 class UserUpdate(BaseModel):
     """Updatable user fields."""
 
@@ -59,29 +63,31 @@ class UserUpdate(BaseModel):
     transactions: List[PydanticObjectId] = []  # Use PydanticObjectId for transactions
     deposits: List[Deposit] | None = []
     current_balance: float | None = 0
+    profit: float | None = 0
     last_refresh: datetime | None = None
     username: Optional[str] = None
+    enabled: bool
     
 class UserOut(UserUpdate):
     """User fields returned to the client."""
-
-    friends: List[UserFriend] = []
-
+    friends: List[PydanticObjectId] | None = []
 
 class User(Document):
     """User DB representation."""
 
     email: Annotated[str, Indexed(EmailStr, unique=True)]
     password: str
-    username: Optional[str] = None
+    username: Annotated[str, Indexed(str, unique=True)]
     holdings: List[Holding] = []
     transactions: List[PydanticObjectId] = []
     deposits: List[Deposit] = []
     current_balance: float = 0
+    profit: float = 0
     last_refresh: Optional[datetime] = None
     friends: List[PydanticObjectId] = []
     friend_requests_sent: List[Link["FriendRequest"]] = []
     friend_requests_received: List[Link["FriendRequest"]] = []
+    enabled: bool = False
     
     async def add_friend(self, id: PydanticObjectId):
         self.friends.append(id)
@@ -128,7 +134,10 @@ class User(Document):
     
     def __str__(self) -> str:
         return self.email
-
+    
+    def display(self) -> str:
+        return f"User ID: {self.id}, Email: {self.email}"
+    
     def __hash__(self) -> int:
         return hash(self.email)
 
@@ -150,7 +159,12 @@ class User(Document):
     @classmethod
     async def by_email(cls, email: str) -> Optional["User"]:
         """Get a user by email."""
-        return await cls.find_one(cls.email == email)
+        return await cls.find_one({"email": email})
+    
+    @classmethod
+    async def by_username(cls, username: str) -> Optional["User"]:
+        """Get a user by username."""
+        return await cls.find_one({"username": username})
 
     def update_email(self, new_email: str) -> None:
         """Update email logging and replace."""

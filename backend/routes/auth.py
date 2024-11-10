@@ -9,14 +9,14 @@ from util.password import  verify_password
 from util.current_user import current_user
 from fastapi.responses import JSONResponse
 
-router = APIRouter(prefix="/auth", tags=["Auth"])
+router = APIRouter( tags=["Auth"])
 
 
 @router.post("/login")
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     user = await User.by_email(form_data.username)
     if user is None or not verify_password(form_data.password, user.password):
-        raise HTTPException(status_code=401, detail="Bad email or password")
+        raise HTTPException(status_code=400, detail="Bad email or password")
     
     access_token = access_security.create_access_token(user.jwt_subject)
     refresh_token = refresh_security.create_refresh_token(user.jwt_subject)
@@ -44,5 +44,5 @@ async def logout(response: Response):
 
 
 @router.get("/protected-route")
-async def protected_route(current_user: dict = Depends(current_user)):
-    return {"message": "This is a protected route", "user": current_user.username}
+async def protected_route(current_user: User = Depends(current_user)):
+    return {"message": "This is a protected route", "user": str(current_user.id), "enabled": current_user.enabled}

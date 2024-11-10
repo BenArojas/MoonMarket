@@ -1,4 +1,5 @@
 import { createTheme } from "@mui/material";
+import { teal, red } from '@mui/material/colors';
 
 export const darkTheme = createTheme({
   shape: {
@@ -7,18 +8,23 @@ export const darkTheme = createTheme({
   palette: {
     background: {
       default: "#0b0b0b",
-      // default: "#2B2B2B",
-      // default: "#060817",
-      // default:'#15202B'
     },
     primary: {
-      main: "#077e5d", // metalic green
+      // main: "#077e5d", // metalic green
+      light: teal[500],
+      main: teal[800],
+      dark: teal[900],
     },
     secondary: {
       main: "#E1E5EB", // light grey
     },
     trinary: {
       main: "#3f3f46",
+    },
+    error: {
+      main: red[500],
+      light: red[200],
+      dark: red[800],
     },
     mode: "dark",
   },
@@ -38,6 +44,16 @@ export const darkTheme = createTheme({
         }
       `,
     },
+    MuiTextField: {
+      defaultProps: {
+        autoComplete: 'off',
+      },
+    },
+    MuiInput: {
+      defaultProps: {
+        autoComplete: 'off',
+      },
+    },
   },
 });
 
@@ -52,13 +68,20 @@ export const lightTheme = createTheme({
       paper: "#fff",
     },
     primary: {
-      main: "#077e5d", // Keeping the same metallic green
+      light: teal[500],
+      main: teal[800],
+      dark: teal[900],
     },
     secondary: {
       main: "#2B2B2B", // Darker color for contrast in light mode
     },
     trinary: {
       main: "#d1d1d6",
+    },
+    error: {
+      main: red[500],
+      light: red[300],
+      dark: red[700],
     },
     mode: "light",
   },
@@ -77,6 +100,16 @@ export const lightTheme = createTheme({
           unicodeRange: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF;
         }
       `,
+    },
+    MuiTextField: {
+      defaultProps: {
+        autoComplete: 'off',
+      },
+    },
+    MuiInput: {
+      defaultProps: {
+        autoComplete: 'off',
+      },
     },
   },
 });
