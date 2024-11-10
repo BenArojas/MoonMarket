@@ -42,11 +42,13 @@ function Portfolio({ userName }) {
     queryFn: getUserData,
   });
   // console.log(userData)
+
+  // for developing, on prod we will have an update twice a day
   useEffect(() => {
     if (!initialFetchRef.current && userData && state?.shouldUpdatePrices && userData?.holdings?.length > 0) {
       const tickers = userData.holdings.map(holding => holding.ticker);
       updateStockPricesMutation.mutate(tickers);
-      initialFetchRef.current = true;  // Mark as run
+      initialFetchRef.current = true;  
     }
   }, [userData, state?.shouldUpdatePrices]);
 
