@@ -4,15 +4,12 @@ import 'react-toastify/dist/ReactToastify.css';
 
 
 const apiConfig = {
-  // for local developing
-  // baseURL: 'http://localhost:8000', 
   baseURL: '/api',
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
 };
- // for production
 
 const api = axios.create(apiConfig);
 
