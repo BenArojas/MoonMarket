@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, Suspense } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Starfield from "react-starfield";
 import "@/styles/space.css";
 import Moon from "@/components/space/Moon";
@@ -6,38 +6,29 @@ import SpaceshipsFleet from "@/components/space/SpaceshipsFleet";
 import Spaceship from "@/components/space/Spaceship";
 import { getFriendsAndUserHoldings, getFriendList } from "@/api/friend";
 import { getUsersList } from "@/api/user";
-import { Await, defer, useLoaderData } from "react-router-dom";
 import FriendsSideBar from "@/components/FriendsSideBar";
 import { useThemeHook } from "@/contexts/ThemeContext";
 import OrbitingCircles from "@/components/ui/orbiting-circles";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-
 const INITIAL_SPACESHIP_COUNT = 6;
 
-export const loader = async () => {
-  const friendsWithHolings = getFriendsAndUserHoldings();
-  const friendList = getUsersList()
-  return defer({ friendsWithHolings, friendList });
-};
-
 function Space() {
-  const data = useLoaderData();
   const { forceDarkMode } = useThemeHook();
   const galaxy = useRef(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [activeSpaceship, setActiveSpaceship] = useState(null);
-  // const queryClient = useQueryClient();
+  const queryClient = useQueryClient();
 
-  // const { data: usersWithHoldingsData, isPending: usersWithHoldingsLoading } = useQuery({
-  //   queryKey: ["usersHoldings"],
-  //   queryFn: getFriendsAndUserHoldings(),
-  // });
+  const { data: usersWithHoldingsData, isPending: usersWithHoldingsLoading } = useQuery({
+    queryKey: ["usersHoldings"],
+    queryFn: () => getFriendsAndUserHoldings(),
+  });
 
-  // const { data: usersListData, isPending: usersListLoading } = useQuery({
-  //   queryKey: ["usersList"],
-  //   queryFn: getUsersList(),
-  // });
+  const { data: usersListData, isPending: usersListLoading } = useQuery({
+    queryKey: ["usersList"],
+    queryFn: () => getUsersList(),
+  });
 
   useEffect(() => {
     forceDarkMode();
@@ -88,18 +79,13 @@ function Space() {
   return (
     <div className="page">
       <div className="floating-sidebar">
-        <Suspense fallback={null}>
-          <Await resolve={data.friendList}>
-            
-            {(resolvedFriends) => (
-              <FriendsSideBar
-                friends={resolvedFriends}
-                onAvatarClick={handleSpaceshipActivation}
-                activeSpaceship={activeSpaceship}
-              />
-            )}
-          </Await>
-        </Suspense>
+        {!usersListLoading && usersListData && (
+          <FriendsSideBar
+            friends={usersListData}
+            onAvatarClick={handleSpaceshipActivation}
+            activeSpaceship={activeSpaceship}
+          />
+        )}
       </div>
       <div className="space-container" ref={galaxy}>
         <Starfield
@@ -110,10 +96,10 @@ function Space() {
         />
         <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-lg md:shadow-xl">
           <Moon centerX={centerX} centerY={centerY} />
-          <Suspense fallback={null}>
-            <Await resolve={data.friendsWithHolings}>
-              {(resolvedFriends) => {
-                const categorizedFriends = categorizeFriends(resolvedFriends);
+          {!usersWithHoldingsLoading && usersWithHoldingsData && (
+            <>
+              {(() => {
+                const categorizedFriends = categorizeFriends(usersWithHoldingsData);
                 return (
                   <>
                     {/* High Performers (70% and above) */}
@@ -133,7 +119,6 @@ function Space() {
                       ))}
                     </OrbitingCircles>}
 
-
                     {/* Moderate Performers (20% to 70%) */}
                     {categorizedFriends.moderatePerformers.length > 0 && <OrbitingCircles
                       className="size-[30px] border-none bg-transparent"
@@ -152,7 +137,6 @@ function Space() {
                       ))}
                     </OrbitingCircles>}
 
-
                     {/* Low Performers (below 20%) */}
                     {categorizedFriends.lowPerformers.length > 0 && <OrbitingCircles
                       className="size-[30px] border-none bg-transparent"
@@ -169,12 +153,11 @@ function Space() {
                         />
                       ))}
                     </OrbitingCircles>}
-
                   </>
                 );
-              }}
-            </Await>
-          </Suspense>
+              })()}
+            </>
+          )}
         </div>
       </div>
     </div>

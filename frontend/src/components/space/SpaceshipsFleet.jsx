@@ -2,7 +2,7 @@
   import Spaceship from "@/components/space/Spaceship";
 
   function SpaceshipsFleet({ spaceships, activeSpaceship, onSpaceshipClick }) {
-    console.log("SpaceshipsFleet props:", { spaceships, activeSpaceship });    return (
+       return (
       <>
         {spaceships.map((spaceship) => (
           <Spaceship

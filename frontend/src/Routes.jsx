@@ -8,7 +8,7 @@ import Login from "@/pages/Login";
 import Profile from "@/pages/Profile";
 import Transactions from "@/pages/Transactions";
 import Register from "@/pages/Register";
-import Space, { loader as spaceLoader } from "@/pages/Space";
+import Space from "@/pages/Space";
 import Test from "@/pages/Test";
 import "./styles/global.css";
 import Layout from "@/pages/Layout";
@@ -33,19 +33,15 @@ const Routes = () => {
             {
               path: "/profile",
               element: <Profile />,
-              // loader: profileLoader,
-              // action: profileAction,
             },
             {
               path: "/transactions",
               element: <Transactions />,
               errorElement: <ErrorPage />,
-              // loader: transactionsLoader,
             },
             {
               path: "/space",
               element: <Space />,
-              loader: spaceLoader,
               errorElement: <ErrorPage />,
             },
             {
