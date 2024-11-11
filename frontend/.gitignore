@@ -8,6 +8,8 @@ pnpm-debug.log*
 
 # Vite
 dist/
+dist
+dist/
 .vite/
 .vscode/
 *.env.local

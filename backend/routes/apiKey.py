@@ -1,7 +1,7 @@
 
 from typing import List
 from fastapi import APIRouter, HTTPException, Depends
-from util.current_user import current_user
+from jwt import get_current_user
 from models.APIKeyManager import ApiKey
 from models.user import User
 import aiohttp
@@ -21,7 +21,7 @@ async def validate_fmp_key(api_key: str) -> bool:
             return False
         
 @router.post("/add-api-key")
-async def add_api_key(api_key: str, user: User = Depends(current_user)):
+async def add_api_key(api_key: str, user: User = Depends(get_current_user)):
      # Check if the API key already exists in the database
     existing_key = await ApiKey.find_one(ApiKey.key == api_key)
     if existing_key:

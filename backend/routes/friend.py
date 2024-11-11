@@ -4,7 +4,7 @@ from models.user import User, FriendShow
 from models.friend import FriendInfo, HoldingInfo
 from models.stock import Stock
 from models.friendRequest import FriendRequest, FriendRequestAnswer
-from util.current_user import current_user
+from jwt import get_current_user
 from routes.user import get_user_transactions_by_type
 from bson import ObjectId
 
@@ -12,7 +12,7 @@ from bson import ObjectId
 router = APIRouter(tags=["Friends"])
 
 @router.get("/pending_friend_requests_length")
-async def get_pending_friend_requests_length(current_user: User = Depends(current_user)):
+async def get_pending_friend_requests_length(current_user: User = Depends(get_current_user)):
     pending_requests = await FriendRequest.find(
         FriendRequest.to_user.id == current_user.id,
         FriendRequest.status == "pending"
@@ -21,7 +21,7 @@ async def get_pending_friend_requests_length(current_user: User = Depends(curren
     return len(pending_requests)
 
 @router.get("/pending_friend_requests_users")
-async def get_pending_friend_requests_users(current_user: User = Depends(current_user)):
+async def get_pending_friend_requests_users(current_user: User = Depends(get_current_user)):
     pending_requests = await FriendRequest.find(
         FriendRequest.to_user.id == current_user.id,
         FriendRequest.status == "pending"
@@ -41,7 +41,7 @@ async def get_pending_friend_requests_users(current_user: User = Depends(current
     return from_users
 
 @router.get("/sent_friend_requests")
-async def get_sent_friend_requests(current_user: User = Depends(current_user)):
+async def get_sent_friend_requests(current_user: User = Depends(get_current_user)):
     pending_requests = await FriendRequest.find(
     FriendRequest.from_user.id == current_user.id,
     FriendRequest.status == "pending").to_list()
@@ -59,7 +59,7 @@ async def get_sent_friend_requests(current_user: User = Depends(current_user)):
         
 
 @router.post("/send_friend_request/{username}")
-async def send_friend_request(username: str, current_user: User = Depends(current_user)):
+async def send_friend_request(username: str, current_user: User = Depends(get_current_user)):
     to_user = await User.find_one(User.username == username)
     if not to_user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -77,7 +77,7 @@ async def send_friend_request(username: str, current_user: User = Depends(curren
 async def handle_friend_request(
     request_id: str,
     answer: FriendRequestAnswer,
-    current_user: User = Depends(current_user)
+    current_user: User = Depends(get_current_user)
 ):
     friend_request = await FriendRequest.get(request_id)
     if not friend_request:
@@ -109,7 +109,7 @@ async def handle_friend_request(
     return {"message": message}
 
 @router.get("/get_friendList")
-async def get_friendList(current_user: User = Depends(current_user)):
+async def get_friendList(current_user: User = Depends(get_current_user)):
     friend_list = []
     for friend_id in current_user.friends:
         user = await User.get(friend_id)
@@ -200,7 +200,7 @@ async def get_friendList(current_user: User = Depends(current_user)):
 #     return friend_info_list
 
 @router.get("/get_friends_and_user_holdings", response_model=List[FriendInfo])
-async def get_all_friends(current_user: User = Depends(current_user)):
+async def get_all_friends(current_user: User = Depends(get_current_user)):
     friend_info_list = []
     stock_cache = {}
     users = [current_user.id] + current_user.friends
@@ -263,7 +263,7 @@ async def get_all_friends(current_user: User = Depends(current_user)):
     return friend_info_list
 
 @router.delete("/remove-friend/{friend_id}")
-async def remove_friend(friend_id: str, current_user: User = Depends(current_user)):
+async def remove_friend(friend_id: str, current_user: User = Depends(get_current_user)):
     # Convert string ID to ObjectId
     friend_object_id = ObjectId(friend_id)
     

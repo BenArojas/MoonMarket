@@ -3,7 +3,7 @@ from typing import Any, Dict, List
 from util.api_key import get_api_key
 from fastapi import APIRouter, HTTPException, status, Depends
 from models.stock import Stock
-from util.current_user import current_user
+from jwt import get_current_user
 from models.user import User
 import requests
 from datetime import datetime, timedelta
@@ -82,13 +82,13 @@ def get_stock_quote(symbol:str,api_key: ApiKey = Depends(get_api_key)):
     
 # Requests from Stock collection
 @router.get("/", response_description="list of all stocks in portfolio")
-async def list_stocks( user: User = Depends(current_user)):
+async def list_stocks( user: User = Depends(get_current_user)):
     stocks = await Stock.find_all().to_list()
     return stocks
 
 
 @router.get("/{ticker}")
-async def get_stock(ticker: str,  user: User = Depends(current_user)):
+async def get_stock(ticker: str,  user: User = Depends(get_current_user)):
     symbol = ticker.upper()
     if stock := await Stock.find_one(Stock.ticker == symbol):
         return stock
@@ -108,7 +108,7 @@ async def add_stock(stock_data: Stock):
     return {"message": "Stock added successfully"}
 
 @router.put("/update_stock_price/{ticker}")
-async def update_stock_price(ticker: str, user: User = Depends(current_user), api_key: ApiKey = Depends(get_api_key)):
+async def update_stock_price(ticker: str, user: User = Depends(get_current_user), api_key: ApiKey = Depends(get_api_key)):
     price = None
     try:
         url = f"https://financialmodelingprep.com/api/v3/quote-short/{ticker}?apikey={api_key.key}"
@@ -125,7 +125,7 @@ async def update_stock_price(ticker: str, user: User = Depends(current_user), ap
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 @router.delete("/delete/{ticker}", response_description="Delete stock")
-async def delete_stock(ticker: str, user: User = Depends(current_user)):
+async def delete_stock(ticker: str, user: User = Depends(get_current_user)):
     existing_stock = await Stock.find_one(Stock.ticker == ticker)
     if existing_stock is None:
         raise HTTPException(status_code=404, detail=f"Stock with ticker {ticker} does not exist")

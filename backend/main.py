@@ -2,7 +2,7 @@
 import uvicorn
 from app import app, api_app
 from routes.auth import router as AuthRouter
-from routes.mail import router as MailRouter
+# from routes.mail import router as MailRouter
 from routes.register import router as RegisterRouter
 from routes.user import router as UserRouter
 from routes.stock import router as StockRouter
@@ -13,7 +13,7 @@ from routes.apiKey import router as APIKeyRouter
 
 # prod
 api_app.include_router(AuthRouter, prefix="/auth")
-api_app.include_router(MailRouter, prefix="/mail")
+# api_app.include_router(MailRouter, prefix="/mail")
 api_app.include_router(RegisterRouter, prefix="/register")
 api_app.include_router(UserRouter, prefix="/user")
 api_app.include_router(StockRouter, prefix="/stock")
