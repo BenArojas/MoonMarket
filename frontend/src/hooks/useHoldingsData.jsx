@@ -5,6 +5,7 @@ function useHoldingsData(holdingsList, userData) {
     const [holdingsData, setHoldingsData] = useState([])
     useEffect(() => {
         const getStocksData = async () => {
+            // populate the holdings
             let promises = holdingsList.map((holding) =>
                 getStockFromPortfolio(holding.ticker )
             );
