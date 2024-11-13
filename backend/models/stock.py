@@ -22,3 +22,7 @@ class Stock(Document):
                 "earnings": "2024-04-30T08:24:12"
             }
         }
+
+# Request model to validate the incoming data
+class PortfolioRequest(BaseModel):
+    tickers: List[str]

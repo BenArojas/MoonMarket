@@ -18,6 +18,8 @@ function useGraphData(userData, selectedGraph, ) {
     }
     return { tickers: [], sum: 0, totalSpent: 0 };
   }, [stockList, stocksInfo]);
+  console.log("stockList", stockList);
+  console.log("stocksInfo", stocksInfo);
 
   const visualizationData = useMemo(() => {
     if (stockList.length === 0 || stocksInfo.length !== stockList.length) return null;

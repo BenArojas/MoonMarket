@@ -1,22 +1,20 @@
 import { teal, red } from '@mui/material/colors';
 
 export function getPortfolioStats(stocksList, stocksInfo) {
-
   let tickers = [];
   let sum = 0;
   let totalSpent = 0;
 
   // Create a map of stocksInfo for O(1) lookup
-  const stocksInfoMap = {};
-  stocksInfo.forEach(stock => {
-    stocksInfoMap[stock.ticker] = stock;
-  });
+  const stocksInfoMap = stocksInfo.reduce((acc, stock) => {
+    acc[stock.ticker] = stock;
+    return acc;
+  }, {});
 
   for (const holding of stocksList) {
-    const res = stocksInfoMap[holding.ticker];
-
-    if (holding && res) {
-      const value = holding.quantity * res.price;
+    const stockInfo = stocksInfoMap[holding.ticker];
+    if (stockInfo) {
+      const value = holding.quantity * stockInfo.price;
       sum += value;
       totalSpent += holding.avg_bought_price * holding.quantity;
       tickers.push(holding.ticker);
@@ -31,119 +29,123 @@ export function processTreemapData(stocksList, stocksInfo) {
   const negativeStocks = [];
   let sum = 0;
 
-  for (let i = 0; i < stocksList.length; i++) {
-    const res = stocksInfo[i];
-    const holding = stocksList[i];
+  // Create a map of stocksInfo by ticker for O(1) lookup
+  const stocksInfoMap = stocksInfo.reduce((acc, stock) => {
+    acc[stock.ticker] = stock;
+    return acc;
+  }, {});
 
-    // Add null checks
-    if (!res || !holding) continue;
-
+  // Process each holding and match with corresponding stock info
+  stocksList.forEach(holding => {
+    const stockInfo = stocksInfoMap[holding.ticker];
+    if (!stockInfo) return; // Skip if no matching stock info found
 
     const stock_avg_price = holding.avg_bought_price;
-    const value = holding.quantity * res.price;
+    const value = holding.quantity * stockInfo.price;
     sum += value;
-    const ticker = holding.ticker;
 
-    if (res.price > stock_avg_price) {
-      positiveStocks.push({
-        name: res.name,
-        id: res._id,
-        ticker: ticker,
-        value: value,
-        avgSharePrice: stock_avg_price.toFixed(2),
-        quantity: holding.quantity,
-        last_price: res.price.toFixed(2),
-        priceChangePercentage:
-          (((res.price - stock_avg_price) / stock_avg_price) * 100
-          ).toFixed(2),
-      });
+    const stockData = {
+      name: stockInfo.name,
+      id: stockInfo._id,
+      ticker: holding.ticker,
+      value: value,
+      avgSharePrice: stock_avg_price.toFixed(2),
+      quantity: holding.quantity,
+      last_price: stockInfo.price.toFixed(2),
+      priceChangePercentage: (
+        ((stockInfo.price - stock_avg_price) / stock_avg_price) * 100
+      ).toFixed(2)
+    };
+
+    if (stockInfo.price > stock_avg_price) {
+      positiveStocks.push(stockData);
     } else {
-      negativeStocks.push({
-        name: res.name,
-        id: res._id,
-        ticker: holding.ticker,
-        value: value,
-        avgSharePrice: stock_avg_price.toFixed(2),
-        quantity: holding.quantity,
-        last_price: res.price.toFixed(2),
-        priceChangePercentage: (((res.price - stock_avg_price) / stock_avg_price) * 100
-        ).toFixed(2)
-      });
+      negativeStocks.push(stockData);
     }
-  }
-
-  positiveStocks.forEach((stock) => {
-    stock.percentageOfPortfolio = ((stock.value / sum) * 100).toFixed(2);
-  });
-  negativeStocks.forEach((stock) => {
-    stock.percentageOfPortfolio = ((stock.value / sum) * 100).toFixed(2);
   });
 
+  // Calculate percentage of portfolio
+  const calculatePortfolioPercentage = (stocks) => {
+    stocks.forEach(stock => {
+      stock.percentageOfPortfolio = ((stock.value / sum) * 100).toFixed(2);
+    });
+  };
+
+  calculatePortfolioPercentage(positiveStocks);
+  calculatePortfolioPercentage(negativeStocks);
+
+  // Build the final tree structure
   const newStocksTree = {
     name: "Stocks",
     value: 0,
-    children: [],
+    children: []
   };
 
   if (positiveStocks.length > 0) {
     newStocksTree.children.push({
       name: "Positive",
       value: 0,
-      children: positiveStocks,
+      children: positiveStocks
     });
   }
+
   if (negativeStocks.length > 0) {
     newStocksTree.children.push({
       name: "Negative",
       value: 0,
-      children: negativeStocks,
+      children: negativeStocks
     });
   }
 
   return newStocksTree;
 }
-
 export function processDonutData(stocksList, stocksInfo) {
+  const stocksInfoMap = stocksInfo.reduce((acc, stock) => {
+    acc[stock.ticker] = stock;
+    return acc;
+  }, {});
+
   let stocks = [];
   let totalPortfolioValue = 0;
-  let othersStocks = []; // Define othersStocks here
 
-  stocksInfo.forEach((res, i) => {
-    const holding = stocksList[i];
-    const value = holding.quantity * res.price;
-    totalPortfolioValue += value;
+  // First calculate total portfolio value
+  stocksList.forEach(holding => {
+    const stockInfo = stocksInfoMap[holding.ticker];
+    if (stockInfo) {
+      const value = holding.quantity * stockInfo.price;
+      totalPortfolioValue += value;
+    }
   });
 
-  // Calculate percentage of portfolio for each stock
-  stocksList.forEach((holding, i) => {
-    const res = stocksInfo[i];
-    const value = holding.quantity * res.price;
-    const percentageOfPortfolio = Math.round(
-      (value / totalPortfolioValue) * 100
-    );
+  // Calculate percentage for each stock
+  stocksList.forEach(holding => {
+    const stockInfo = stocksInfoMap[holding.ticker];
+    if (stockInfo) {
+      const value = holding.quantity * stockInfo.price;
+      const percentageOfPortfolio = Math.round(
+        (value / totalPortfolioValue) * 100
+      );
 
-    stocks.push({
-      name: holding.ticker,
-      value: value,
-      quantity: holding.quantity,
-      percentageOfPortfolio: percentageOfPortfolio,
-    });
+      stocks.push({
+        name: holding.ticker,
+        value: value,
+        quantity: holding.quantity,
+        percentageOfPortfolio: percentageOfPortfolio,
+      });
+    }
   });
 
   // Sort stocks by value in descending order
   stocks.sort((a, b) => b.value - a.value);
 
-  // If there are more than 8 stocks, combine the rest into "Others"
-  if (stocks.length > 8) {
-    othersStocks = stocks.slice(8).map(stock => ({
-      name: stock.name,
-      value: stock.value,
-      quantity: stock.quantity,
-      percentageOfPortfolio: stock.percentageOfPortfolio
-    }));
-
+  // Handle "Others" category for more than 8 stocks
+  const othersStocks = stocks.length > 8 ? stocks.slice(8) : [];
+  if (othersStocks.length > 0) {
     const othersValue = othersStocks.reduce((acc, curr) => acc + curr.value, 0);
-    const othersPercentage = othersStocks.reduce((acc, curr) => acc + curr.percentageOfPortfolio, 0);
+    const othersPercentage = othersStocks.reduce(
+      (acc, curr) => acc + curr.percentageOfPortfolio,
+      0
+    );
 
     stocks = stocks.slice(0, 8);
     stocks.push({
@@ -154,51 +156,53 @@ export function processDonutData(stocksList, stocksInfo) {
   }
 
   stocks.othersStocks = othersStocks;
-  console.log(stocks);
   return stocks;
 }
 
 export function processSankeyData(stocksList, stocksInfo) {
+  const stocksInfoMap = stocksInfo.reduce((acc, stock) => {
+    acc[stock.ticker] = stock;
+    return acc;
+  }, {});
+
   const nodes = [
     { id: "Positive", color: teal[500], value: 0 },
     { id: "Negative", color: red[500], value: 0 }
   ];
 
   const links = [];
-
   let positiveValue = 0;
   let negativeValue = 0;
 
-  for (let i = 0; i < stocksList.length; i++) {
-    const res = stocksInfo[i];
-    const holding = stocksList[i];
-
-    if (!res || !holding) continue;
+  stocksList.forEach(holding => {
+    const stockInfo = stocksInfoMap[holding.ticker];
+    if (!stockInfo) return;
 
     const stock_avg_price = holding.avg_bought_price;
-    const value = holding.quantity * res.price;
+    const value = holding.quantity * stockInfo.price;
     const ticker = holding.ticker;
-    const percentageChange = (((res.price - stock_avg_price) / stock_avg_price) * 100).toFixed(2);
+    const percentageChange = (
+      ((stockInfo.price - stock_avg_price) / stock_avg_price) * 100
+    ).toFixed(2);
 
     const nodeData = {
       id: ticker,
-      name: res.name,
+      name: stockInfo.name,
       value: value,
       percentageChange: percentageChange
     };
 
     nodes.push(nodeData);
 
-    if (res.price > stock_avg_price) {
+    if (stockInfo.price > stock_avg_price) {
       positiveValue += value;
       links.push({ source: "Positive", target: ticker, value: value });
     } else {
       negativeValue += value;
       links.push({ source: "Negative", target: ticker, value: value });
     }
-  }
+  });
 
-  // Update Positive and Negative node values
   nodes[0].value = positiveValue;
   nodes[1].value = negativeValue;
 
@@ -216,96 +220,108 @@ function getRandomColor() {
   return color;
 }
 export function processCircularData(stocksList, stocksInfo) {
+  const stocksInfoMap = stocksInfo.reduce((acc, stock) => {
+    acc[stock.ticker] = stock;
+    return acc;
+  }, {});
+
   let children = [];
   let sum = 0;
   let totalPortfolioValue = 0;
 
-  stocksInfo.forEach((res, i) => {
-    const holding = stocksList[i];
-    const value = holding.quantity * res.price;
-    totalPortfolioValue += value;
+  // Calculate total portfolio value first
+  stocksList.forEach(holding => {
+    const stockInfo = stocksInfoMap[holding.ticker];
+    if (stockInfo) {
+      const value = holding.quantity * stockInfo.price;
+      totalPortfolioValue += value;
+    }
   });
 
-  for (let i = 0; i < stocksList.length; i++) {
-    const res = stocksInfo[i];
-    const holding = stocksList[i];
-    const value = holding.quantity * res.price;
+  // Process each stock
+  stocksList.forEach(holding => {
+    const stockInfo = stocksInfoMap[holding.ticker];
+    if (!stockInfo) return;
+
+    const value = holding.quantity * stockInfo.price;
     const ticker = holding.ticker;
     sum += value;
     const stock_avg_price = holding.avg_bought_price;
     const percentageOfPortfolio = (
       (value / totalPortfolioValue) * 100
     ).toFixed(2);
-    let stockType;
-    if (res.price > stock_avg_price) {
-      stockType = "positive";
-    } else {
-      stockType = "negative";
-    }
+
+    const stockType = stockInfo.price > stock_avg_price ? "positive" : "negative";
+
     children.push({
       type: "leaf",
       ticker: ticker,
-      name: res.name,
+      name: stockInfo.name,
       value: value,
       stockType: stockType,
       quantity: holding.quantity,
       avgSharePrice: stock_avg_price,
-      last_price: res.price,
+      last_price: stockInfo.price,
       percentageOfPortfolio: percentageOfPortfolio,
     });
-  }
+  });
 
-  const circularDataObject = {
+  return {
     type: "node",
     name: "stocks",
     value: sum,
     children: children,
   };
-  return circularDataObject;
 }
 
 export function processLeaderboardsData(stocksList, stocksInfo) {
-  // console.log("stocksList", stocksList);
-  // console.log("stocksInfo", stocksInfo);
+  const stocksInfoMap = stocksInfo.reduce((acc, stock) => {
+    acc[stock.ticker] = stock;
+    return acc;
+  }, {});
 
   let totalPortfolioValue = 0;
-  stocksInfo.forEach((res, i) => {
-    const holding = stocksList[i];
-    const value = holding.quantity * res.price;
-    totalPortfolioValue += value;
-  });
-  let LeaderboardsData = [];
-  stocksList.forEach((stock, i) => {
-    const value = (stock.quantity * stocksInfo[i].price).toFixed(2);
-    const ticker = stock.ticker;
-    const name = stocksInfo[i].name;
-    const avg_bought_price = stock.avg_bought_price;
-    const priceChange = stocksInfo[i].price - avg_bought_price;
-    const priceChangePercentage = (
-      ((stocksInfo[i].price - avg_bought_price) / avg_bought_price) * 100
-    ).toFixed(2);
-    const percentageOfPortfolio = (
-      (value / totalPortfolioValue) * 100
-    ).toFixed(2);
 
-    const gainLoss = (value - (stock.avg_bought_price * stock.quantity)).toFixed(2);
-
-    LeaderboardsData.push({
-      ticker: ticker,
-      name: name,
-      value: value,
-      priceChange: priceChange,
-      priceChangePercentage: priceChangePercentage,
-      sharePrice: stocksInfo[i].price,
-      earnings: stocksInfo[i].earnings,
-      quantity: stock.quantity,
-      percentageOfPortfolio: percentageOfPortfolio,
-      gainLoss: gainLoss,
-    });
+  // Calculate total portfolio value first
+  stocksList.forEach(holding => {
+    const stockInfo = stocksInfoMap[holding.ticker];
+    if (stockInfo) {
+      const value = holding.quantity * stockInfo.price;
+      totalPortfolioValue += value;
+    }
   });
-  LeaderboardsData.sort(
-    (a, b) => b.priceChangePercentage - a.priceChangePercentage
-  );
+
+  // Process each stock
+  const LeaderboardsData = stocksList
+    .map(holding => {
+      const stockInfo = stocksInfoMap[holding.ticker];
+      if (!stockInfo) return null;
+
+      const value = (holding.quantity * stockInfo.price).toFixed(2);
+      const priceChange = stockInfo.price - holding.avg_bought_price;
+      const priceChangePercentage = (
+        ((stockInfo.price - holding.avg_bought_price) / holding.avg_bought_price) * 100
+      ).toFixed(2);
+      const percentageOfPortfolio = (
+        (parseFloat(value) / totalPortfolioValue) * 100
+      ).toFixed(2);
+      const gainLoss = (value - (holding.avg_bought_price * holding.quantity)).toFixed(2);
+
+      return {
+        ticker: holding.ticker,
+        name: stockInfo.name,
+        value: value,
+        priceChange: priceChange,
+        priceChangePercentage: priceChangePercentage,
+        sharePrice: stockInfo.price,
+        earnings: stockInfo.earnings,
+        quantity: holding.quantity,
+        percentageOfPortfolio: percentageOfPortfolio,
+        gainLoss: gainLoss,
+      };
+    })
+    .filter(Boolean) // Remove any null entries
+    .sort((a, b) => b.priceChangePercentage - a.priceChangePercentage);
 
   return LeaderboardsData;
 }

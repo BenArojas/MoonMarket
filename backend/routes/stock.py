@@ -1,8 +1,9 @@
 
+import asyncio
 from typing import Any, Dict, List
 from util.api_key import get_api_key
-from fastapi import APIRouter, HTTPException, status, Depends
-from models.stock import Stock
+from fastapi import APIRouter, HTTPException, status, Depends, Query
+from models.stock import Stock, PortfolioRequest
 from util.current_user import current_user
 from models.user import User
 import requests
@@ -94,6 +95,24 @@ async def get_stock(ticker: str,  user: User = Depends(current_user)):
         return stock
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Stock with ticker {ticker} does not exist")
 
+@router.post("/portfolio", response_description="Get stocks in user's portfolio")
+async def get_user_stocks(
+    request: PortfolioRequest,
+    user: User = Depends(current_user)
+):
+    if not request.tickers:
+        return []
+        
+    try:
+        # Find only the stocks that match the provided tickers
+        stocks = await Stock.find({"ticker": {"$in": request.tickers}}).to_list()
+        return stocks
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching stock data: {str(e)}"
+        )
 
 @router.post("/add_stock")
 async def add_stock(stock_data: Stock):
@@ -107,22 +126,53 @@ async def add_stock(stock_data: Stock):
 
     return {"message": "Stock added successfully"}
 
-@router.put("/update_stock_price/{ticker}")
-async def update_stock_price(ticker: str, user: User = Depends(current_user), api_key: ApiKey = Depends(get_api_key)):
-    price = None
+@router.put("/update_stock_prices")
+async def update_stock_prices(
+    request: PortfolioRequest,
+    user: User = Depends(current_user),
+    api_key: ApiKey = Depends(get_api_key)
+):
+    # Build comma-separated string of tickers
+    tickers_string = ','.join(request.tickers)
+    print(tickers_string)
+    
+    # Fetch all prices in one API call
     try:
-        url = f"https://financialmodelingprep.com/api/v3/quote-short/{ticker}?apikey={api_key.key}"
+        url = f"https://financialmodelingprep.com/api/v3/quote-short/{tickers_string}?apikey={api_key.key}"
+        print(url)
         response = requests.get(url).json()
-        price = response[0]['price']
+        print(response)
+        
+        # Create a map of ticker to price
+        price_map = {item['symbol']: item['price'] for item in response}
+        
+        # Update all stocks in database
+        update_operations = []
+        for ticker in request.tickers:
+            if ticker in price_map:
+                stock = await Stock.find_one(Stock.ticker == ticker)
+                if stock:
+                    update_operations.append(
+                        stock.set({Stock.price: price_map[ticker]})
+                    )
+        
+        # Execute all updates
+        if update_operations:
+            await asyncio.gather(*update_operations)
+            
+        # Update user's last refresh time
+        await user.set({User.last_refresh: datetime.now()})
+        
+        return {
+            "message": "Prices updated successfully",
+            "updated_tickers": list(price_map.keys())
+        }
+        
     except Exception as e:
-        print(f"Error with API key {api_key}: {str(e)}")  # Print the error and continue with the next key
-
-    try:
-        stock = await Stock.find_one(Stock.ticker == ticker)
-        await stock.set({Stock.price:price})
-        await user.set({User.last_refresh: datetime.now()})  
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error updating stock prices: {str(e)}"
+        )
 
 @router.delete("/delete/{ticker}", response_description="Delete stock")
 async def delete_stock(ticker: str, user: User = Depends(current_user)):

@@ -1,27 +1,24 @@
-import React, { useEffect, useState } from 'react'
-import { getStockFromPortfolio } from "@/api/stock";
+import React, { useEffect, useState } from 'react';
+import { getStocksFromPortfolio } from "@/api/stock";
 
-function useHoldingsData(holdingsList, userData) {
-    const [holdingsData, setHoldingsData] = useState([])
+function useHoldingsData(holdingsList) {
+    const [holdingsData, setHoldingsData] = useState([]);
+
     useEffect(() => {
-        const getStocksData = async () => {
-            let promises = holdingsList.map((holding) =>
-                getStockFromPortfolio(holding.ticker )
-            );
-            let results = await Promise.all(promises);
-
-            if (results.length === holdingsList.length) {
+        const fetchHoldingsData = async () => {
+            if (holdingsList.length > 0) {
+                const tickers = holdingsList.map(holding => holding.ticker);
+                const results = await getStocksFromPortfolio(tickers);
                 setHoldingsData(results);
+            } else {
+                setHoldingsData([]);
             }
-        }
-        if (holdingsList.length > 0) {
-            getStocksData();
-        } else {
-            setHoldingsData([]); // Reset holdings data if there are no holdings
-        }
-    }, [holdingsList, userData])
+        };
 
-    return holdingsData
+        fetchHoldingsData();
+    }, [holdingsList]);
+
+    return holdingsData;
 }
 
-export default useHoldingsData
+export default useHoldingsData;
