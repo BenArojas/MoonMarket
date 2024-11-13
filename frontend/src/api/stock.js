@@ -55,22 +55,23 @@ function isValidStockTicker(ticker) {
   return false;
 }
 
-export async function getStockFromPortfolio(ticker) {
-  const stock = await api.get(`/stock/${ticker}`);
-  return stock.data;
+export async function getStocksFromPortfolio(tickers) {
+  const stockData = await api.post(`/stock/portfolio`, {
+    tickers: tickers,  
+  });
+  return stockData.data;
 }
 
-export async function updateStockPrice(ticker ) {
+export async function updateStockPrices(tickers) {
   try {
     const response = await api.put(
-      `/stock/update_stock_price/${ticker}`,
-      {}, // This is the data payload. Use an empty object if no data to send.
-     
+      `/stock/update_stock_prices`,
+      { tickers }, // Send tickers array in request body
     );
-    return response.data; // Return response data if needed
+    return response.data;
   } catch (error) {
-    console.error(`Failed to update ${ticker}:`, error);
-    throw error; // Re-throw the error for further handling if necessary
+    console.error(`Failed to update stocks:`, error);
+    throw error;
   }
 }
 
