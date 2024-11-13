@@ -18,21 +18,19 @@ export const authCheckApi = axios.create(apiConfig);
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
+    // const originalRequest = error.config;
+    // if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes('/auth/refresh')) {
+    //   originalRequest._retry = true;
 
-    // Don't retry if it's already a refresh request or has been retried
-    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes('/auth/refresh')) {
-      originalRequest._retry = true;
-
-      try {
-        await api.post('/auth/refresh');
-        return api(originalRequest);
-      } catch (refreshError) {
-        // Redirect to login on refresh failure
-        window.location.href = '/login';
-        return Promise.reject(refreshError);
-      }
-    }
+    //   try {
+    //     await api.post('/auth/refresh');
+    //     return api(originalRequest);
+    //   } catch (refreshError) {
+    //     // Redirect to login on refresh failure
+    //     window.location.href = '/login';
+    //     return Promise.reject(refreshError);
+    //   }
+    // }
     if (error.response?.status !== 401) {
       toast.error(error.response.data.detail);
     }

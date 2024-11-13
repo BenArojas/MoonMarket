@@ -4,11 +4,12 @@ from typing import Any, Dict, List
 from util.api_key import get_api_key
 from fastapi import APIRouter, HTTPException, status, Depends, Query
 from models.stock import Stock, PortfolioRequest
-from util.current_user import current_user
 from models.user import User
 import requests
 from datetime import datetime, timedelta
 from models.APIKeyManager import ApiKey
+from jwt import get_current_user
+
 
 router = APIRouter(tags=["Stock"])
 BASE_URL = 'https://financialmodelingprep.com/api/v3/'
@@ -83,13 +84,13 @@ def get_stock_quote(symbol:str,api_key: ApiKey = Depends(get_api_key)):
     
 # Requests from Stock collection
 @router.get("/", response_description="list of all stocks in portfolio")
-async def list_stocks( user: User = Depends(current_user)):
+async def list_stocks( user: User = Depends(get_current_user)):
     stocks = await Stock.find_all().to_list()
     return stocks
 
 
 @router.get("/{ticker}")
-async def get_stock(ticker: str,  user: User = Depends(current_user)):
+async def get_stock(ticker: str,  user: User = Depends(get_current_user)):
     symbol = ticker.upper()
     if stock := await Stock.find_one(Stock.ticker == symbol):
         return stock
@@ -98,7 +99,7 @@ async def get_stock(ticker: str,  user: User = Depends(current_user)):
 @router.post("/portfolio", response_description="Get stocks in user's portfolio")
 async def get_user_stocks(
     request: PortfolioRequest,
-    user: User = Depends(current_user)
+    user: User = Depends(get_current_user)
 ):
     if not request.tickers:
         return []
@@ -129,7 +130,7 @@ async def add_stock(stock_data: Stock):
 @router.put("/update_stock_prices")
 async def update_stock_prices(
     request: PortfolioRequest,
-    user: User = Depends(current_user),
+    user: User = Depends(get_current_user),
     api_key: ApiKey = Depends(get_api_key)
 ):
     # Build comma-separated string of tickers
@@ -175,7 +176,7 @@ async def update_stock_prices(
         )
 
 @router.delete("/delete/{ticker}", response_description="Delete stock")
-async def delete_stock(ticker: str, user: User = Depends(current_user)):
+async def delete_stock(ticker: str, user: User = Depends(get_current_user)):
     existing_stock = await Stock.find_one(Stock.ticker == ticker)
     if existing_stock is None:
         raise HTTPException(status_code=404, detail=f"Stock with ticker {ticker} does not exist")
