@@ -1,5 +1,4 @@
 """Server main runtime."""
-import uvicorn
 from app import app, api_app
 from routes.auth import router as AuthRouter
 # from routes.mail import router as MailRouter
@@ -25,11 +24,7 @@ api_app.include_router(APIKeyRouter, prefix="/api-key")
 
 
 if __name__ == "__main__":
-    uvicorn.run(
-        "main:app",
-        host="localhost",
-        reload=False,
-        port=8000,
-    )
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
     
 
