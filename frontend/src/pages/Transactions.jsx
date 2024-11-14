@@ -220,7 +220,6 @@ const TransactionsContent = ({ transactions }) => {
   });
 
   const handleDeleteTransaction = (transactionId) => {
-    console.log('delete transaction', transactionId)
     deleteTransactionMutation.mutate(transactionId);
   };
 
