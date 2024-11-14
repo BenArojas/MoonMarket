@@ -117,15 +117,6 @@ export async function searchUser(username,) {
 }
 
 
-export async function checkAuth() {
-  try {
-    const response = await authCheckApi.get("/auth/protected-route");
-    return response.data;
-  } catch (error) {
-    return null;
-  }
-}
-
 export async function addApiKey(api_key) {
   try {
       const response = await api.post(`/api-key/add-api-key`, null, {

@@ -159,7 +159,6 @@ async def delete_transaction(transaction_id: str, user: User = Depends(current_u
     # Convert string ID to PydanticObjectId
     transaction_obj_id = PydanticObjectId(transaction_id)
     transaction = await Transaction.get(transaction_obj_id)
-    print(transaction)
     
     if transaction is None:
         raise HTTPException(status_code=404, detail="Transaction not found")

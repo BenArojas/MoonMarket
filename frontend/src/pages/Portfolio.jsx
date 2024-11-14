@@ -41,7 +41,7 @@ function Portfolio({ userName }) {
     queryKey: ["userData", userName],
     queryFn: getUserData,
   });
-  // console.log(userData)
+  console.log(userData)
 
   // for developing, on prod we will have an update twice a day
   useEffect(() => {

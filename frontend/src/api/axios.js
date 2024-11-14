@@ -7,7 +7,6 @@ const baseURL = import.meta.env.VITE_BACKEND_BASE_URL || 'https://moonmaket-back
 
 // Log the base URL during development to verify it's correct
 if (import.meta.env.DEV) {
-  console.log('API Base URL:', baseURL);
 }
 
 const apiConfig = {

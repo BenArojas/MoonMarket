@@ -1,10 +1,11 @@
 import { useNavigate, Form, Link } from "react-router-dom";
-import { useAuth } from "../contexts/AuthProvider";
-import { useState } from "react";
-// import { loginUser } from "@/api/user";
 import { useForm } from "react-hook-form";
 import { TextField, Box, Card, Typography, Button } from "@mui/material";
 import { styled } from "@mui/material/styles";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import api from "@/api/axios";
+
+
 
 
 const StyledTextField = styled(TextField)({
@@ -31,28 +32,44 @@ const StyledTextField = styled(TextField)({
 });
 
 const Login = () => {
-  const { login } = useAuth();
-  const [error, setError] = useState("");
   const navigate = useNavigate();
-
-   const {
+  
+  const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm();
 
-  const onSubmit = async (data) => {
-    try {
-      await login(data.email, data.password);
+  const loginMutation = useMutation({
+    mutationFn: async ({ email, password }) => {
+      const formData = new FormData();
+      formData.append('username', email);
+      formData.append('password', password);
+      
+      const response = await api.post('/auth/login', 
+        formData,
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          }
+        }
+      );
+      
+      return response.data;
+    },
+    onSuccess: (data) => {
       navigate("/home", { replace: true, state: { shouldUpdatePrices: true } });
-    } catch (error) {
-      if (error.response && error.response.data) {
-        setError(error.response.data.detail);
-      } else {
-        console.error("Login error:", error);
-        setError("An unexpected error occurred. Please try again.");
-      }
+    },
+    onError: (error) => {
+      console.error('Login error:', error.response?.data || error.message);
     }
+  });
+
+  const onSubmit = (data) => {
+    loginMutation.mutate({
+      email: data.email,
+      password: data.password
+    });
   };
 
   return (
@@ -83,10 +100,8 @@ const Login = () => {
             backgroundSize: "cover",
           }}
         >
-          <Box sx={{
-            width: 300, height: 300
-          }}>
-            <img src="/moonMarket-Photoroom.png"></img>
+          <Box sx={{ width: 300, height: 300 }}>
+            <img src="/moonMarket-Photoroom.png" alt="Moon Market Logo" />
           </Box>
         </Box>
         <Box
@@ -114,12 +129,22 @@ const Login = () => {
             }}
           >
             <Typography variant="h5">Login to your account</Typography>
+            
+            {loginMutation.error && (
+              <Typography color="error">
+                {loginMutation.error.response?.data?.detail || 
+                 "An unexpected error occurred. Please try again."}
+              </Typography>
+            )}
+
             <StyledTextField
               {...register("email", {
                 required: true,
               })}
               type="email"
               placeholder="Email"
+              error={!!errors.email}
+              helperText={errors.email && "Email is required"}
             />
 
             <TextField
@@ -128,10 +153,16 @@ const Login = () => {
               })}
               type="password"
               placeholder="Password"
+              error={!!errors.password}
+              helperText={errors.password && "Password is required"}
             />
 
-            <Button variant="contained" type="submit">
-              Login
+            <Button 
+              variant="contained" 
+              type="submit"
+              disabled={loginMutation.isPending}
+            >
+              {loginMutation.isPending ? "Logging in..." : "Login"}
             </Button>
           </Box>
           <Box sx={{ display: "flex", gap: 1 }}>
