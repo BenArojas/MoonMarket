@@ -14,27 +14,7 @@
       }
     };
 
-    const login = async (email, password) => {
-      try {
-        const formData = new FormData();
-        formData.append('username', email);
-        formData.append('password', password);
-    
-        const response = await api.post('/auth/login', 
-          formData,
-          {
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded'
-            }
-          }
-        );
-       
-        return response.data;
-      } catch (error) {
-        console.error('Login error:', error.response?.data || error.message);
-        throw error;
-      }
-    };
+
 
     const logout = async () => {
       try {
@@ -50,7 +30,7 @@
     
 
     const value = useMemo(
-      () => ({  login, logout }),
+      () => ({  logout }),
       []
     );
 

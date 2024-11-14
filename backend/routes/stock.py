@@ -135,14 +135,11 @@ async def update_stock_prices(
 ):
     # Build comma-separated string of tickers
     tickers_string = ','.join(request.tickers)
-    print(tickers_string)
     
     # Fetch all prices in one API call
     try:
         url = f"https://financialmodelingprep.com/api/v3/quote-short/{tickers_string}?apikey={api_key.key}"
-        print(url)
         response = requests.get(url).json()
-        print(response)
         
         # Create a map of ticker to price
         price_map = {item['symbol']: item['price'] for item in response}
