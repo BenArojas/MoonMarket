@@ -8,7 +8,7 @@ import {
 } from "@/utils/dataProcessing.js";
 import useHoldingsData from "@/hooks/useHoldingsData";
 
-function useGraphData(userData, selectedGraph, ) {
+function useGraphData(userData, selectedGraph ) {
   const stockList = userData.holdings;
   const stocksInfo = useHoldingsData(stockList, userData);
 

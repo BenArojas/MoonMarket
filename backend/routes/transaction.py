@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime
-from util.current_user import current_user
+from util.current_user import get_current_user
 from models.user import User
 from models.stock import Stock
 from models.transaction import Transaction
@@ -16,7 +16,7 @@ async def buy_stock_shares(
     ticker: str, 
     quantity: int, 
     transaction_date: datetime,
-    user: User = Depends(current_user)
+    user: User = Depends(get_current_user)
 ):
     # Convert the received datetime to UTC if it isn't already
     if transaction_date.tzinfo is None:
@@ -90,7 +90,7 @@ async def buy_stock_shares(
     return {"message": "Stock purchased successfully"}
 
 @router.post("/sell_stock")
-async def sell_stock_shares(ticker: str, quantity: int, price: float, transaction_date: datetime, user: User = Depends(current_user)):
+async def sell_stock_shares(ticker: str, quantity: int, price: float, transaction_date: datetime, user: User = Depends(get_current_user)):
     # Convert the received datetime to UTC if it isn't already
     if transaction_date.tzinfo is None:
         transaction_date = pytz.UTC.localize(transaction_date)
@@ -154,7 +154,7 @@ async def sell_stock_shares(ticker: str, quantity: int, price: float, transactio
     return {"message": "Stock sold successfully"}
 
 @router.delete("/delete_transaction/{transaction_id}")
-async def delete_transaction(transaction_id: str, user: User = Depends(current_user)):
+async def delete_transaction(transaction_id: str, user: User = Depends(get_current_user)):
     # Find the transaction
     # Convert string ID to PydanticObjectId
     transaction_obj_id = PydanticObjectId(transaction_id)

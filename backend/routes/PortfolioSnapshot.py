@@ -1,7 +1,7 @@
 
 from fastapi import APIRouter, Body, Depends, HTTPException
 from models.PortfolioSnapshot import PortfolioSnapshot
-from util.current_user import current_user
+from util.current_user import get_current_user
 from models.user import User
 import pytz
 
@@ -15,7 +15,7 @@ router = APIRouter(tags=["Stock"])
 
 
 @router.post("/snapshot")
-async def create_snapshot(value: float, user: User = Depends(current_user)):
+async def create_snapshot(value: float, user: User = Depends(get_current_user)):
     now = datetime.utcnow()
     
     # Set the time to midnight UTC to compare only the date
@@ -40,7 +40,7 @@ from fastapi import Depends
 from beanie import PydanticObjectId
 
 @router.get("/daily_snapshots")
-async def get_daily_snapshots(user: User = Depends(current_user)):
+async def get_daily_snapshots(user: User = Depends(get_current_user)):
     # Get the user's snapshots
     user_snapshots = await PortfolioSnapshot.find(PortfolioSnapshot.userId.id == PydanticObjectId(user.id)).sort(-PortfolioSnapshot.timestamp).to_list()
 

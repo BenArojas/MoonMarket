@@ -1,10 +1,8 @@
 """User models."""
-
-from datetime import datetime
-from typing import Annotated, Any, Optional, List, Optional, TYPE_CHECKING
+from datetime import datetime, timezone
+from typing import Annotated, Any, Optional, List, TYPE_CHECKING
 from beanie import Document, Indexed, PydanticObjectId, Link
 from pydantic import BaseModel, EmailStr, Field
-
 
 if TYPE_CHECKING:
     from .friendRequest import FriendRequest
@@ -28,53 +26,43 @@ class Holding(BaseModel):
                 "position_started": "2024-04-30T08:24:12"
             }
         }
-        
 
 class UserAuth(BaseModel):
     """User login auth."""
-
-    email: Annotated[str, Indexed(EmailStr, unique=True)]
+    email: str
     password: str
 
 class UserRegister(UserAuth):
     """User register."""
-
-    deposits: List[Deposit] = Field(..., min_items=1)  # At least one deposit required
+    deposits: List[Deposit] = Field(..., min_items=1)
     username: str
-    
-    
+
 class UserFriend(BaseModel):
-    """User fields that will be shown when searching a user in order to send a friend request"""
+    """User fields that will be shown when searching a user"""
     email: str
     username: str
-     
 
-# Update FriendShow to include request_id
 class FriendShow(UserFriend):
     request_id: Optional[str] = None
-    
-
 
 class UserUpdate(BaseModel):
     """Updatable user fields."""
-
     email: Annotated[str, Indexed(EmailStr, unique=True)]
     holdings: List[Holding] = []
-    transactions: List[PydanticObjectId] = []  # Use PydanticObjectId for transactions
+    transactions: List[PydanticObjectId] = []
     deposits: List[Deposit] | None = []
     current_balance: float | None = 0
     profit: float | None = 0
     last_refresh: datetime | None = None
     username: Optional[str] = None
     enabled: bool
-    
+
 class UserOut(UserUpdate):
     """User fields returned to the client."""
     friends: List[PydanticObjectId] | None = []
 
 class User(Document):
     """User DB representation."""
-
     email: Annotated[str, Indexed(EmailStr, unique=True)]
     password: str
     username: Annotated[str, Indexed(str, unique=True)]
@@ -88,7 +76,10 @@ class User(Document):
     friend_requests_sent: List[Link["FriendRequest"]] = []
     friend_requests_received: List[Link["FriendRequest"]] = []
     enabled: bool = False
-    
+    session: Optional[str] = None
+    last_activity: Optional[datetime] = None
+
+    # Friend-related methods
     async def add_friend(self, id: PydanticObjectId):
         self.friends.append(id)
         await self.save()
@@ -108,27 +99,59 @@ class User(Document):
         await to_user.save()
 
     async def accept_friend_request(self, request: "FriendRequest", from_user: "User"):
-            if request.status == "pending":
-                # Update request status
-                request.status = "accepted"
-
-                # Add friends
-                if from_user.id in self.friends or self.id in from_user.friends:
-                    await request.save()
-                    return {"message": "Already friends"}
-                else:
-                    await self.add_friend(from_user.id)
-                    await from_user.add_friend(self.id)
-                    
+        if request.status == "pending":
+            request.status = "accepted"
+            if from_user.id in self.friends or self.id in from_user.friends:
                 await request.save()
+                return {"message": "Already friends"}
+            else:
+                await self.add_friend(from_user.id)
+                await from_user.add_friend(self.id)
+            await request.save()
 
     async def reject_friend_request(self, request: "FriendRequest", from_user: "User"):
         if request.status == "pending":
-            # Update request status
             request.status = "rejected"
             await request.save()
 
+    # Session management methods
+    async def create_session(self) -> str:
+        """Create a new session for the user."""
+        from secrets import token_urlsafe
+        self.session = token_urlsafe(32)
+        self.last_activity = datetime.now(timezone.utc)
+        await self.save()
+        return self.session
 
+    async def end_session(self) -> None:
+        """End the user's current session."""
+        self.session = None
+        await self.save()
+
+    async def update_last_activity(self) -> None:
+        """Update the user's last activity timestamp."""
+        self.last_activity = datetime.now(timezone.utc)
+        await self.save()
+
+    # Existing utility methods
+    @property
+    def created(self) -> datetime | None:
+        return self.id.generation_time if self.id else None
+
+    @classmethod
+    async def by_email(cls, email: str) -> Optional["User"]:
+        return await cls.find_one({"email": email})
+    
+    @classmethod
+    async def by_username(cls, username: str) -> Optional["User"]:
+        return await cls.find_one({"username": username})
+
+    @classmethod
+    async def by_session(cls, session: str) -> Optional["User"]:
+        """Get a user by their session token."""
+        return await cls.find_one({"session": session})
+
+    # Standard Python methods
     def __repr__(self) -> str:
         return f"<User {self.email}>"
     
@@ -146,33 +169,6 @@ class User(Document):
             return self.email == other.email
         return False
 
-    @property
-    def created(self) -> datetime | None:
-        """Datetime user was created from ID."""
-        return self.id.generation_time if self.id else None
-
-    @property
-    def jwt_subject(self) -> dict[str, Any]:
-        """JWT subject fields."""
-        return {"username": self.email}
-
-    @classmethod
-    async def by_email(cls, email: str) -> Optional["User"]:
-        """Get a user by email."""
-        return await cls.find_one({"email": email})
-    
-    @classmethod
-    async def by_username(cls, username: str) -> Optional["User"]:
-        """Get a user by username."""
-        return await cls.find_one({"username": username})
-
-    def update_email(self, new_email: str) -> None:
-        """Update email logging and replace."""
-        # Add any pre-checks here
-        self.email = new_email
-
 class PasswordChangeRequest(BaseModel):
     password: str
     new_password: str
-
-
