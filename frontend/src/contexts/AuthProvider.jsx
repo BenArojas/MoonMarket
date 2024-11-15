@@ -14,8 +14,6 @@
       }
     };
 
-
-
     const logout = async () => {
       try {
         await api.post('/auth/logout'); // Send logout request to server

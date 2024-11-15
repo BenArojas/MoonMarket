@@ -1,7 +1,7 @@
 
 from typing import List
 from fastapi import APIRouter, HTTPException, Depends
-from jwt import get_current_user
+from util.current_user import get_current_user
 from models.APIKeyManager import ApiKey
 from models.user import User
 import aiohttp

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime
-from jwt import get_current_user
+from util.current_user import get_current_user
 from models.user import User
 from models.stock import Stock
 from models.transaction import Transaction

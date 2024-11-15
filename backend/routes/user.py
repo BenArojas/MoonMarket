@@ -3,8 +3,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, Security
 from models.user import User, UserOut, PasswordChangeRequest, Deposit, UserFriend
 from fastapi.responses import JSONResponse
-from jwt import  clear_auth_cookies
-from jwt import get_current_user
+from jwt import access_security
+from util.current_user import get_current_user
 from models.transaction import Transaction
 from models.stock import Stock
 from models.PortfolioSnapshot import PortfolioSnapshot
@@ -123,16 +123,19 @@ async def update_password(request: PasswordChangeRequest, user:User = Depends(ge
 async def delete_user(
     current_user: User = Depends(get_current_user)
 ) -> Response:
-    """Delete the current user's account."""
+    """Delete current user."""
     # Find and delete transactions associated with the user
     await Transaction.find(Transaction.user_id.id == current_user.id).delete()
     await PortfolioSnapshot.find(PortfolioSnapshot.userId.id == current_user.id).delete()
 
+    # End user's session before deletion
+    await current_user.end_session()
+
     # Delete the user
     await current_user.delete()
 
-    # Clear authentication cookies
-    response = JSONResponse(content={"message": "User account deleted"}, status_code=204)
-    clear_auth_cookies(response)
+    # Create response that will also clear the session cookie
+    response = Response(status_code=204)
+    response.delete_cookie("session")
+    
     return response
-

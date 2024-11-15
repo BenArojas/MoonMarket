@@ -13,10 +13,10 @@ from models.stock import Stock
 from models.transaction import Transaction
 from models.PortfolioSnapshot import PortfolioSnapshot
 from models.friendRequest import FriendRequest
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 from models.APIKeyManager import ApiKey
 import logging
+from decouple import config
+
 from decouple import config
 
 
@@ -45,7 +45,7 @@ async def lifespan(app: FastAPI):
         # Initialize Beanie
         await init_beanie(
             database=client[CONFIG.DB_NAME], 
-            document_models=[User, Stock, Transaction, PortfolioSnapshot, FriendRequest, ApiKey]
+            document_models=[User, Stock, Transaction, PortfolioSnapshot, FriendRequest, ApiKey ]
         )
         logger.info("Database initialized")
         yield

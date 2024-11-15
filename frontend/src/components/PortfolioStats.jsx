@@ -4,8 +4,6 @@ import PortfolioValue from "@/components/AnimatedNumber";
 import IconButton from "@mui/material/IconButton";
 import SyncIcon from "@mui/icons-material/Sync";
 import { ArrowDown, ArrowUp } from "lucide-react";
-// import { useMutation, useQueryClient } from '@tanstack/react-query';
-// import { updateStockPrice } from '@/api/stock';
 
 
 

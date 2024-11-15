@@ -1,3 +1,4 @@
+from datetime import timedelta
 from pydantic_settings import BaseSettings
 from decouple import config
 
@@ -12,3 +13,6 @@ class Settings(DatabaseSettings):
 
 # Instantiate Settings
 CONFIG = Settings()
+
+EXPIRATION_TIME = timedelta(minutes = 15)  # 15 minutes
+COOKIE_SECURE = False  # Set to True in production

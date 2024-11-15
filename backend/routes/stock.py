@@ -4,6 +4,7 @@ from typing import Any, Dict, List
 from util.api_key import get_api_key
 from fastapi import APIRouter, HTTPException, status, Depends, Query
 from models.stock import Stock, PortfolioRequest
+from util.current_user import get_current_user
 from models.user import User
 import requests
 from datetime import datetime, timedelta

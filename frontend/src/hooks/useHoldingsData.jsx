@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getStocksFromPortfolio } from "@/api/stock";
 
-function useHoldingsData(holdingsList) {
+function useHoldingsData(holdingsList, userData) {
     const [holdingsData, setHoldingsData] = useState([]);
 
     useEffect(() => {
@@ -16,7 +16,7 @@ function useHoldingsData(holdingsList) {
         };
 
         fetchHoldingsData();
-    }, [holdingsList]);
+    }, [holdingsList, userData]);
 
     return holdingsData;
 }

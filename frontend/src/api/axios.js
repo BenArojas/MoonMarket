@@ -2,6 +2,12 @@ import axios from 'axios'
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+// Ensure the base URL is properly formed
+const baseURL = import.meta.env.VITE_BACKEND_BASE_URL || 'https://moonmaket-backend.azurewebsites.net';
+
+// Log the base URL during development to verify it's correct
+if (import.meta.env.DEV) {
+}
 
 const apiConfig = {
   baseURL: '/api',
