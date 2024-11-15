@@ -5,8 +5,8 @@ import secrets
 from fastapi import APIRouter, HTTPException, Security, Response, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from models.user import User
-from util.password import  verify_password
-from util.current_user import get_current_user, EXPIRATION_TIME
+from utils.password import  verify_password
+from utils.auth_user import get_current_user, EXPIRATION_TIME
 from fastapi.responses import JSONResponse
 from config import COOKIE_SECURE
 

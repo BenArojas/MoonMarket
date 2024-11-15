@@ -4,7 +4,7 @@ from models.user import User, FriendShow
 from models.friend import FriendInfo, HoldingInfo
 from models.stock import Stock
 from models.friendRequest import FriendRequest, FriendRequestAnswer
-from util.current_user import get_current_user
+from utils.auth_user import get_current_user
 from routes.user import get_user_transactions_by_type
 from bson import ObjectId
 

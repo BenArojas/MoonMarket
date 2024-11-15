@@ -1,7 +1,7 @@
 
 from fastapi import APIRouter, Depends
 from models.PortfolioSnapshot import PortfolioSnapshot
-from util.current_user import get_current_user
+from utils.auth_user import get_current_user
 from models.user import User
 import pytz
 

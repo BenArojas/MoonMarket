@@ -9,7 +9,6 @@ import Profile from "@/pages/Profile";
 import Transactions from "@/pages/Transactions";
 import Register from "@/pages/Register";
 import Space from "@/pages/Space";
-import Space from "@/pages/Space";
 import Test from "@/pages/Test";
 import "./styles/global.css";
 import Layout from "@/pages/Layout";

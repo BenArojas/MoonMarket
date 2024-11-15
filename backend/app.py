@@ -15,9 +15,10 @@ from models.PortfolioSnapshot import PortfolioSnapshot
 from models.friendRequest import FriendRequest
 from models.APIKeyManager import ApiKey
 import logging
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from decouple import config
 
-from decouple import config
 
 
 DESCRIPTION = """

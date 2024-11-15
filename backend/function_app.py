@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 import requests
 from models.stock import Stock
 from models.APIKeyManager import ApiKey
-from util.api_key import get_api_key
+from utils.api_key import get_api_key
 from config import CONFIG
 
 app = func.FunctionApp()

@@ -1,15 +1,14 @@
 
 import asyncio
 from typing import Any, Dict, List
-from util.api_key import get_api_key
+from utils.api_key import get_api_key
 from fastapi import APIRouter, HTTPException, status, Depends, Query
 from models.stock import Stock, PortfolioRequest
-from util.current_user import get_current_user
+from utils.auth_user import get_current_user
 from models.user import User
 import requests
 from datetime import datetime, timedelta
 from models.APIKeyManager import ApiKey
-from jwt import get_current_user
 
 
 router = APIRouter(tags=["Stock"])

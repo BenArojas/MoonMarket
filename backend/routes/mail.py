@@ -4,8 +4,7 @@
 
 # from fastapi import APIRouter, HTTPException, Response
 # from models.user import User
-# from jwt import user_from_token
-# # from util.mail import send_verification_email
+# # from utils.mail import send_verification_email
 
 
 # router = APIRouter( tags=["Mail"])

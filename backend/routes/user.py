@@ -3,12 +3,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, Security
 from models.user import User, UserOut, PasswordChangeRequest, Deposit, UserFriend
 from fastapi.responses import JSONResponse
-from jwt import access_security
-from util.current_user import get_current_user
+from utils.auth_user import get_current_user
 from models.transaction import Transaction
 from models.stock import Stock
 from models.PortfolioSnapshot import PortfolioSnapshot
-from util.password import hash_password, verify_password
+from utils.password import hash_password, verify_password
 
 
 
