@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
 import "@/styles/donut-chart.css";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Box, Button } from "@mui/material";
 import { useTheme } from "@mui/material";
 

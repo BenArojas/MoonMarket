@@ -16,8 +16,8 @@ const TickerTape = ({ mode }) => {
         { proName: "FOREXCOM:SPXUSD", title: "S&P 500 Index" },
         { description: "Nasdaq", proName: "NASDAQ:NDX" },
         { description: "Russel", proName: "AMEX:IWM" },
-        { description: "Vix", proName: "CBOE:VIX" },
-        { description: "Nikkei", proName: "TVC:NI225" },
+        { description: "Vix", proName: "CAPITALCOM:VIX" },
+        { description: "Nikkei", proName: "OANDA:JP225USD" },
         { description: "ILS TO USD", proName: "FOREXCOM:USDILS" }
       ],
       showSymbolLogo: true,

@@ -5,7 +5,6 @@ from fastapi_jwt import JwtAuthorizationCredentials
 
 from models.user import User, UserOut, UserUpdate, PasswordChangeRequest, Deposit, UserFriend
 from fastapi.responses import JSONResponse
-from jwt import access_security
 from util.current_user import get_current_user
 from models.transaction import Transaction
 from models.stock import Stock

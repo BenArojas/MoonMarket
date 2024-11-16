@@ -11,12 +11,17 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { transactionSchema } from '@/schemas/transaction';
 import { addStockToPortfolio } from '@/api/user';
 import ConfirmBuyDialog from '@/components/ConfirmBuy.jsx';
+import { useNavigate } from "react-router-dom";
+
 
 function BuyStockForm({ stock }) {
-  const [isBought, setIsBought] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [formData, setFormData] = useState(null);
   const [price, setPrice] = useState(stock?.price.toFixed(2));
   const [quantity, setQuantity] = useState(0);
   const totalPrice = (parseFloat(price) || 0) * (parseFloat(quantity) || 0);
+  const navigate = useNavigate();
+
 
   const {
     register,
@@ -27,7 +32,7 @@ function BuyStockForm({ stock }) {
   } = useForm({
     defaultValues: {
       price: stock?.price.toFixed(2),
-      date: dayjs(), // Changed to dayjs
+      date: dayjs(),
     },
     resolver: zodResolver(transactionSchema),
     criteriaMode: 'all',
@@ -45,7 +50,7 @@ function BuyStockForm({ stock }) {
   const queryClient = useQueryClient();
   const { mutateAsync: addStockMutation } = useMutation({
     mutationFn: ({ portfolioStock, price, quantity, date }) =>
-      addStockToPortfolio(portfolioStock, price, quantity, date.toDate()), // Convert dayjs to Date
+      addStockToPortfolio(portfolioStock, price, quantity, date.toDate()),
     onSuccess: () => {
       queryClient.invalidateQueries(['userData']);
     },
@@ -58,44 +63,47 @@ function BuyStockForm({ stock }) {
     }
   };
 
-  const onSubmit = async (data) => {
-    try {
-      const portfolioStock = {
+  const handleFormSubmit = (data) => {
+    setFormData({
+      portfolioStock: {
         name: stock.name,
         ticker: stock.symbol,
         price: stock.price,
-      };
-      if (stock.earningsAnnouncement !== null) {
-        portfolioStock.earnings = stock.earningsAnnouncement;
-      }
-      await addStockMutation({
-        portfolioStock,
-        price: parseFloat(data.price),
-        quantity: parseInt(data.quantity),
-        date: data.date, // This will be a dayjs object
-      });
-      setIsBought(true);
+        ...(stock.earningsAnnouncement !== null && { earnings: stock.earningsAnnouncement }),
+      },
+      price: parseFloat(data.price),
+      quantity: parseInt(data.quantity),
+      date: data.date,
+    });
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmPurchase = async () => {
+    try {
+      await addStockMutation(formData);
+      setShowConfirmDialog(false);
+      navigate('/home');
     } catch (error) {
       console.error('Error:', error);
     }
   };
 
   return (
-    <Box
-      component="form"
-      onSubmit={handleSubmit(onSubmit)}
-      sx={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        backgroundColor: 'transparent',
-        p: 2,
-        width: '70%',
-        margin: 'auto',
-      }}
-    >
-      <Box sx={{ display: 'flex', flexDirection: 'column', p: 1 }}>
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
+      <Box
+        component="form"
+        onSubmit={handleSubmit(handleFormSubmit)}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: 'transparent',
+          p: 2,
+          width: '70%',
+          margin: 'auto',
+        }}
+      >
+        <Box sx={{ display: 'flex', flexDirection: 'column', p: 1 }}>
           <Controller
             name="date"
             control={control}
@@ -106,77 +114,77 @@ function BuyStockForm({ stock }) {
                 onChange={(newValue) => {
                   field.onChange(newValue);
                 }}
-                maxDate={dayjs()} // Changed to dayjs
+                maxDate={dayjs()}
                 slotProps={{
                   textField: {
                     helperText: errors.date?.message,
                     error: !!errors.date,
                     size: "small",
-                    sx: { width: '200px' } // Added width for better presentation
+                    sx: { width: '200px' }
                   }
                 }}
               />
             )}
           />
-        </LocalizationProvider>
-      </Box>
+        </Box>
 
-      {/* Rest of the form remains the same */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', p: 1 }}>
-        <Typography>At Price</Typography>
-        <Input
-          placeholder="10.52"
-          {...register('price')}
-          value={price}
-          onChange={handleInputChange(setPrice)}
-        />
-        {errors.price?.message && (
-          <Typography color="error" variant="caption">
-            {errors.price.message}
-          </Typography>
-        )}
-      </Box>
-
-      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-        <Typography>Amount</Typography>
-        <Input
-          placeholder="0"
-          {...register('quantity')}
-          value={quantity}
-          onChange={handleInputChange(setQuantity)}
-        />
-        {errors.quantity?.message && (
-          <Typography color="error" variant="caption">
-            {errors.quantity.message}
-          </Typography>
-        )}
-      </Box>
-
-      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-        <Typography>Total Price</Typography>
-        <Input
-          placeholder="0"
-          value={isNaN(totalPrice) ? '0' : totalPrice.toFixed(2)}
-          readOnly
-        />
-      </Box>
-
-      <Box>
-        <Button variant="contained" type="submit">
-          Buy
-        </Button>
-        {isBought && (
-          <ConfirmBuyDialog
-            setisBought={setIsBought}
-            open={isBought}
-            ticker={stock?.symbol}
-            price={price}
-            quantity={quantity}
-            totalCost={totalPrice.toFixed(2)}
+        <Box sx={{ display: 'flex', flexDirection: 'column', p: 1 }}>
+          <Typography>At Price</Typography>
+          <Input
+            placeholder="10.52"
+            {...register('price')}
+            value={price}
+            onChange={handleInputChange(setPrice)}
           />
-        )}
+          {errors.price?.message && (
+            <Typography color="error" variant="caption">
+              {errors.price.message}
+            </Typography>
+          )}
+        </Box>
+
+        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+          <Typography>Amount</Typography>
+          <Input
+            placeholder="0"
+            {...register('quantity')}
+            value={quantity}
+            onChange={handleInputChange(setQuantity)}
+          />
+          {errors.quantity?.message && (
+            <Typography color="error" variant="caption">
+              {errors.quantity.message}
+            </Typography>
+          )}
+        </Box>
+
+        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+          <Typography>Total Price</Typography>
+          <Input
+            placeholder="0"
+            value={isNaN(totalPrice) ? '0' : totalPrice.toFixed(2)}
+            readOnly
+          />
+        </Box>
+
+        <Box>
+          <Button variant="contained" type="submit">
+            Buy
+          </Button>
+          {showConfirmDialog && (
+            <ConfirmBuyDialog
+              open={showConfirmDialog}
+              onClose={() => setShowConfirmDialog(false)}
+              onConfirm={handleConfirmPurchase}
+              ticker={stock?.symbol}
+              price={price}
+              quantity={quantity}
+              totalCost={totalPrice.toFixed(2)}
+            />
+          )}
+        </Box>
       </Box>
-    </Box>
+    </LocalizationProvider>
   );
 }
 
