@@ -21,9 +21,9 @@ export const ProtectedRoute = () => {
     return null; // Or a loading spinner
   }
 
-  if (isError || !authData?.enabled) {
+  if (isError ) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  return <Outlet context={authData.enabled}/>;
+  return <Outlet context={authData?.enabled} />;
 };
