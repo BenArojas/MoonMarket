@@ -15,4 +15,4 @@ class Settings(DatabaseSettings):
 CONFIG = Settings()
 
 EXPIRATION_TIME = timedelta(minutes = 15)  # 15 minutes
-COOKIE_SECURE = False  # Set to True in production
+COOKIE_SECURE = True  # Set to True in production
