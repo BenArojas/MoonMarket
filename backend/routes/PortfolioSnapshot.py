@@ -34,10 +34,6 @@ async def create_snapshot(value: float, user: User = Depends(get_current_user)):
     
     return {"message": "New snapshot created successfully"}
 
-from datetime import datetime
-import pytz
-from fastapi import Depends
-from beanie import PydanticObjectId
 
 @router.get("/daily_snapshots")
 async def get_daily_snapshots(user: User = Depends(get_current_user)):

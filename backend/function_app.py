@@ -6,6 +6,8 @@ from datetime import datetime, timezone
 import requests
 from models.stock import Stock
 from models.APIKeyManager import ApiKey
+from models.PortfolioSnapshot import PortfolioSnapshot
+from models.user import User
 from utils.api_key import get_api_key
 from config import CONFIG
 
@@ -62,6 +64,61 @@ async def stock_update_timer(timer: func.TimerRequest) -> None:
         
     except Exception as e:
         logging.error(f"Error in stock update: {str(e)}")
+    finally:
+        if client:
+            client.close()
+            
+
+@app.function_name(name="PortfolioSnapshotTimer")
+@app.schedule(schedule="0 0 0 * * 1-5", arg_name="daily_snapshot")  # 00:00 UTC on weekdays
+async def portfolio_snapshot_timer(timer: func.TimerRequest) -> None:
+    logging.info(f"Starting portfolio snapshot function at {datetime.now()}")
+    client = None
+    
+    try:
+        client = await init_db()
+        all_users = await User.find_all().to_list()
+        successful_snapshots = 0
+        failed_users = []
+        
+        for user in all_users:
+            try:
+                # Calculate portfolio value
+                portfolio_value = 0
+                
+                # Add value of all holdings
+                for holding in user.holdings:
+                    stock = await Stock.find_one({"ticker": holding.ticker})
+                    if stock:
+                        position_value = stock.price * holding.quantity
+                        portfolio_value += position_value
+                
+                # Create and save snapshot
+                snapshot = PortfolioSnapshot(
+                    timestamp=datetime.now(timezone.utc),
+                    value=portfolio_value,
+                    userId=user
+                )
+                await snapshot.insert()
+                
+                successful_snapshots += 1
+                logging.info(f"Created snapshot for user {user.email} with value {portfolio_value}")
+                
+            except Exception as e:
+                logging.error(f"Failed to create snapshot for user {user.email}: {str(e)}")
+                failed_users.append(user.email)
+                continue
+        
+        logging.info(f"""
+            Snapshot creation completed:
+            Total users: {len(all_users)}
+            Successful: {successful_snapshots}
+            Failed: {len(failed_users)}
+            Failed users: {', '.join(failed_users)}
+        """)
+        
+    except Exception as e:
+        logging.error(f"Error in portfolio snapshot: {str(e)}")
     finally:
         if client:
             client.close()
