@@ -1,0 +1,103 @@
+# Python to Linux Web App on Azure
+# Build your Python project and deploy it to Azure as a Linux Web App.
+# Change python version to one thats appropriate for your application.
+# https://docs.microsoft.com/azure/devops/pipelines/languages/python
+
+trigger:
+- master
+
+variables:
+  # Azure Resource Manager connection created during pipeline creation
+  azureServiceConnectionId: '49dd89a0-9eb1-4071-810d-523be6a9246e'
+
+  # Web app name
+  webAppName: 'MoonMarket'
+
+  # Agent VM image name
+  vmImageName: 'ubuntu-latest'
+
+  # Environment name
+  environmentName: 'MoonMarket'
+
+  # Project root folder. Point to the folder containing manage.py file.
+  projectRoot: $(System.DefaultWorkingDirectory)
+
+  pythonVersion: '3.11'
+
+  nodeVersion: '20.x'
+
+stages:
+  - stage: Build
+    displayName: Build Backend and Frontend
+    jobs:
+      - job: Build
+        displayName: Build FastAPI and React
+        pool:
+          vmImage: $(vmImageName)
+        steps:
+          # Checkout source code
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '$(pythonVersion)'
+              addToPath: true
+
+          # Set up Python virtual environment
+          - script: |
+              python -m venv antenv
+              source antenv/bin/activate
+              python -m pip install --upgrade pip
+              pip install -r backend/requirements.txt
+            displayName: Set up Python Virtual Environment and Install Dependencies
+
+          # Install Node.js
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '$(nodeVersion)'  # Adjust to your Node.js version
+
+          # Build React frontend
+          - script: |
+              cd frontend
+              npm install
+              npm run build
+              cd ..
+              mkdir -p backend/static
+              cp -r frontend/dist/* backend/static/
+            displayName: Build React Frontend and Copy to Backend
+
+          # Archive application for deployment
+          - task: ArchiveFiles@2
+            inputs:
+              rootFolderOrFile: '$(projectRoot)/backend'
+              includeRootFolder: false
+              archiveType: 'zip'
+              archiveFile: '$(Build.ArtifactStagingDirectory)/app.zip'
+              replaceExistingArchive: true
+
+  - stage: Deploy
+    displayName: Deploy Application
+    dependsOn: Build
+    jobs:
+      - job: Deploy
+        displayName: Deploy to Azure Web App
+        pool:
+          vmImage: $(vmImageName)
+        steps:
+          # Deploy the app to Azure
+          - task: AzureWebApp@1
+            inputs:
+              azureSubscription: $(azureServiceConnectionId)
+              appType: 'webAppLinux'
+              appName: $(webAppName)
+              package: '$(Build.ArtifactStagingDirectory)/app.zip'
+
+          # Notify environment deployment
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: $(azureServiceConnectionId)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                az webapp deployment source config-zip \
+                  --name $(webAppName) \
+                  --resource-group $(environmentName) \
+                  --src $(Build.ArtifactStagingDirectory)/app.zip
