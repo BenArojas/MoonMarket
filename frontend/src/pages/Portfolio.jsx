@@ -31,11 +31,11 @@ function ErrorFallback({ error }) {
 
 function Portfolio({ userName }) {
   const [searchParams] = useSearchParams();
-  const { state } = useLocation(); // Get location state
+  const { state } = useLocation(); 
   const selectedTicker = searchParams.get("selected") || "BTCUSD"; // Default to 'BTCUSD' if not specified
   const queryClient = useQueryClient();
   const updateStockPricesMutation = useStockPriceUpdate();
-  const initialFetchRef = useRef(false);  // Add this
+  const initialFetchRef = useRef(false);  
 
   const { data: userData, isPending: userDataLoading } = useQuery({
     queryKey: ["userData", userName],

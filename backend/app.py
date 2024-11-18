@@ -17,9 +17,6 @@ from models.APIKeyManager import ApiKey
 import logging
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from decouple import config
-
-
 
 DESCRIPTION = """
 This API powers whatever I want to make
@@ -79,13 +76,9 @@ app.mount("/", StaticFiles(directory="static", html=True), name="static")
 async def custom_404_handler(request, exc):
     return FileResponse('static/index.html')
 
-
-
-origins = config("FRONTEND_URL")
 # Add CORS middleware to the main app
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[origins],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
