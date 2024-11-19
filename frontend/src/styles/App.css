@@ -2,7 +2,7 @@
   text-align: center;
 } */
 
-.layout { 
+/* .layout {  */
   /* background: url('galaxy-5.jpg');
   background-size: cover;
   background-repeat: no-repeat;
@@ -51,7 +51,7 @@
       hsla(0, 0%, 0%, 1) 0%,
       hsla(0, 0%, 0%, 0) 100%
     ); */
-}
+/* } */
 .navbar {
   display: flex;
   flex-direction: column;
