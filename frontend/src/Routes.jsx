@@ -1,4 +1,4 @@
-import { RouterProvider, createBrowserRouter } from "react-router-dom";
+import { RouterProvider, createBrowserRouter, Navigate  } from "react-router-dom";
 import { ProtectedRoute} from "@/pages/ProtectedRoute";
 import { PublicRoute} from "@/pages/PublicRoute";
 import Portfolio from "@/pages/Portfolio";
@@ -19,12 +19,15 @@ const Routes = () => {
   const router = createBrowserRouter([
     {
       element: <ProtectedRoute />,
-      // loader: ProtctedRouteLoader,
       children: [
         {
           element: <Layout />,
           path: "/",
           children: [
+            {
+              index: true, // This marks it as the index route
+              element: <Navigate to="/home" replace />, // Redirect from / to /home
+            },
             {
               path: "/home",
               element: <Portfolio />,
