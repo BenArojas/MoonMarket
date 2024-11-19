@@ -36,8 +36,6 @@ function Portfolio({ userName }) {
   const selectedTicker = searchParams.get("selected") || "BTCUSD"; // Default to 'BTCUSD' if not specified
   const queryClient = useQueryClient();
   const updateStockPricesMutation = useStockPriceUpdate();
-  const initialFetchRef = useRef(false);  // Add this
-
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('xl')); // Breakpoint at 1750px
 
