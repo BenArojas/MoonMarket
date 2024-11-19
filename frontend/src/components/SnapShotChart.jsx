@@ -1,6 +1,6 @@
 import { AreaChart } from "@/components/CurrentStockChart.jsx";
 import { transformSnapshotData, calculatePerformanceData } from "@/utils/dataProcessing";
-import { Card, Box, Typography } from "@mui/material";
+import { Card, Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 import React, { useState } from "react";
 import PortfolioStats from "@/components/PortfolioStats";
 import PerformanceChart from "@/components/PerformanceGraph";
@@ -20,10 +20,13 @@ const SnapshotChart = React.memo(
     const areaChartData = transformSnapshotData(dailyTimeFrameData);
     const performanceChartData = calculatePerformanceData(dailyTimeFrameData, moneySpent)
     const trend = percentageChange > 0 ? "positive" : "negative";
+    const theme = useTheme();
+    const isSmallScreen = useMediaQuery(theme.breakpoints.down('xl'));
+
 
 
     return (
-      <div className="relative w-full" style={{ height: '400px' }}>
+      <div className="relative w-full" style={{ height: 400}}>
         <div className="relative w-full h-full" style={{ perspective: '2000px' }}>
           {/* Back Card (Additional Information) */}
           <div 

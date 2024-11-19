@@ -9,7 +9,7 @@ import { ToastContainer } from 'react-toastify';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { ThemeProvider } from "./contexts/ThemeContext";
 import "@/styles/index.css";
-
+import MobileBlocker from "@/pages/MobileBlocker"; // Import the MobileBlocker
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -19,15 +19,12 @@ const queryClient = new QueryClient({
   },
 });
 
-
-
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
-  // <React.StrictMode>
-
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <AuthProvider>
+        <MobileBlocker /> {/* Add MobileBlocker here */}
         <CssBaseline />
         <Routes />
         <ToastContainer
@@ -46,6 +43,4 @@ root.render(
     </ThemeProvider>
     <ReactQueryDevtools />
   </QueryClientProvider>
-
-  // </React.StrictMode>
 );

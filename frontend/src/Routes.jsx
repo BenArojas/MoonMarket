@@ -1,4 +1,4 @@
-import { RouterProvider, createBrowserRouter } from "react-router-dom";
+import { RouterProvider, createBrowserRouter, Navigate  } from "react-router-dom";
 import { ProtectedRoute} from "@/pages/ProtectedRoute";
 import { PublicRoute } from "@/pages/PublicRoute";
 import Portfolio from "@/pages/Portfolio";

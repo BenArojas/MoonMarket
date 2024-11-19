@@ -22,7 +22,7 @@ class ApiKey(Document):
     """API Key DB representation."""
 
     key: Annotated[str, Indexed(unique=True)]
-    rate_limit: int = Field(default=250)
+    rate_limit: int = Field(default=230)
     requests: int = Field(default=0)
     next_reset: datetime = Field(default_factory=get_next_midnight_in_israel)
     last_used: Optional[datetime] = None

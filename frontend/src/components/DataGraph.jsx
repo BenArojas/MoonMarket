@@ -5,6 +5,8 @@ import { DonutChart } from "@/components/DonutChart";
 import { Treemap } from "@/components/Treemap";
 import Leaderboards from "@/components/Leaderboards";
 import Sankey from "@/components/SankeyChart";
+import { useMediaQuery, useTheme } from "@mui/material";
+
 
 
 const skeletons = {
@@ -24,7 +26,13 @@ const components = {
   Sankey: Sankey
 };
 
-function DataGraph({ isDataProcessed, selectedGraph, visualizationData  }) {
+function DataGraph({ 
+  isDataProcessed, 
+  selectedGraph, 
+  visualizationData,
+  width,
+  height 
+}) {
   const Skeleton = skeletons[selectedGraph] || TreeMapSkeleton;
   const GraphComponent = components[selectedGraph];
 
@@ -37,8 +45,11 @@ function DataGraph({ isDataProcessed, selectedGraph, visualizationData  }) {
   }
 
   return GraphComponent ? (
-    <GraphComponent  data={visualizationData} width={1000} height={660} />
+    <GraphComponent  
+      data={visualizationData} 
+      width={width}
+      height={height}
+    />
   ) : null;
 }
-
 export default DataGraph;
