@@ -25,6 +25,10 @@ const Routes = () => {
           path: "/",
           children: [
             {
+              index: true, // This marks it as the index route
+              element: <Navigate to="/home" replace />, // Redirect from / to /home
+            },
+            {
               path: "/home",
               element: <Portfolio />,
               errorElement: <ErrorPage />,
