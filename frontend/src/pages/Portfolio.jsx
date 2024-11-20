@@ -141,7 +141,7 @@ function Portfolio({ userName }) {
 
 function PortfolioContent({ userData }) {
   const [selectedGraph, setSelectedGraph] = useState("Treemap");
-  const { visualizationData, isDataProcessed, value } = useGraphData(
+  const { visualizationData, isDataProcessed, value, moneySpent } = useGraphData(
     userData,
     selectedGraph
   );
@@ -162,7 +162,7 @@ function PortfolioContent({ userData }) {
 
   useEffect(() => {
     if (visualizationData != null) {
-      postSnapshotMutation.mutate({ value: value });
+      postSnapshotMutation.mutate({ value: value, cumulativeSpent: moneySpent });
     }
   }, [value]);
 
@@ -214,7 +214,6 @@ const StackedCardsWrapper = ({ dailyTimeFrame, userData, updateStockPricesMutati
     //   width: 600
     // }}>
     <SnapshotChart
-      moneySpent={moneySpent}
       formattedDate={formattedDate}
       stockTickers={stockTickers}
       incrementalChange={incrementalChange}

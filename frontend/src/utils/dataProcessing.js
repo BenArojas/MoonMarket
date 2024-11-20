@@ -360,13 +360,17 @@ export function transformSnapshotData(historicalData,) {
     .sort((a, b) => a.time - b.time); // Sort in ascending order
 }
 
-export function calculatePerformanceData(data, moneySpent) {
-  if (!moneySpent || moneySpent === 0) return [];
-  
-  return data.map(item => ({
-    time: Math.floor(new Date(item.timestamp).getTime() / 1000),
-    value: Number(((item.value - moneySpent) / moneySpent) * 100)
-  })).sort((a, b) => a.time - b.time);
+export function calculatePerformanceData(data) {
+  return data.map(item => {
+    const moneySpent = item.cumulativeSpent || 0;
+    if (moneySpent === 0) return null;
+
+    return {
+      time: Math.floor(new Date(item.timestamp).getTime() / 1000),
+      value: Number(((item.value - moneySpent) / moneySpent) * 100),
+    };
+  }).filter(item => item !== null)
+    .sort((a, b) => a.time - b.time);
 }
 
 export const calculateTransactionSummary = (transactions, currentStockPrices) => {

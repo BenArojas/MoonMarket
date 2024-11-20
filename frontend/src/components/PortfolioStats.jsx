@@ -67,10 +67,10 @@ function PortfolioStats({ value, percentageChange, stockTickers, incrementalChan
                 />
                 <input type="hidden" name="" />
                 <input type="hidden" name="value" value={value} />
-                <Tooltip
+                {/* <Tooltip
                     title={`last updated at: ${formattedDate}. Click to refresh Stocks price`}
                     placement="top"
-                >
+                > */}
                     <IconButton
                         type="submit"
                         sx={{ shrink: 0 }}
@@ -80,7 +80,7 @@ function PortfolioStats({ value, percentageChange, stockTickers, incrementalChan
                     >
                         {updateStockPricesMutation.isPending ? <CircularProgress size={24} /> : <SyncIcon />}
                     </IconButton>
-                </Tooltip>
+                {/* </Tooltip> */}
 
             </Box>
         </Box>
