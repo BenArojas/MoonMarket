@@ -1,10 +1,10 @@
 import api from "@/api/axios";
 
-export function postSnapshot({value}) {
+export function postSnapshot({ value, cumulativeSpent }) {
     return api.post(`/portfolio-snapshot/snapshot`, null, {
-        params: { value }
-    })
-}
+      params: { value, cumulativeSpent },
+    });
+  }
 
 
 export async function getPortfolioSnapshots() {

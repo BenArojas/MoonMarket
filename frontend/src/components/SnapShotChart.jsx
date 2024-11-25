@@ -13,12 +13,11 @@ const SnapshotChart = React.memo(
     formattedDate,
     stockTickers,
     dailyTimeFrameData,
-    moneySpent, 
-    updateStockPricesMutation
+    updateStockPricesMutation,
   }) => {
     const [isFlipped, setIsFlipped] = useState(false);
     const areaChartData = transformSnapshotData(dailyTimeFrameData);
-    const performanceChartData = calculatePerformanceData(dailyTimeFrameData, moneySpent)
+    const performanceChartData = calculatePerformanceData(dailyTimeFrameData)
     const trend = percentageChange > 0 ? "positive" : "negative";
     const theme = useTheme();
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('xl'));

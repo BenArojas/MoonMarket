@@ -330,16 +330,21 @@ export function processLeaderboardsData(stocksList, stocksInfo) {
 
 export function lastUpdateDate(data) {
   let last_update_date = data.last_refresh;
-  let date = new Date(last_update_date);
-  let formattedDate = date.toLocaleString("en-GB", {
+  let date = new Date(last_update_date); // Parse the UTC date
+
+  // Convert to Israel's time zone
+  let formattedDate = new Date(date).toLocaleString("en-GB", {
+    timeZone: "Asia/Jerusalem", // Specify Israel time zone
     day: "2-digit",
     month: "2-digit",
     year: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
   });
+
   return formattedDate;
 }
+
 
 
 export function transformData(historicalData) {
@@ -360,13 +365,17 @@ export function transformSnapshotData(historicalData,) {
     .sort((a, b) => a.time - b.time); // Sort in ascending order
 }
 
-export function calculatePerformanceData(data, moneySpent) {
-  if (!moneySpent || moneySpent === 0) return [];
-  
-  return data.map(item => ({
-    time: Math.floor(new Date(item.timestamp).getTime() / 1000),
-    value: Number(((item.value - moneySpent) / moneySpent) * 100)
-  })).sort((a, b) => a.time - b.time);
+export function calculatePerformanceData(data) {
+  return data.map(item => {
+    const moneySpent = item.cumulativeSpent || 0;
+    if (moneySpent === 0) return null;
+
+    return {
+      time: Math.floor(new Date(item.timestamp).getTime() / 1000),
+      value: Number(((item.value - moneySpent) / moneySpent) * 100),
+    };
+  }).filter(item => item !== null)
+    .sort((a, b) => a.time - b.time);
 }
 
 export const calculateTransactionSummary = (transactions, currentStockPrices) => {

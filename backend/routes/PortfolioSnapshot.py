@@ -15,7 +15,7 @@ router = APIRouter(tags=["Stock"])
 
 
 @router.post("/snapshot")
-async def create_snapshot(value: float, user: User = Depends(get_current_user)):
+async def create_snapshot(value: float, cumulativeSpent: float, user: User = Depends(get_current_user)):
     now = datetime.utcnow()
     
     # Set the time to midnight UTC to compare only the date
@@ -29,7 +29,7 @@ async def create_snapshot(value: float, user: User = Depends(get_current_user)):
         PortfolioSnapshot.timestamp <= end_of_day
     ).delete()
     
-    new_snapshot = PortfolioSnapshot(timestamp=now, value=value, userId=user.id)
+    new_snapshot = PortfolioSnapshot(timestamp=now, value=value,cumulativeSpent=cumulativeSpent, userId=user.id)
     await new_snapshot.insert()
     
     return {"message": "New snapshot created successfully"}
