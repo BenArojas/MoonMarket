@@ -82,7 +82,7 @@ export default function LeaderBoardsTable({ data }) {
                   </span>
               </TableCell>
               <TableCell align="right">{formatPriceChange(row.priceChange, row.priceChangePercentage)}</TableCell>
-              <TableCell align="right">{row.sharePrice}%</TableCell>
+              <TableCell align="right">{row.sharePrice}$</TableCell>
               <TableCell align="right">{formatValue(row.value, row.gainLoss)}</TableCell>
             </TableRow>
           ))}

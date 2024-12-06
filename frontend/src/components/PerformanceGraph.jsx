@@ -163,7 +163,7 @@ const PerformanceChart = ({ data }) => {
                 position: "relative", 
                 width: "100%", 
                 height: 250,
-                minWidth: "300px"
+                minWidth: "260px"
             }}
         >
             {tooltipVisible && (

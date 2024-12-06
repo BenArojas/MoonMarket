@@ -1,11 +1,12 @@
 import React from 'react';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
-import { useTheme } from '@mui/material/styles';
+import { useTheme, Typography, responsiveFontSizes } from "@mui/material";
 import "@/styles/App.css"
-import {formatCurrency, formatDate} from '@/utils/dataProcessing'
+import { formatCurrency, formatDate } from '@/utils/dataProcessing'
 
 const AccountTabContent = ({ currentBalance, profit, deposits }) => {
-  const theme = useTheme();
+  let theme = useTheme();
+  theme = responsiveFontSizes(theme);
 
   // Calculate total deposits
   const totalDeposits = deposits.reduce((sum, deposit) => sum + deposit.amount, 0);
@@ -20,34 +21,55 @@ const AccountTabContent = ({ currentBalance, profit, deposits }) => {
       </CardHeader>
 
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 gap-y-4">
           <div>
-            <div className="text-sm font-medium" style={{ color: theme.palette.mode === 'dark' ? theme.palette.secondary.main : theme.palette.secondary.main }}>
+            <div
+              className="text-sm font-medium"
+              style={{
+                color:
+                  theme.palette.mode === 'dark'
+                    ? theme.palette.secondary.main
+                    : theme.palette.secondary.main,
+              }}
+            >
               Current Balance
             </div>
-            <div className="text-2xl font-semibold mt-1">
-              {formatCurrency(currentBalance)}
-            </div>
+            <Typography variant="h6">{formatCurrency(currentBalance)}</Typography>
           </div>
 
           <div>
-            <div className="text-sm font-medium" style={{ color: theme.palette.mode === 'dark' ? theme.palette.secondary.main : theme.palette.secondary.main }}>
+            <div
+              className="text-sm font-medium"
+              style={{
+                color:
+                  theme.palette.mode === 'dark'
+                    ? theme.palette.secondary.main
+                    : theme.palette.secondary.main,
+              }}
+            >
               Realized Profits
             </div>
-            <div className="text-2xl font-semibold mt-1" style={{ color: theme.palette.primary.main }}>
+            <Typography variant="h6" style={{ color: theme.palette.primary.main }}>
               {formatCurrency(profit)}
-            </div>
+            </Typography>
           </div>
 
           <div>
-            <div className="text-sm font-medium" style={{ color: theme.palette.mode === 'dark' ? theme.palette.secondary.main : theme.palette.secondary.main }}>
+            <div
+              className="text-sm font-medium"
+              style={{
+                color:
+                  theme.palette.mode === 'dark'
+                    ? theme.palette.secondary.main
+                    : theme.palette.secondary.main,
+              }}
+            >
               Total Deposits
             </div>
-            <div className="text-2xl font-semibold mt-1">
-              {formatCurrency(totalDeposits)}
-            </div>
+            <Typography variant="h6">{formatCurrency(totalDeposits)}</Typography>
           </div>
         </div>
+
 
         <div>
           <div className="text-sm font-medium mb-3" style={{ color: theme.palette.mode === 'dark' ? theme.palette.secondary.main : theme.palette.secondary.main }}>
@@ -56,16 +78,16 @@ const AccountTabContent = ({ currentBalance, profit, deposits }) => {
           <div className="border rounded-lg overflow-hidden">
             <div style={{ maxHeight: '240px', overflowY: 'auto' }} className='custom-scrollbar'>
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50 sticky top-0" style={{ 
-                  backgroundColor: theme.palette.mode === 'dark' ? theme.palette.trinary.main : theme.palette.trinary.main 
+                <thead className="bg-gray-50 sticky top-0" style={{
+                  backgroundColor: theme.palette.mode === 'dark' ? theme.palette.trinary.main : theme.palette.trinary.main
                 }}>
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Date</th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Amount</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200" style={{ 
-                  backgroundColor: theme.palette.mode === 'dark' ? theme.palette.background.paper : theme.palette.background.paper 
+                <tbody className="divide-y divide-gray-200" style={{
+                  backgroundColor: theme.palette.mode === 'dark' ? theme.palette.background.paper : theme.palette.background.paper
                 }}>
                   {deposits.map((deposit, index) => (
                     <tr key={index}>

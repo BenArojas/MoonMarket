@@ -3,14 +3,13 @@ import * as d3 from "d3";
 import "@/styles/donut-chart.css";
 import { Link } from "react-router-dom";
 import { Box, Button } from "@mui/material";
-import { useTheme } from "@mui/material";
+import { useTheme, useMediaQuery } from "@mui/material";
 
-const MARGIN_X = 150;
+const MARGIN_X = 100;
 const MARGIN_Y = 50;
 const INFLEXION_PADDING = 25;
 
 // Enhanced color array with more vibrant base colors
-
 const colors_array = [
   "hsla(163, 70%, 85%, 0.9)",
   "hsla(163, 65%, 80%, 0.9)",
@@ -29,9 +28,11 @@ export const DonutChart = ({ width, height, data }) => {
   const [showOthers, setShowOthers] = useState(false);
   const ref = useRef(null);
   const theme = useTheme();
+  const isMobileScreen = useMediaQuery(theme.breakpoints.down("sm"));
 
-  const radius = Math.min(width - 2 * MARGIN_X, height - 2 * MARGIN_Y) / 2;
-  const innerRadius = radius / 2;
+  // Calculate chart size and margins for mobile
+  const radius = Math.min(width - 2 * MARGIN_X, height - 2 * MARGIN_Y) / 2.2;  // Increased the size by decreasing the factor
+  const innerRadius = radius / 2.5; // Increased inner radius to make the donut more prominent
   const verticalOffset = 18;
 
   const chartData = useMemo(() => {
@@ -69,6 +70,9 @@ export const DonutChart = ({ width, height, data }) => {
     const ticker = grp.data.name;
     const label = ticker + " (" + grp.value.toLocaleString("en-US") + "$)";
     const percentageOfPortfolio = grp.data.percentageOfPortfolio;
+
+    // Scale font size for mobile screens
+    const fontSize = isMobileScreen ? 10 : 14;
 
     return (
       <Link
@@ -145,7 +149,7 @@ export const DonutChart = ({ width, height, data }) => {
             y={inflexionPoint[1]}
             textAnchor={textAnchor}
             dominantBaseline="middle"
-            fontSize={14}
+            fontSize={fontSize}
             fill={theme.palette.text.primary}
           >
             {label}
@@ -155,7 +159,7 @@ export const DonutChart = ({ width, height, data }) => {
             y={inflexionPoint[1] + verticalOffset}
             textAnchor={textAnchor}
             dominantBaseline="middle"
-            fontSize={14}
+            fontSize={fontSize}
             fill={theme.palette.text.primary}
           >
             {percentageOfPortfolio}%

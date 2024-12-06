@@ -24,7 +24,7 @@ root.render(
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <AuthProvider>
-        <MobileBlocker /> {/* Add MobileBlocker here */}
+        {/* <MobileBlocker /> */}
         <CssBaseline />
         <Routes />
         <ToastContainer

@@ -1,4 +1,3 @@
-// DonutSkeleton.jsx
 import React from 'react';
 import { Box, CircularProgress } from "@mui/material";
 
@@ -9,13 +8,15 @@ const DonutSkeleton = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        width: 500,
-        height: 500,
-        backgroundColor:'background.paper',
-        borderRadius: '50%',
+        width: { xs: 300, sm: 400, md: 500 }, // Adjust width for different screen sizes
+        height: { xs: 300, sm: 400, md: 500 }, // Match height to width for a perfect circle
+        backgroundColor: 'background.paper',
+        borderRadius: '50%', // Ensure circular shape
+        margin: 'auto', // Center on smaller screens
+        boxShadow: 3, // Subtle shadow for better appearance
       }}
     >
-      <CircularProgress />
+      <CircularProgress size={80} /> {/* Keep spinner size consistent */}
     </Box>
   );
 };

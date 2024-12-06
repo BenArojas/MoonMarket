@@ -14,14 +14,13 @@ import ConfirmBuyDialog from '@/components/ConfirmBuy.jsx';
 import { useNavigate } from "react-router-dom";
 
 
-function BuyStockForm({ stock }) {
+function BuyStockForm({ stock, isMobile }) {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [formData, setFormData] = useState(null);
   const [price, setPrice] = useState(stock?.price.toFixed(2));
   const [quantity, setQuantity] = useState(0);
   const totalPrice = (parseFloat(price) || 0) * (parseFloat(quantity) || 0);
   const navigate = useNavigate();
-
 
   const {
     register,
@@ -95,94 +94,121 @@ function BuyStockForm({ stock }) {
         onSubmit={handleSubmit(handleFormSubmit)}
         sx={{
           display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
           justifyContent: 'space-between',
-          alignItems: 'center',
+          alignItems:  'center',
           backgroundColor: 'transparent',
-          p: 2,
-          width: '70%',
-          margin: 'auto',
+          p: 1,
+          gap: isMobile ? 2 : 5,
+          width: isMobile ? '100%' : '70%',
+          margin: isMobile ? 'none' : 'auto',
         }}
       >
-        <Box sx={{ display: 'flex', flexDirection: 'column', p: 1 }}>
-          <Controller
-            name="date"
-            control={control}
-            render={({ field }) => (
-              <DatePicker
-                label="Transaction Date"
-                value={field.value}
-                onChange={(newValue) => {
-                  field.onChange(newValue);
-                }}
-                maxDate={dayjs()}
-                slotProps={{
-                  textField: {
-                    helperText: errors.date?.message,
-                    error: !!errors.date,
-                    size: "small",
-                    sx: { width: '200px' }
-                  }
-                }}
+        {/* Row 1 */}
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection:  'row',
+            gap: 2,
+            alignItems:  'center',
+          }}
+        >
+          <Box sx={{ display: 'flex', flexDirection: 'column', p: 1 }}>
+            <Controller
+              name="date"
+              control={control}
+              render={({ field }) => (
+                <DatePicker
+                  label="Transaction Date"
+                  value={field.value}
+                  onChange={(newValue) => field.onChange(newValue)}
+                  maxDate={dayjs()}
+                  slotProps={{
+                    textField: {
+                      helperText: errors.date?.message,
+                      error: !!errors.date,
+                      size: 'small',
+                      sx: { width: '150px' },
+                    },
+                  }}
+                />
+              )}
+            />
+          </Box>
+
+          <Box sx={{ display: 'flex', flexDirection: 'column', p: 1 }}>
+            <Typography>At Price</Typography>
+            <Input
+              placeholder="10.52"
+              {...register('price')}
+              value={price}
+              onChange={handleInputChange(setPrice)}
+              sx={{ width: isMobile ? '150px' : '200px' }}
+            />
+            {errors.price?.message && (
+              <Typography color="error" variant="caption">
+                {errors.price.message}
+              </Typography>
+            )}
+          </Box>
+        </Box>
+
+        {/* Row 2 */}
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection:  'row',
+            gap: 2,
+            alignItems:  'center',
+          }}
+        >
+          <Box sx={{ display: 'flex', flexDirection: 'column', p: 1 }}>
+            <Typography>Amount</Typography>
+            <Input
+              placeholder="0"
+              {...register('quantity')}
+              value={quantity}
+              onChange={handleInputChange(setQuantity)}
+              sx={{ width: isMobile ? '150px' : '200px' }}
+            />
+            {errors.quantity?.message && (
+              <Typography color="error" variant="caption">
+                {errors.quantity.message}
+              </Typography>
+            )}
+          </Box>
+
+          <Box sx={{ display: 'flex', flexDirection: 'column', p: 1 }}>
+            <Typography>Total Price</Typography>
+            <Input
+              placeholder="0"
+              value={isNaN(totalPrice) ? '0' : totalPrice.toFixed(2)}
+              readOnly
+              sx={{ width: isMobile ? '150px' : '200px' }}
+            />
+          </Box>
+
+        </Box>
+        <Box>
+            <Button
+              variant="contained"
+              type="submit"
+              sx={{ width: isMobile ? '100%' : 'auto' }}
+            >
+              Buy
+            </Button>
+            {showConfirmDialog && (
+              <ConfirmBuyDialog
+                open={showConfirmDialog}
+                onClose={() => setShowConfirmDialog(false)}
+                onConfirm={handleConfirmPurchase}
+                ticker={stock?.symbol}
+                price={price}
+                quantity={quantity}
+                totalCost={totalPrice.toFixed(2)}
               />
             )}
-          />
-        </Box>
-
-        <Box sx={{ display: 'flex', flexDirection: 'column', p: 1 }}>
-          <Typography>At Price</Typography>
-          <Input
-            placeholder="10.52"
-            {...register('price')}
-            value={price}
-            onChange={handleInputChange(setPrice)}
-          />
-          {errors.price?.message && (
-            <Typography color="error" variant="caption">
-              {errors.price.message}
-            </Typography>
-          )}
-        </Box>
-
-        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-          <Typography>Amount</Typography>
-          <Input
-            placeholder="0"
-            {...register('quantity')}
-            value={quantity}
-            onChange={handleInputChange(setQuantity)}
-          />
-          {errors.quantity?.message && (
-            <Typography color="error" variant="caption">
-              {errors.quantity.message}
-            </Typography>
-          )}
-        </Box>
-
-        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-          <Typography>Total Price</Typography>
-          <Input
-            placeholder="0"
-            value={isNaN(totalPrice) ? '0' : totalPrice.toFixed(2)}
-            readOnly
-          />
-        </Box>
-
-        <Box>
-          <Button variant="contained" type="submit">
-            Buy
-          </Button>
-          {showConfirmDialog && (
-            <ConfirmBuyDialog
-              open={showConfirmDialog}
-              onClose={() => setShowConfirmDialog(false)}
-              onConfirm={handleConfirmPurchase}
-              ticker={stock?.symbol}
-              price={price}
-              quantity={quantity}
-              totalCost={totalPrice.toFixed(2)}
-            />
-          )}
-        </Box>
+          </Box>
       </Box>
     </LocalizationProvider>
   );

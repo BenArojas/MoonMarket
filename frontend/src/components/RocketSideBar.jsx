@@ -7,14 +7,26 @@ import { PercentageChange } from "@/pages/Layout";
 import ShootingStars from "@/components/ShootingStars";
 
 
-function RocketSideBar() {
+function RocketSideBar({ isMobileScreen }) {
   const { percentageChange } = useContext(PercentageChange);
 
-  const calculateSpaceshipPosition = () => {
-    const clampedPercentage = Math.max(0, Math.min(percentageChange, 90));
-    return `${clampedPercentage}%`;
-  };
-  
+// const calculateSpaceshipPosition = () => {
+//   const maxPosition = isMobileScreen ? 50 : 90; // Clamp lower for mobile screens
+//   const clampedPercentage = Math.max(0, Math.min(percentageChange, maxPosition));
+//   return `${clampedPercentage}%`;
+// };
+const calculateSpaceshipPosition = () => {
+  const minPosition = isMobileScreen ? 25 : 0; // Minimum bottom position
+  const maxPosition = isMobileScreen ? 95 : 90; // Maximum bottom position
+
+  const clampedPercentage = Math.max(0, Math.min(percentageChange, 100));
+  const interpolatedPosition =
+    minPosition + ((clampedPercentage / 100) * (maxPosition - minPosition));
+
+  return `${interpolatedPosition}%`;
+};
+
+
   return (
     <Box >
       <ShootingStars />
@@ -27,11 +39,12 @@ function RocketSideBar() {
         }}
       >
         <Link draggable={false} to="/home" className="logo">
-          <img draggable={false} src={mainlogo} style={{ height: "120px", width: "70px" }} />
+          <img draggable={false} src={mainlogo} style={{ height: isMobileScreen ? "80px" : "120px", width: isMobileScreen ? '50px' : "70px" }} />
         </Link>
       </Box>
 
       <img
+      id="rocket"
         draggable={false}
         src={spaceship}
         style={{
@@ -40,9 +53,9 @@ function RocketSideBar() {
           left: "50%",
           transform: "translateX(-50%)",
           transition: "bottom 3s ease-in-out",
-          width: "70px",
+          width:isMobileScreen ? '40px': "70px",
           height: "auto",
-          zIndex: 1,
+          zIndex: 100,
         }}
       />
     </Box>

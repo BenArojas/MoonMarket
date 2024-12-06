@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Box, Stack, Typography, Tooltip, CircularProgress } from '@mui/material'
+import { Box, Stack, Typography, Tooltip, CircularProgress, useMediaQuery, useTheme } from '@mui/material'
 import PortfolioValue from "@/components/AnimatedNumber";
 import IconButton from "@mui/material/IconButton";
 import SyncIcon from "@mui/icons-material/Sync";
@@ -7,26 +7,32 @@ import { ArrowDown, ArrowUp } from "lucide-react";
 
 
 
-function PortfolioStats({ value, percentageChange, stockTickers, incrementalChange,  formattedDate, trend, updateStockPricesMutation }) {
+function PortfolioStats({ value, percentageChange, stockTickers, incrementalChange, formattedDate, trend, updateStockPricesMutation }) {
     const trendColor = trend === 'positive' ? "primary" : "error";
+    const theme = useTheme();
+    const isMobileScreen = useMediaQuery(theme.breakpoints.down('sm'));
+
 
     const handleUpdatePrices = () => {
         updateStockPricesMutation.mutate(stockTickers);
-      };
+    };
 
-    
+
     return (
         <Box
             className="stats"
             sx={{
                 display: "flex",
-                flexDirection: "row",
+                flexDirection: isMobileScreen ? "column" : "row",
                 alignItems: "center",
                 p: 1,
             }}
         >
-            <Stack>
-                <Typography variant="h5">Portfolio Value</Typography>
+            <Stack direction={isMobileScreen ? "row" : 'column'} alignItems="center" sx={{
+                width: isMobileScreen ? "100%" : 'unset',
+                gap: isMobileScreen? 3 : 0,
+            }}>
+                <Typography variant={isMobileScreen ? "h6" : "h5"}>Portfolio Value</Typography>
                 <PortfolioValue value={value} />
             </Stack>
             <Box

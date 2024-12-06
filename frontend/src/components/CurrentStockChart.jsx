@@ -176,7 +176,7 @@ export const AreaChart = (props) => {
   return (
     <div
       ref={chartContainerRef}
-      style={{ position: "relative", width: "100%", height: height }}
+      style={{ position: "relative", minWidth: "260px", height: height }}
     />
   );
 };

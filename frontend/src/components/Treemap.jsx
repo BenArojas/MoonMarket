@@ -1,12 +1,15 @@
 import "@/styles/Treemap.css";
-import { useTheme } from "@mui/material";
+import { useTheme, useMediaQuery } from "@mui/material";
 import * as d3 from "d3";
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import CustomTooltip from "@/components/CustomToolTip";
 
 export const Treemap = ({ width, height, data }) => {
+
   const theme = useTheme();
+  const isMobileScreen = useMediaQuery(theme.breakpoints.down('sm'));
+
   const hierarchy = useMemo(() => {
     return d3.hierarchy(data)
       .sum(d => d.value)
@@ -46,7 +49,54 @@ export const Treemap = ({ width, height, data }) => {
 
     const fillColor = getColor(priceChangePercentage);
 
-    return (
+    const content = (
+      <Link
+        to={{
+          search: `selected=${ticker}`,
+        }}
+      >
+        <g className="rectangle">
+          <rect
+            x={leaf.x0}
+            y={leaf.y0}
+            rx={4}
+            width={leaf.x1 - leaf.x0}
+            height={leaf.y1 - leaf.y0}
+            stroke="transparent"
+            fill={fillColor}
+            opacity={1}
+            fillOpacity="0.3"
+            style={{ "--stock-color": fillColor }}
+          />
+          <text
+            x={centerX}
+            y={centerY - 6}
+            fontSize={12}
+            textAnchor="middle"
+            alignmentBaseline="middle"
+            fill={theme.palette.text.primary}
+            className="font-medium"
+          >
+            {ticker}
+          </text>
+          <text
+            x={centerX}
+            y={centerY + 6}
+            fontSize={12}
+            textAnchor="middle"
+            alignmentBaseline="middle"
+            fill={theme.palette.text.primary}
+            className="font-bold"
+          >
+            {priceChangePercentage}%
+          </text>
+        </g>
+      </Link>
+    );
+
+    return isMobileScreen ? (
+      <g key={i}>{content}</g>
+    ) : (
       <CustomTooltip
         key={i}
         percentageOfPortfolio={percentageOfPortfolio}
@@ -57,46 +107,7 @@ export const Treemap = ({ width, height, data }) => {
         value={value}
         name={name}
       >
-        <Link to={{
-          search: `selected=${ticker}`,
-        }}>
-          <g className="rectangle">
-            <rect
-              x={leaf.x0}
-              y={leaf.y0}
-              rx={4}
-              width={leaf.x1 - leaf.x0}
-              height={leaf.y1 - leaf.y0}
-              stroke="transparent"
-              fill={fillColor}
-              opacity={1}
-              fillOpacity="0.3"
-              style={{ "--stock-color": fillColor }}
-            />
-            <text
-              x={centerX}
-              y={centerY - 6}
-              fontSize={12}
-              textAnchor="middle"
-              alignmentBaseline="middle"
-              fill={theme.palette.text.primary}
-              className="font-medium"
-            >
-              {ticker}
-            </text>
-            <text
-              x={centerX}
-              y={centerY + 6}
-              fontSize={12}
-              textAnchor="middle"
-              alignmentBaseline="middle"
-              fill={theme.palette.text.primary}
-              className="font-bold"
-            >
-              {priceChangePercentage}%
-            </text>
-          </g>
-        </Link>
+        {content}
       </CustomTooltip>
     );
   });

@@ -9,11 +9,9 @@ import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import BlurCircularIcon from "@mui/icons-material/BlurCircular";
 import SearchBar from "@/components/SearchBar.jsx";
-import SchemaIcon from '@mui/icons-material/Schema';
+import SchemaIcon from "@mui/icons-material/Schema";
 
-function GraphMenu({ selectedGraph, setSelectedGraph }) {
- 
-
+function GraphMenu({ selectedGraph, setSelectedGraph, isMobileScreen }) {
   const handleListItemClick = (graph) => {
     setSelectedGraph(graph);
   };
@@ -24,10 +22,10 @@ function GraphMenu({ selectedGraph, setSelectedGraph }) {
       sx={{
         display: "flex",
         flexDirection: "row",
-        justifyContent: "space-between", 
+        justifyContent: "space-between",
         width: "100%",
-        padding: "10px 0", 
-        mb:1
+        padding: "10px 0",
+        mb: 1,
       }}
     >
       <nav aria-label="main mailbox folders">
@@ -38,10 +36,12 @@ function GraphMenu({ selectedGraph, setSelectedGraph }) {
             gap: 1,
           }}
         >
+          {/* Always show Treemap */}
           <ListItem disablePadding>
             <ListItemButton
               selected={selectedGraph === "Treemap"}
               onClick={() => handleListItemClick("Treemap")}
+              
             >
               <ListItemIcon
                 sx={{
@@ -52,6 +52,8 @@ function GraphMenu({ selectedGraph, setSelectedGraph }) {
               </ListItemIcon>
             </ListItemButton>
           </ListItem>
+
+          {/* Always show DonutChart */}
           <ListItem disablePadding>
             <ListItemButton
               selected={selectedGraph === "DonutChart"}
@@ -66,48 +68,56 @@ function GraphMenu({ selectedGraph, setSelectedGraph }) {
               </ListItemIcon>
             </ListItemButton>
           </ListItem>
-          <ListItem disablePadding>
-            <ListItemButton
-              selected={selectedGraph === "Circular"}
-              onClick={() => handleListItemClick("Circular")}
-            >
-              <ListItemIcon
-                sx={{
-                  justifyContent: "center", // Center the icon
-                }}
-              >
-                <BlurCircularIcon />
-              </ListItemIcon>
-            </ListItemButton>
-          </ListItem>
-          <ListItem disablePadding>
-            <ListItemButton
-              selected={selectedGraph === "Leaderboards"}
-              onClick={() => handleListItemClick("Leaderboards")}
-            >
-              <ListItemIcon
-                sx={{
-                  justifyContent: "center", // Center the icon
-                }}
-              >
-                <TocSharpIcon />
-              </ListItemIcon>
-            </ListItemButton>
-          </ListItem>
-          <ListItem disablePadding>
-            <ListItemButton
-              selected={selectedGraph === "Sankey"}
-              onClick={() => handleListItemClick("Sankey")}
-            >
-              <ListItemIcon
-                sx={{
-                  justifyContent: "center", // Center the icon
-                }}
-              >
-                <SchemaIcon />
-              </ListItemIcon>
-            </ListItemButton>
-          </ListItem>
+
+          {/* Conditionally render other graph options only if not on mobile */}
+          {!isMobileScreen && (
+            <>
+              <ListItem disablePadding>
+                <ListItemButton
+                  selected={selectedGraph === "Circular"}
+                  onClick={() => handleListItemClick("Circular")}
+                >
+                  <ListItemIcon
+                    sx={{
+                      justifyContent: "center", // Center the icon
+                    }}
+                  >
+                    <BlurCircularIcon />
+                  </ListItemIcon>
+                </ListItemButton>
+              </ListItem>
+
+              <ListItem disablePadding>
+                <ListItemButton
+                  selected={selectedGraph === "Leaderboards"}
+                  onClick={() => handleListItemClick("Leaderboards")}
+                >
+                  <ListItemIcon
+                    sx={{
+                      justifyContent: "center", // Center the icon
+                    }}
+                  >
+                    <TocSharpIcon />
+                  </ListItemIcon>
+                </ListItemButton>
+              </ListItem>
+
+              <ListItem disablePadding>
+                <ListItemButton
+                  selected={selectedGraph === "Sankey"}
+                  onClick={() => handleListItemClick("Sankey")}
+                >
+                  <ListItemIcon
+                    sx={{
+                      justifyContent: "center", // Center the icon
+                    }}
+                  >
+                    <SchemaIcon />
+                  </ListItemIcon>
+                </ListItemButton>
+              </ListItem>
+            </>
+          )}
         </List>
       </nav>
       <SearchBar />

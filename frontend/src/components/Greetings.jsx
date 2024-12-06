@@ -1,14 +1,17 @@
-import { Box, Divider, Typography } from '@mui/material'
+import { Box, Divider, Typography, useMediaQuery, useTheme } from '@mui/material'
 import React from 'react'
 import { useState } from 'react';
 import MarketStatus from "@/components/MarketStatus";
 import Navbar from '@/components/Navbar';
 
 
+
 function Greetings({ username, friendRequestsCount }) {
 
-    const [date, setDate] = useState(new Date());
-    const formattedDate = date.toLocaleDateString('en-US', {
+    const theme = useTheme();
+    const isMobileScreen = useMediaQuery(theme.breakpoints.down('sm'));
+
+    const formattedDate = new Date().toLocaleDateString('en-US', {
         weekday: 'long',
         month: 'long',
         day: 'numeric'
@@ -22,17 +25,36 @@ function Greetings({ username, friendRequestsCount }) {
             paddingBottom: '10px'
         }}>
             <Box sx={{
-                display: 'grid',
-                gridTemplateColumns: 'auto auto'
+                display: isMobileScreen ? 'flex': 'grid',
+                gridTemplateColumns: 'auto auto',
+                flexDirection: isMobileScreen ? 'column' : 'row',
+                gap: 1,
+                paddingBottom: isMobileScreen ? 2: 0
             }}>
-                <Box className="Greetings" sx={{
-                    padding: 2
-                }}>
+                <Box 
+                    className="Greetings" 
+                    sx={{
+                        flex: 1,
+                        width: '100%',
+                        padding: 2,
+                        order: isMobileScreen ? -1 : 0,
+                        maxWidth: isMobileScreen ? '100%' : 'auto' // Ensure full width on mobile
+                    }}
+                >
                     <Typography variant="h4">Hello, {username}</Typography>
                     <Typography color={"#BDBDBD"} variant='subtitle1'>{formattedDate}</Typography>
                     <MarketStatus />
                 </Box>
-                <Navbar friendRequestsCount={friendRequestsCount}/>
+                
+                <Box 
+                    sx={{
+                        display: 'flex',
+                        justifyContent: 'center', // Ensure navbar is centered
+                        width: '100%'
+                    }}
+                >
+                    <Navbar friendRequestsCount={friendRequestsCount}/>
+                </Box>
             </Box>
             <Divider />
         </Box>

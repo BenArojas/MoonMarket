@@ -246,7 +246,7 @@ export function processCircularData(stocksList, stocksInfo) {
     const value = holding.quantity * stockInfo.price;
     const ticker = holding.ticker;
     sum += value;
-    const stock_avg_price = holding.avg_bought_price;
+    const stock_avg_price = holding.avg_bought_price.toFixed(2);
     const percentageOfPortfolio = (
       (value / totalPortfolioValue) * 100
     ).toFixed(2);

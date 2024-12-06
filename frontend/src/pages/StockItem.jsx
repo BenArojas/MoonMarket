@@ -9,6 +9,8 @@ import {
   MenuItem,
   Select,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { Suspense, useEffect, useState } from "react";
 import {
@@ -27,7 +29,7 @@ export async function loader({ params, request }) {
   const searchTerm = searchParams.get("time") || defaultTime;
 
   const stock = getStockData(ticker);
-  const intradayData = getIntradayData(ticker, searchTerm); 
+  const intradayData = getIntradayData(ticker, searchTerm);
 
   return defer({
     intradayData: intradayData,
@@ -36,6 +38,9 @@ export async function loader({ params, request }) {
 }
 
 function StockItem() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
   const { stock, intradayData } = useLoaderData();
   const [searchParams] = useSearchParams();
   const [chartData, setChartData] = useState(null);
@@ -62,9 +67,9 @@ function StockItem() {
       sx={{
         display: "grid",
         gridTemplateRows: "auto 1fr auto",
-        gap: 5,
+        gap: isMobile ? 2 : 5,
         margin: "auto",
-        width: "80%",
+        width: isMobile ? "95%" : "80%",
       }}
     >
       <Suspense fallback={<LoadingFallback />}>
@@ -78,15 +83,19 @@ function StockItem() {
                   stock={resolvedStock}
                   onRangeChange={handleRangeChange}
                   currentRange={range}
+                  isMobile={isMobile}
                 />
                 <Suspense fallback={<ChartLoadingFallback />}>
                   {chartData ? (
-                    <CandleStickChart data={chartData} />
+                    <CandleStickChart
+                      data={chartData}
+                      isMobile={isMobile}
+                    />
                   ) : (
                     <ChartLoadingFallback />
                   )}
                 </Suspense>
-                <BuyStockForm stock={resolvedStock} />
+                <BuyStockForm isMobile={isMobile} stock={resolvedStock} />
               </>
             )
           }
@@ -143,7 +152,7 @@ function NoStockFound() {
   );
 }
 
-function StockHeader({ stock, onRangeChange, currentRange }) {
+function StockHeader({ stock, onRangeChange, currentRange, isMobile }) {
   const timeRanges = [
     { value: "1week", label: "1 Week" },
     { value: "1month", label: "1 Month" },
@@ -157,25 +166,50 @@ function StockHeader({ stock, onRangeChange, currentRange }) {
     <Box
       sx={{
         display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
+        flexDirection: isMobile ? "column" : "row",
+        justifyContent: isMobile ? "flex-start" : "space-between",
+        alignItems: isMobile ? "flex-start" : "center",
+        gap: isMobile ? 2 : 5,
+        // width: isMobile ? 300: "auto",
       }}
     >
-      <Box sx={{ display: "flex", gap: 5, alignItems: "center" }}>
+      {/* First Row for Mobile / Main Row for Normal View */}
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: isMobile ? "column" : "row",
+          gap: 4,
+          alignItems: isMobile ? "flex-start" : "center",
+        }}
+      >
         <Typography variant="h4">{stock.symbol}</Typography>
+        <Box sx={{
+           display: "flex",
+           flexDirection:  "row",
+           gap: 4
+        }}>
         <StockInfoCard label="Last Price" value={stock.price} />
-        <StockInfoCard
-          label="Previous close"
-          value={stock.previousClose}
-        />
-        <StockInfoCard label="High (24h)" value={stock.dayHigh} />
-        <StockInfoCard label="Low (24h)" value={stock.dayLow} />
-        <StockInfoCard
-          label="Change (24h)"
-          value={`${stock.changesPercentage}%`}
-        />
+        <StockInfoCard label="Previous close" value={stock.previousClose} />
+        <StockInfoCard label="Change (24h)" value={`${stock.changesPercentage}%`} />
+        </Box>
+        {!isMobile && (
+          <>
+            <StockInfoCard label="High (24h)" value={stock.dayHigh} />
+            <StockInfoCard label="Low (24h)" value={stock.dayLow} />
+          </>
+        )}
       </Box>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+
+      {/* Second Row for Mobile / Inline with First Row for Normal View */}
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: isMobile ? "row" : "row",
+          gap: 2,
+          alignItems: "center",
+          flexWrap: isMobile ? "wrap" : "nowrap",
+        }}
+      >
         <Select
           value={currentRange}
           onChange={(e) => onRangeChange(e.target.value)}
@@ -187,10 +221,15 @@ function StockHeader({ stock, onRangeChange, currentRange }) {
             </MenuItem>
           ))}
         </Select>
+        <Box sx={{
+          width: isMobile? 200: "100%",
+        }}>
         <SearchBar />
+        </Box>
       </Box>
     </Box>
   );
 }
+
 
 export default StockItem;

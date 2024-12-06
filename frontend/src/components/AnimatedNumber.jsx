@@ -1,10 +1,14 @@
 import React from "react";
 import CountUp from "react-countup";
-import Typography from "@mui/material/Typography";
+import {  Typography,  useMediaQuery, useTheme,  responsiveFontSizes } from '@mui/material'
+
 
 const PortfolioValue = ({ value }) => {
+  let theme = useTheme();
+  theme = responsiveFontSizes(theme);
+  const isMobileScreen = useMediaQuery(theme.breakpoints.down('sm'));
   return (
-    <Typography variant="h6" color="secondary">
+    <Typography variant={isMobileScreen?"subtitle1":"h6"} color="secondary">
       <CountUp
         end={value}
         separator=","

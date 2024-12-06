@@ -93,3 +93,10 @@ input[type="number"]::-webkit-outer-spin-button {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover-color);
 }
+
+@media (max-width: 600px) {
+  .custom-scrollbar {
+    /* overflow-y: scroll !important; */
+    padding: 8px;
+  }
+}

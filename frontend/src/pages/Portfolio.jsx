@@ -37,7 +37,8 @@ function Portfolio({ userName }) {
   const queryClient = useQueryClient();
   const updateStockPricesMutation = useStockPriceUpdate();
   const theme = useTheme();
-  const isSmallScreen = useMediaQuery(theme.breakpoints.down('xl')); // Breakpoint at 1750px
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('xl'));
+  const isMobileScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
   const initialFetchRef = useRef(false);  
 
@@ -45,14 +46,6 @@ function Portfolio({ userName }) {
     queryKey: ["userData", userName],
     queryFn: getUserData,
   });
-
-  // useEffect(() => {
-  //   if (!initialFetchRef.current && userData && state?.shouldUpdatePrices && userData?.holdings?.length > 0) {
-  //     const tickers = userData.holdings.map(holding => holding.ticker);
-  //     updateStockPricesMutation.mutate(tickers);
-  //     initialFetchRef.current = true;  
-  //   }
-  // }, [userData, state?.shouldUpdatePrices]);
 
   const { data: stockData, isPending: stockDataLoading } = useQuery({
     queryKey: ["stockData", selectedTicker],
@@ -74,25 +67,19 @@ function Portfolio({ userName }) {
     <Box
       className="custom-scrollbar"
       sx={{
-        display: isSmallScreen ? "flex" : "grid",
-        flexDirection: isSmallScreen ? "column" : "unset",
+        display: "flex",
+        flexDirection: isSmallScreen ? "column" : "row",
         gridTemplateColumns: isSmallScreen ? "1fr" : "1000px auto",
-        paddingY: 1,
-        paddingX: isSmallScreen ? 2 : 5,
-        marginX: isSmallScreen ? 1 : 5,
-        // height: "100%",
-        overflowY: isSmallScreen ? "auto" : "unset",
-        height: "80vh",
-        gap: isSmallScreen ? 2 : 0,
+        paddingY: isMobileScreen ? 2 : isSmallScreen ? 2 : 3, 
+        paddingX: isMobileScreen ? 2 : isSmallScreen ? 2 : 5, 
+        marginX: isMobileScreen ? 1 : isSmallScreen ? 1 : 5, 
+        overflowY: "auto", 
+        height: isSmallScreen & !isMobileScreen? '83vh':'100%', 
+        gap: isMobileScreen ? 2 : isSmallScreen ? 2 : 4,
+        alignItems: isMobileScreen ? "center" : "flex-start",
       }}
     >
-      {/* <Box
-         sx={{
-          display: "flex",
-          flexDirection: "column",
 
-        }}
-      > */}
       <ErrorBoundary FallbackComponent={ErrorFallback}>
         {userDataLoading ? (
           <GraphSkeleton />
@@ -100,7 +87,7 @@ function Portfolio({ userName }) {
           <PortfolioContent userData={userData} />
         )}
       </ErrorBoundary>
-      {/* </Box> */}
+
       <Box sx={{
         width: isSmallScreen ? "100%" : 600,
         ml: isSmallScreen ? 0 : "auto"
@@ -108,7 +95,7 @@ function Portfolio({ userName }) {
         <Stack spacing={isSmallScreen ? 4 : 3} direction={isSmallScreen ? "column-reverse" : "column"} sx={{ height: "100%" }}>
           <ErrorBoundary FallbackComponent={ErrorFallback}>
             {dailyTimeFrameLoading || userDataLoading ? (
-              <GraphSkeleton />
+              <GraphSkeleton height={380}/>
             ) : (
               <StackedCardsWrapper
                 dailyTimeFrame={dailyTimeFrame}
@@ -145,6 +132,7 @@ function PortfolioContent({ userData }) {
 
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('xl'));
+  const isMobileScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
   const queryClient = useQueryClient();
   const postSnapshotMutation = useMutation({
@@ -168,25 +156,27 @@ function PortfolioContent({ userData }) {
   }
 
   return (
-    <Box id="hey" sx={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      width: 1000,
-      margin: isSmallScreen ? 'auto' : 0
-    }}>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems:isMobileScreen ? 'unset': "center",
+        width: isSmallScreen ? "100%" : "1000px",
+        margin: "auto",
+      }}
+    >
       <GraphMenu
         selectedGraph={selectedGraph}
         setSelectedGraph={setSelectedGraph}
+        isMobileScreen={isMobileScreen}
       />
       {/* {postSnapshotMutation.error?.message} */}
       <DataGraph
         isDataProcessed={isDataProcessed}
         selectedGraph={selectedGraph}
         visualizationData={visualizationData}
-        isSmallScreen={isSmallScreen}
-        width={isSmallScreen ? 900 : 1000}
-        height={isSmallScreen ? 500 : 660}
+        width={isMobileScreen ? 300 : isSmallScreen ? 500 : 1000}
+        height={isMobileScreen ? 250 : isSmallScreen ? 500 : 660}
       />
     </Box>
   );
@@ -207,9 +197,7 @@ const StackedCardsWrapper = ({ dailyTimeFrame, userData, updateStockPricesMutati
   }, [incrementalChange, moneySpent]);
 
   return (
-    // <Box sx={{
-    //   width: 600
-    // }}>
+
     <SnapshotChart
       formattedDate={formattedDate}
       stockTickers={stockTickers}
@@ -219,7 +207,7 @@ const StackedCardsWrapper = ({ dailyTimeFrame, userData, updateStockPricesMutati
       dailyTimeFrameData={dailyTimeFrame}
       updateStockPricesMutation={updateStockPricesMutation}
     />
-    // </Box>
+
   );
 };
 

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { updateUsername, changePassword, addDeposit } from "@/api/user";
 import { answerFriendRequest, sendFriendRequest } from "@/api/friend";
-import { useTheme } from '@mui/material/styles';
+import { useTheme, useMediaQuery } from "@mui/material";
 import AccountTabContent from '@/components/profile-tabs/AccountTabContent'
 import ProfileTabContent from '@/components/profile-tabs/ProfileTabContent'
 import MoneyTabContent from '@/components/profile-tabs/MoneyTabContent'
@@ -14,6 +14,8 @@ import { Badge } from "@mui/material";
 
 const ProfileTabs = ({ username, current_balance, friendRequests, friendList, friendRequestsCount, sentFriendRequestsData, profit, deposits }) => {
   const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('xl'));
+  const isMobileScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('account');
 
@@ -70,55 +72,107 @@ const ProfileTabs = ({ username, current_balance, friendRequests, friendList, fr
   };
 
   return (
-    <Tabs defaultValue="account" value={activeTab} onValueChange={setActiveTab} className="w-[650px]">
-      <TabsList className="grid w-full grid-cols-5" style={{ backgroundColor: theme.palette.trinary.main }}>
-        <TabsTrigger value="account">Account</TabsTrigger>
-        <TabsTrigger value="profile">Settings</TabsTrigger>
-        <TabsTrigger value="money">Money</TabsTrigger>
-        <TabsTrigger value="friends">Friends</TabsTrigger>
-        <Badge badgeContent={friendRequestsCount} color="primary">
-          <TabsTrigger value="friend_requests">Friend Requests</TabsTrigger>
-        </Badge>
-      </TabsList>
+    <Tabs
+  defaultValue="account"
+  value={activeTab}
+  onValueChange={setActiveTab}
+  className={`${isMobileScreen ? 'w-[75%]' : isSmallScreen ? 'w-[90%]' : 'w-[650px]'} `}
+>
+  {/* Tabs Header */}
+  <TabsList
+    className={`grid w-full ${isMobileScreen ? 'grid-cols-2 h-30' : 'grid-cols-5'}`}
+    style={{
+      backgroundColor: theme.palette.trinary.main,
+      padding: '4px',
+    }}
+  >
+    <TabsTrigger
+      value="account"
+      className={isMobileScreen ? 'text-xs p-2' : ''}
+      style={{
+        borderRight: '1px solid #ccc',
+      }}
+    >
+      Account
+    </TabsTrigger>
+    <TabsTrigger
+      value="profile"
+      className={isMobileScreen ? 'text-xs p-2' : ''}
+      style={{
+        borderRight: '1px solid #ccc',
+      }}
+    >
+      Settings
+    </TabsTrigger>
+    <TabsTrigger
+      value="money"
+      className={isMobileScreen ? 'text-xs p-2' : ''}
+      style={{
+        borderRight: '1px solid #ccc',
+      }}
+    >
+      Money
+    </TabsTrigger>
+    <TabsTrigger
+      value="friends"
+      className={isMobileScreen ? 'text-xs p-2' : ''}
+      style={{
+        borderRight: '1px solid #ccc',
+      }}
+    >
+      Friends
+    </TabsTrigger>
+    <Badge badgeContent={friendRequestsCount} color="primary">
+      <TabsTrigger
+        value="friend_requests"
+        className={isMobileScreen ? 'text-xs p-2' : ''}
+      >
+        Friend Requests
+      </TabsTrigger>
+    </Badge>
+  </TabsList>
 
-      <TabsContent value="account">
-        <AccountTabContent
-          currentBalance={current_balance}
-          profit={profit}
-          deposits={deposits}
-        />
-      </TabsContent>
+  {/* Tabs Content */}
 
-      <TabsContent value="profile">
-        <ProfileTabContent
-          username={username}
-          handlePasswordSubmit={handlePasswordSubmit}
-          handleUsernameSubmit={handleUsernameSubmit}
-          isLoading={changePasswordMutation.isLoading || updateUsernameMutation.isLoading}
-        />
-      </TabsContent>
+    <TabsContent value="account">
+      <AccountTabContent
+        currentBalance={current_balance}
+        profit={profit}
+        deposits={deposits}
+      />
+    </TabsContent>
 
-      <TabsContent value="money">
-        <MoneyTabContent
-          currentBalance={current_balance}
-          onSubmit={handleDepositSubmit}
-          isLoading={addDepositMutation.isLoading}
-        />
-      </TabsContent>
+    <TabsContent value="profile">
+      <ProfileTabContent
+        username={username}
+        handlePasswordSubmit={handlePasswordSubmit}
+        handleUsernameSubmit={handleUsernameSubmit}
+        isLoading={changePasswordMutation.isLoading || updateUsernameMutation.isLoading}
+      />
+    </TabsContent>
 
-      <TabsContent value="friends">
-        <FriendsTabContent friendList={friendList} handleSendFriendRequest={handleSendFriendRequest} />
-      </TabsContent>
+    <TabsContent value="money">
+      <MoneyTabContent
+        currentBalance={current_balance}
+        onSubmit={handleDepositSubmit}
+        isLoading={addDepositMutation.isLoading}
+      />
+    </TabsContent>
 
-      <TabsContent value="friend_requests">
-        <FriendRequestsTabContent
-          friendRequests={friendRequests}
-          sentFriendRequests={sentFriendRequestsData}
-          onAnswer={handleFriendRequestAnswer}
-          isLoading={answerFriendRequestMutation.isLoading}
-        />
-      </TabsContent>
-    </Tabs>
+    <TabsContent value="friends">
+      <FriendsTabContent friendList={friendList} handleSendFriendRequest={handleSendFriendRequest} />
+    </TabsContent>
+
+    <TabsContent value="friend_requests">
+      <FriendRequestsTabContent
+        friendRequests={friendRequests}
+        sentFriendRequests={sentFriendRequestsData}
+        onAnswer={handleFriendRequestAnswer}
+        isLoading={answerFriendRequestMutation.isLoading}
+      />
+    </TabsContent>
+</Tabs>
+
   );
 };
 

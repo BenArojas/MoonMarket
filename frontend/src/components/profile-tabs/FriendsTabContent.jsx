@@ -43,104 +43,156 @@ const FriendsTabContent = ({ friendList, handleSendFriendRequest }) => {
   const removeFriendMutation = useMutation({
     mutationFn: removeFriend,
     onSuccess: () => {
-      queryClient.invalidateQueries('friendList')
+      queryClient.invalidateQueries("friendList");
     },
   });
   const [open, setOpen] = React.useState(false);
+  const [selectedFriend, setSelectedFriend] = React.useState(null);
 
-  const handleClickOpen = () => {
+  const handleClickOpen = (friendId) => {
+    setSelectedFriend(friendId);
     setOpen(true);
   };
   const handleClose = () => {
     setOpen(false);
+    setSelectedFriend(null);
   };
-  const handleRemoveFriend = (friend_id) => {
-    removeFriendMutation.mutate(friend_id);
-    setOpen(false);
+  const handleRemoveFriend = () => {
+    if (selectedFriend) {
+      removeFriendMutation.mutate(selectedFriend);
+      handleClose();
+    }
   };
 
   return (
-    <Card>
+    <Card sx={{ margin: { xs: "1rem", md: "2rem" } }}>
       <CardHeader>
-        <CardTitle>Friends</CardTitle>
+        <Typography variant="h6">Friends</Typography>
       </CardHeader>
-      <CardContent className="space-y-2">
-        <SearchFriends handleSendFriendRequest={handleSendFriendRequest}/>
+      <CardContent
+        sx={{
+          padding: { xs: "1rem", md: "1.5rem" },
+          overflow: "hidden",
+        }}
+      >
         <Stack
           direction="column"
-          spacing={3}
+          spacing={2}
           sx={{
             overflowY: "auto",
-            overflowX: "clip",
             maxHeight: "250px",
             paddingX: "1rem",
-            "&::-webkit-scrollbar-track": {
-              "-webkit-box-shadow": "inset 0 0 6px rgba(0,0,0,0.3)",
-              backgroundColor: "rgba(90,90,90,0.5)",
-              borderRadius: "10px",
-            },
             "&::-webkit-scrollbar": {
-              width: "10px",
-              backgroundColor: "transparent",
+              width: "8px",
             },
             "&::-webkit-scrollbar-thumb": {
               backgroundColor: "#AAA",
               borderRadius: "10px",
-              backgroundImage:
-                "-webkit-linear-gradient(90deg, rgba(0, 0, 0, .2) 25%, transparent 25%, transparent 50%, rgba(0, 0, 0, .2) 50%, rgba(0, 0, 0, .2) 75%, transparent 75%, transparent)",
             },
           }}
         >
-          <Typography variant="h6">Friend List:</Typography>
-          {friendList.length > 0 ? <Grid container spacing={2}>
-            {friendList.map((friend) => (
-              <Grid
-                item
-                container
-                key={friend.id}
-                spacing={2}
-                alignItems="center"
-              >
-                <Grid item xs={2}>
-                  <Avatar />
-                </Grid>
-                <Grid item xs={3}>
-                  <Typography>{friend.username}</Typography>
-                </Grid>
-                <Grid item xs={5}>
-                  <Typography>{friend.email}</Typography>
-                </Grid>
-                <Grid item>
-                  <IconButton onClick={handleClickOpen}>
-                    <Trash2 />
-                  </IconButton>
-                  <Dialog
-                    open={open}
-                    onClose={handleClose}
-                    aria-labelledby="alert-dialog-title"
-                    aria-describedby="alert-dialog-description"
+          <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+            Friend List:
+          </Typography>
+          {friendList.length > 0 ? (
+            <Grid
+              container
+              direction="column"
+              spacing={2}
+              sx={{ width: "100%" }}
+            >
+              {friendList.map((friend) => (
+                <Grid
+                  container
+                  item
+                  key={friend.id}
+                  alignItems="center"
+                  justifyContent="space-between"
+                  sx={{
+                    borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                    paddingY: "0.5rem",
+                  }}
+                >
+                  <Grid
+                    item
+                    xs={3}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
                   >
-                    <DialogTitle id="alert-dialog-title">
-                      {"Are you sure you want to remove this friend?"}
-                    </DialogTitle>
-                    <DialogContent>
-                      <DialogContentText id="alert-dialog-description">
-                        you can't undo this action
-                      </DialogContentText>
-                    </DialogContent>
-                    <DialogActions>
-                      <Button onClick={handleClose}>Disagree</Button>
-                      <Button onClick={() => handleRemoveFriend(friend.id)} autoFocus>
-                        Agree
-                      </Button>
-                    </DialogActions>
-                  </Dialog>
+                    <Avatar />
+                  </Grid>
+                  <Grid
+                    item
+                    xs={4}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "flex-start",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <Typography noWrap variant="body2">
+                      {friend.username}
+                    </Typography>
+                  </Grid>
+                  <Grid
+                    item
+                    xs={4}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "flex-start",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <Typography noWrap variant="body2">
+                      {friend.email}
+                    </Typography>
+                  </Grid>
+                  <Grid
+                    item
+                    xs={1}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <IconButton onClick={() => handleClickOpen(friend.id)}>
+                      <Trash2 />
+                    </IconButton>
+                  </Grid>
                 </Grid>
-              </Grid>
-            ))}
-          </Grid> : <p>No friends</p>}
+              ))}
+            </Grid>
+          ) : (
+            <Typography>No friends</Typography>
+          )}
         </Stack>
       </CardContent>
+
+      <Dialog
+        open={open}
+        onClose={handleClose}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>{"Are you sure you want to remove this friend?"}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            You can't undo this action.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose}>Cancel</Button>
+          <Button onClick={handleRemoveFriend} autoFocus>
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Card>
   );
 };

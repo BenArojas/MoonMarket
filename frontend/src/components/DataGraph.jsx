@@ -45,11 +45,13 @@ function DataGraph({
   }
 
   return GraphComponent ? (
+    <div style={{ display: 'flex', justifyContent: 'center' }}>
     <GraphComponent  
       data={visualizationData} 
       width={width}
       height={height}
     />
+    </div>
   ) : null;
 }
 export default DataGraph;
