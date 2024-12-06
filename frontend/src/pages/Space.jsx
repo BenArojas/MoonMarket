@@ -10,11 +10,15 @@ import FriendsSideBar from "@/components/FriendsSideBar";
 import { useThemeHook } from "@/contexts/ThemeContext";
 import OrbitingCircles from "@/components/ui/orbiting-circles";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMediaQuery, useTheme } from "@mui/material";
+
 
 const INITIAL_SPACESHIP_COUNT = 6;
 
 function Space() {
+  const theme = useTheme();
   const { forceDarkMode } = useThemeHook();
+  const isMobileScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const galaxy = useRef(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [activeSpaceship, setActiveSpaceship] = useState(null);
@@ -78,7 +82,12 @@ function Space() {
 
   return (
     <div className="page">
-      <div className="floating-sidebar">
+      <div
+        className={`floating-sidebar bg-[rgba(255,255,255,0.15)] backdrop-blur-0 rounded-[50px] border border-[rgba(255,255,255,0.18)] shadow-[0_8px_32px_0_rgba(255,255,255,0.37)] ${isMobileScreen
+            ? 'w-[48px] h-[30vh] md:w-[60px] md:h-[40vh] mb-[5vh] md:mt-[5px]'
+            : 'w-[60px] h-[40vh] mt-[5px]'
+          } ml-[5px]`}
+      >
         {!usersListLoading && usersListData && (
           <FriendsSideBar
             friends={usersListData}
@@ -95,7 +104,11 @@ function Space() {
           backgroundColor="black"
         />
         <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-lg md:shadow-xl">
-          <Moon centerX={centerX} centerY={centerY} />
+          <Moon
+            centerX={centerX}
+            centerY={centerY}
+            size={isMobileScreen ? 100 : 200}
+          />
           {!usersWithHoldingsLoading && usersWithHoldingsData && (
             <>
               {(() => {
@@ -104,10 +117,10 @@ function Space() {
                   <>
                     {/* High Performers (70% and above) */}
                     {categorizedFriends.highPerformers.length > 0 && <OrbitingCircles
-                      className="size-[30px] border-none bg-transparent"
+                      className="size-[24px] border-none bg-transparent"
                       duration={30}
                       delay={20}
-                      radius={150}
+                      radius={isMobileScreen ? 100 : 150}
                     >
                       {categorizedFriends.highPerformers.map(friend => (
                         <Spaceship
@@ -121,10 +134,10 @@ function Space() {
 
                     {/* Moderate Performers (20% to 70%) */}
                     {categorizedFriends.moderatePerformers.length > 0 && <OrbitingCircles
-                      className="size-[30px] border-none bg-transparent"
+                      className="size-[24px] border-none bg-transparent"
                       duration={25}
                       delay={10}
-                      radius={250}
+                      radius={isMobileScreen ? 150 : 250}
                       reverse
                     >
                       {categorizedFriends.moderatePerformers.map(friend => (
@@ -139,10 +152,10 @@ function Space() {
 
                     {/* Low Performers (below 20%) */}
                     {categorizedFriends.lowPerformers.length > 0 && <OrbitingCircles
-                      className="size-[30px] border-none bg-transparent"
+                      className="size-[24px] border-none bg-transparent"
                       duration={20}
                       delay={15}
-                      radius={350}
+                      radius={isMobileScreen ? 200 : 350}
                     >
                       {categorizedFriends.lowPerformers.map(friend => (
                         <Spaceship

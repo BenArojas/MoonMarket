@@ -18,6 +18,7 @@ export const ChartComponent = (props) => {
   const theme = useTheme();
   const {
     data,
+    isMobile,
     colors: {
       backgroundColor = "transparent",
       lineColor = "#2962FF",
@@ -31,7 +32,7 @@ export const ChartComponent = (props) => {
 
   useEffect(() => {
     const handleResize = () => {
-      chart.applyOptions({ width: chartContainerRef.current.clientWidth });
+      chart.applyOptions({ width: isMobile ? 350: chartContainerRef.current.clientWidth , height: isMobile ? 300 : 500, });
     };
 
     const chart = createChart(chartContainerRef.current, {
@@ -50,8 +51,8 @@ export const ChartComponent = (props) => {
           visible: false
         },
       },
-      width: chartContainerRef.current.clientWidth,
-      height: 500,
+      width: isMobile ? 350: chartContainerRef.current.clientWidth,
+      height: isMobile ? 300 : 500,
       crosshair: {
         mode: CrosshairMode.Normal,
       },
@@ -155,7 +156,7 @@ export const ChartComponent = (props) => {
       window.removeEventListener("resize", handleResize);
       chart.remove();
     };
-  }, [data, backgroundColor, lineColor, textColor, volumeUpColor, volumeDownColor]);
+  }, [data, backgroundColor, lineColor, textColor, volumeUpColor, volumeDownColor, isMobile]);
 
   return <div ref={chartContainerRef} />;
 };

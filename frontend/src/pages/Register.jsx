@@ -1,6 +1,14 @@
 import { useNavigate, Form, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { TextField, Box, Card, Typography, Button } from "@mui/material";
+import {
+  TextField,
+  Box,
+  Card,
+  Typography,
+  Button,
+  useMediaQuery,
+  useTheme,
+} from "@mui/material";
 import { RegisterUser } from "@/api/user";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { userRegisterSchema } from "@/schemas/user";
@@ -12,6 +20,9 @@ const ErrorMessage = ({ errors, name }) => {
 
 function Register() {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobileScreen = useMediaQuery(theme.breakpoints.down("sm"));
+
   const {
     register,
     handleSubmit,
@@ -30,7 +41,7 @@ function Register() {
         deposits: [
           {
             amount: parseFloat(data.initialDeposit),
-            date: new Date().toISOString(), // Current date and time in ISO format
+            date: new Date().toISOString(),
           },
         ],
       };
@@ -39,7 +50,6 @@ function Register() {
         if (response.status === 200) {
           navigate("/login", { replace: true });
         }
-        // console.log(response)
       } catch (error) {
         console.log("An error occurred while registering");
       }
@@ -50,7 +60,7 @@ function Register() {
     <Box
       sx={{
         background: "linear-gradient(to right, #205462 35%, #24201f 55%)",
-        padding: "1rem",
+        padding: isMobileScreen ? "0.5rem" : "1rem",
         height: "100vh",
         display: "flex",
         justifyContent: "center",
@@ -64,35 +74,45 @@ function Register() {
         action="/register"
         sx={{
           display: "flex",
-          width: 1200,
-          height: 600,
+          flexDirection: isMobileScreen ? "column" : "row",
+          width: isMobileScreen ? "95%" : 1200,
+          height: isMobileScreen ? "auto" : 600,
           boxShadow: "0px 0px 0px 8px rgba(0, 0, 0, 0.3)",
         }}
       >
         <Box
           sx={{
-            width: "100%",
+            width: isMobileScreen ? "100%" : "50%",
             backgroundImage: `url('/register_stocks.jpg')`,
             backgroundPosition: "center",
             backgroundRepeat: "no-repeat",
             backgroundSize: "cover",
           }}
         >
-          <Box sx={{
-            width: 300, height: 300
-          }}>
-            <img src="/moonMarket-Photoroom.png"></img>
+          <Box
+            sx={{
+              width: isMobileScreen ? "80%" : 300,
+              height: "auto",
+              margin: isMobileScreen ? "0 auto" : "initial",
+            }}
+          >
+            <img
+              src="/moonMarket-Photoroom.png"
+              alt="Moon Market Logo"
+              style={{ width: "100%", height: "auto" }}
+            />
           </Box>
         </Box>
         <Box
           sx={{
-            width: "100%",
+            width: isMobileScreen ? "100%" : "50%",
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",
             alignItems: "center",
             gap: 3,
-            background: '#24201f'
+            background: "#24201f",
+            padding: isMobileScreen ? "1rem" : 0,
           }}
         >
           <Box
@@ -101,59 +121,41 @@ function Register() {
               display: "flex",
               flexDirection: "column",
               gap: 2,
-              width: 350,
+              width: isMobileScreen ? "100%" : 350,
             }}
           >
-            <Typography variant="h5">Sign up</Typography>
-            <TextField
-              {...register("email", {
-                required: true,
-              })}
-              type="email"
-              placeholder="Email"
-            />
+            <Typography
+              variant="h5"
+              sx={{
+                textAlign: isMobileScreen ? "center" : "left",
+                fontSize: isMobileScreen ? "1.2rem" : "1.5rem",
+              }}
+            >
+              Sign up
+            </Typography>
+            <TextField {...register("email", { required: true })} type="email" placeholder="Email" />
             <ErrorMessage errors={errors} name="email" />
-            <TextField
-              {...register("username", {
-                required: true,
-              })}
-              type="name"
-              placeholder="Username"
-            />
+
+            <TextField {...register("username", { required: true })} type="name" placeholder="Username" />
             <ErrorMessage errors={errors} name="username" />
-            <TextField
-              {...register("password", {
-                required: true,
-              })}
-              type="password"
-              placeholder="Password"
-            />
+
+            <TextField {...register("password", { required: true })} type="password" placeholder="Password" />
             <ErrorMessage errors={errors} name="password" />
-            <TextField
-              {...register("confirmPassword", {
-                required: true,
-              })}
-              type="password"
-              placeholder="Confirm Password"
-            />
+
+            <TextField {...register("confirmPassword", { required: true })} type="password" placeholder="Confirm Password" />
             <ErrorMessage errors={errors} name="confirmPassword" />
-            <TextField
-              {...register("initialDeposit", {
-                required: true,
-              })}
-              placeholder="Initial Deposit"
-            />
+
+            <TextField {...register("initialDeposit", { required: true })} placeholder="Initial Deposit" />
             <ErrorMessage errors={errors} name="initialDeposit" />
+
             <Button variant="contained" type="submit">
               Register
             </Button>
           </Box>
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <Typography sx={{ color: "grey" }}>
-              Already have an account?
-            </Typography>
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+            <Typography sx={{ color: "grey" }}>Already have an account?</Typography>
             <Link
-              to={"/login"}
+              to="/login"
               style={{
                 color: "white",
               }}

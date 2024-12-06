@@ -25,15 +25,14 @@ const SnapshotChart = React.memo(
 
 
     return (
-      <div className="relative w-full" style={{ height: 400}}>
+      <div className="relative w-full" style={{ height: 400 }}>
         <div className="relative w-full h-full" style={{ perspective: '2000px' }}>
           {/* Back Card (Additional Information) */}
-          <div 
-            className={`absolute w-[90%] h-full transition-all duration-500 ease-in-out ${
-              isFlipped 
-                ? 'left-0 z-20 translate-y-0 rotate-0' 
+          <div
+            className={`absolute w-[90%] h-full transition-all duration-500 ease-in-out ${isFlipped
+                ? 'left-0 z-20 translate-y-0 rotate-0'
                 : 'left-[10%] z-10 translate-y-2 rotate-2 cursor-pointer hover:translate-y-[-2px]'
-            }`}
+              }`}
             onClick={() => !isFlipped && setIsFlipped(true)}
           >
             <Card
@@ -41,38 +40,37 @@ const SnapshotChart = React.memo(
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 4,
+                gap: isSmallScreen ? 2 : 4,
                 padding: '15px 15px',
-                boxShadow: isFlipped 
-                  ? '0 10px 30px -5px rgba(0, 0, 0, 0.3)' 
+                boxShadow: isFlipped
+                  ? '0 10px 30px -5px rgba(0, 0, 0, 0.3)'
                   : '0 25px 30px -15px rgba(0, 0, 0, 0.4)'
               }}
             >
               <PortfolioStats
-                    trend={trend}
-                    formattedDate={formattedDate}
-                    incrementalChange={incrementalChange}
-                    percentageChange={percentageChange}
-                    stockTickers={stockTickers}
-                    value={value}
-                    updateStockPricesMutation={updateStockPricesMutation}
-                  />
-                  <AreaChart
-                    data={areaChartData}
-                    enableAdvancedFeatures={true}
-                    trend={trend}
-                    height={250}
-                  />
+                trend={trend}
+                formattedDate={formattedDate}
+                incrementalChange={incrementalChange}
+                percentageChange={percentageChange}
+                stockTickers={stockTickers}
+                value={value}
+                updateStockPricesMutation={updateStockPricesMutation}
+              />
+              <AreaChart
+                data={areaChartData}
+                enableAdvancedFeatures={true}
+                trend={trend}
+                height={250}
+              />
             </Card>
           </div>
-          
+
           {/* Front Card (Main Content) */}
-          <div 
-            className={`absolute w-[90%] h-full transition-all duration-500 ease-in-out ${
-              isFlipped 
-                ? 'left-[10%] z-10 translate-y-2 rotate-2 cursor-pointer hover:translate-y-[-2px]' 
+          <div
+            className={`absolute w-[90%] h-full transition-all duration-500 ease-in-out ${isFlipped
+                ? 'left-[10%] z-10 translate-y-2 rotate-2 cursor-pointer hover:translate-y-[-2px]'
                 : 'left-0 z-20 translate-y-0 rotate-0'
-            }`}
+              }`}
             onClick={() => isFlipped && setIsFlipped(false)}
           >
             <Card
@@ -80,10 +78,10 @@ const SnapshotChart = React.memo(
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 4,
+                gap: isSmallScreen ? 2 : 4,
                 padding: '15px 15px',
-                boxShadow: !isFlipped 
-                  ? '0 10px 30px -5px rgba(0, 0, 0, 0.3)' 
+                boxShadow: !isFlipped
+                  ? '0 10px 30px -5px rgba(0, 0, 0, 0.3)'
                   : '0 25px 30px -15px rgba(0, 0, 0, 0.4)'
               }}
             >
@@ -111,13 +109,13 @@ const SnapshotChart = React.memo(
                     updateStockPricesMutation={updateStockPricesMutation}
                   />
 
-                  <PerformanceChart data={performanceChartData}/>
+                  <PerformanceChart data={performanceChartData} />
                 </>
               )}
             </Card>
           </div>
         </div>
-        
+
         {/* Optional: Ground shadow */}
         <div className="absolute inset-0 bg-black/5 -z-10 translate-y-4 blur-xl rounded-full" />
       </div>

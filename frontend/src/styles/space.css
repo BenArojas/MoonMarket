@@ -38,15 +38,3 @@
   align-items: center;
 }
 
-.floating-sidebar {
-  background: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 8px 32px 0 rgba(255, 255, 255, 0.37);
-  backdrop-filter: blur(0px);
-  -webkit-backdrop-filter: blur(0px);
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  width: 60px;
-  height: 40vh;
-  border-radius: 50px;
-  margin-left: 5px;
-}

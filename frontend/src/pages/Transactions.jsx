@@ -29,32 +29,32 @@ import {
 } from "@/components/TransactionsGraphs";
 import "@/styles/App.css"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {formatCurrency} from '@/utils/dataProcessing'
+import { formatCurrency } from '@/utils/dataProcessing'
 
 // Main component
 const TransactionsPage = () => {
-  const { 
-    data: transactions = [], 
-    isLoading: transactionsLoading, 
-    error: transactionsError 
+  const {
+    data: transactions = [],
+    isLoading: transactionsLoading,
+    error: transactionsError
   } = useQuery({
     queryKey: ['transactions'],
     queryFn: getUserTransactions
   });
 
-  const { 
-    data: stocks = [], 
-    isLoading: stocksLoading, 
-    error: stocksError 
+  const {
+    data: stocks = [],
+    isLoading: stocksLoading,
+    error: stocksError
   } = useQuery({
     queryKey: ['userStocks'],
     queryFn: getUserStocks
   });
 
-    const summaryData = useTransactionSummary({
-      transactions,
-      stocks,
-    });
+  const summaryData = useTransactionSummary({
+    transactions,
+    stocks,
+  });
 
   // Show loading state
   if (transactionsLoading || stocksLoading) {
@@ -83,12 +83,10 @@ const TransactionsPage = () => {
   }
 
   return (
-    <div className="h-[calc(100vh-10rem)] flex flex-col">
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-        <SummaryCards
-          summaryData={summaryData} 
-        />
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+    <div className="flex flex-col h-auto max-sm:w-[370px] sm:h-[calc(100vh-10rem)] sm:w-full">
+      <div className="flex-1 overflow-y-auto gap-2 p-4 lg:space-y-6 custom-scrollbar">
+        <SummaryCards summaryData={summaryData} />
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
           <TransactionsByQuarter transactions={transactions} />
           <TradingActivityDistribution transactions={transactions} />
         </div>
@@ -97,13 +95,12 @@ const TransactionsPage = () => {
     </div>
   );
 };
-
 // Separate component for summary cards
 const SummaryCards = ({ summaryData }) => {
   const theme = useTheme();
-  
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <div className="text-sm font-medium">Total Trades</div>
@@ -155,7 +152,7 @@ const SummaryCards = ({ summaryData }) => {
 
 // Transaction filters component
 const TransactionFilters = ({ activeTab, filters, onTabChange, onFilterChange }) => (
-  <div className="flex justify-between items-center">
+  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
     <Tabs value={activeTab} onValueChange={onTabChange}>
       <TabsList>
         <TabsTrigger value="all">All Trades</TabsTrigger>
@@ -163,7 +160,8 @@ const TransactionFilters = ({ activeTab, filters, onTabChange, onFilterChange })
         <TabsTrigger value="sales">Sales</TabsTrigger>
       </TabsList>
     </Tabs>
-    <div className="flex items-center space-x-4">
+    {/* Highlighted: Adjusted filters layout */}
+    <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
       <TextField
         size="small"
         label="Filter by Ticker"
@@ -238,9 +236,9 @@ const TransactionsContent = ({ transactions }) => {
         </div>
       </CardHeader>
       <CardContent>
-        <TransactionsTable 
-          data={transactions} 
-          filters={filters} 
+        <TransactionsTable
+          data={transactions}
+          filters={filters}
           onDeleteTransaction={handleDeleteTransaction}
         />
       </CardContent>

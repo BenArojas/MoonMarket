@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery } from "@tanstack/react-query";
-import { Box, Divider, Typography } from "@mui/material";
+import { Box, Divider, Typography, useTheme, useMediaQuery } from "@mui/material";
 import "@/styles/profile.css";
 import TabsSkeleton from "@/Skeletons/TabsSkeleton";
 import ErrorPage from "./ErrorPage";
@@ -11,6 +11,8 @@ import { useOutletContext } from "react-router-dom";
 
 
 const Profile = () => {
+  const theme = useTheme();
+  const isMobileScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
   const friendRequestsCount = useOutletContext();
   const { data: userData, isLoading: userLoading, error: userError } = useQuery({
@@ -63,7 +65,8 @@ const Profile = () => {
         sx={{
           display: "flex",
           justifyContent: "center",
-          mt: 8
+          mt: isMobileScreen? 2: 8 , 
+          mb:  isMobileScreen? 2: 0
         }}
       >
         <MemoizedProfileTabs

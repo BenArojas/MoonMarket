@@ -1,45 +1,44 @@
 import { useState } from "react";
 import { DonutBarplotChart } from "@/components/space/DonutBarPlotChart";
-import { Box } from "@mui/material";
+import { Box, useMediaQuery, useTheme } from "@mui/material";
 
 
 const BUTTONS_HEIGHT = 30;
 
 
-const buttonStyle = {
-  border: "1px solid #fff",
-  borderRadius: "3px",
-  padding: "0px 8px",
-  margin: "10px 2px",
-  fontSize: 14,
-  float: "right",
-};
-
-export const DonutBarplotTransition = ({Holdingsdata}) => {
+export const DonutBarplotTransition = ({ Holdingsdata }) => {
   const [type, setType] = useState("pie");
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('xl'));
+  const isMobileScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
   return (
     <Box sx={{
-      display:'flex',
+      display: 'flex',
       flexDirection: 'column',
     }}>
-      <div style={{ height: BUTTONS_HEIGHT, }}>
-        <button style={buttonStyle} onClick={() => setType("pie")}>
+      <Box sx={{
+        height: 30,
+        display: 'flex',
+        gap: 3,
+        justifyContent: 'center'
+      }} >
+        <button className="px-3 py-1 text-white border border-white rounded hover:bg-white hover:text-black transition-colors" onClick={() => setType("pie")}>
           Pie chart
         </button>
-        <button style={buttonStyle} onClick={() => setType("bar")}>
+        <button className="px-3 py-1 text-white border border-white rounded hover:bg-white hover:text-black transition-colors" onClick={() => setType("bar")}>
           Barplot
         </button>
-      </div>
+      </Box>
       <Box sx={{
-        margin:'auto'
+        margin: 'auto'
       }}>
-      <DonutBarplotChart
-        width={800}
-        height={380 - BUTTONS_HEIGHT}
-        data={Holdingsdata}
-        type={type}
-      />
+        <DonutBarplotChart
+          width={isSmallScreen ? 400 : 800}
+          height={isSmallScreen ? 250 - BUTTONS_HEIGHT : 380 - BUTTONS_HEIGHT}
+          data={Holdingsdata}
+          type={type}
+        />
       </Box>
     </Box>
   );

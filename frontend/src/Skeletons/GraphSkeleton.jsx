@@ -7,13 +7,13 @@ import { useThemeHook } from "@/contexts/ThemeContext";
 // Register the cardio custom element
 cardio.register();
 
-function GraphSkeleton() {
-const { mode } = useThemeHook();
+function GraphSkeleton({ height }) {
+  const { mode } = useThemeHook();
   return (
     <Card
       sx={{
         width: "100%",
-        height: "100%",
+        height: height ? height : "100%",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
