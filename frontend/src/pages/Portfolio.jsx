@@ -41,6 +41,7 @@ function Portfolio({ userName }) {
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('xl'));
   const isMobileScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMediumScreen = useMediaQuery('(min-width:1550px) and (max-width:1800px)');
 
 
   const { data: userData, isPending: userDataLoading } = useQuery({
@@ -85,13 +86,13 @@ function Portfolio({ userName }) {
         {userDataLoading ? (
           <GraphSkeleton />
         ) : (
-          <PortfolioContent userData={userData} />
+          <PortfolioContent userData={userData} theme={theme} isMediumScreen={isMediumScreen}  isMobileScreen={isMobileScreen} isSmallScreen={isSmallScreen}/>
         )}
       </ErrorBoundary>
 
       <Box sx={{
-        width: isSmallScreen ? "100%" : 600,
-        ml: isSmallScreen ? 0 : "auto"
+        width: isSmallScreen ? "100%" : isMediumScreen ? 500 : 600,
+        ml: isSmallScreen ? 0 : "auto",
       }}>
         <Stack spacing={isSmallScreen ? 4 : 3} direction={isSmallScreen ? "column-reverse" : "column"} sx={{ height: "100%" }}>
           <ErrorBoundary FallbackComponent={ErrorFallback}>
@@ -124,16 +125,12 @@ function Portfolio({ userName }) {
   );
 }
 
-function PortfolioContent({ userData }) {
+function PortfolioContent({ userData,theme, isSmallScreen, isMobileScreen,isMediumScreen }) {
   const [selectedGraph, setSelectedGraph] = useState("Treemap");
   const { visualizationData, isDataProcessed, value, moneySpent } = useGraphData(
     userData,
     selectedGraph
   );
-
-  const theme = useTheme();
-  const isSmallScreen = useMediaQuery(theme.breakpoints.down('xl'));
-  const isMobileScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
   const queryClient = useQueryClient();
   const postSnapshotMutation = useMutation({
@@ -162,7 +159,7 @@ function PortfolioContent({ userData }) {
         display: "flex",
         flexDirection: "column",
         alignItems:isMobileScreen ? 'unset': "center",
-        width: isSmallScreen ? "100%" : "1000px",
+        width: isSmallScreen ? "100%" : isMediumScreen ? "800px" : "1000px",
         margin: "auto",
       }}
     >
@@ -176,8 +173,8 @@ function PortfolioContent({ userData }) {
         isDataProcessed={isDataProcessed}
         selectedGraph={selectedGraph}
         visualizationData={visualizationData}
-        width={isMobileScreen ? 300 : isSmallScreen ? 500 : 1000}
-        height={isMobileScreen ? 250 : isSmallScreen ? 500 : 660}
+        width={isMobileScreen ? 300 : isSmallScreen ? 500 : isMediumScreen ? 800 : 1000}
+        height={isMobileScreen ? 250 : isSmallScreen ? 500 : isMediumScreen ? 550 : 660}
       />
     </Box>
   );

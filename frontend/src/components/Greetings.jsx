@@ -22,7 +22,7 @@ function Greetings({ username, friendRequestsCount }) {
             width: '90%',
             marginRight: 'auto',
             marginLeft: 'auto',
-            paddingBottom: '10px'
+            paddingBottom: '5px'
         }}>
             <Box sx={{
                 display: isMobileScreen ? 'flex': 'grid',
