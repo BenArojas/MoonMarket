@@ -3,13 +3,13 @@ import { getUserName, addApiKey } from "@/api/user";
 import { getFriendRequestLength } from "@/api/friend";
 import Greetings from "@/components/Greetings";
 import Sidebar from "@/components/Sidebar";
-import { Box } from "@mui/material";
-import { Outlet, useLoaderData, useOutletContext } from "react-router-dom";
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Outlet, useOutletContext } from "react-router-dom";
+import { useMutation } from '@tanstack/react-query';
 import "@/styles/global.css";
 import { useQuery } from "@tanstack/react-query";
 import AddApiKey from "@/components/AddApiKey";
 import { useRevalidator } from "react-router-dom";
+import { Box, useMediaQuery, useTheme } from "@mui/material";
 
 
 export const PercentageChange = createContext(0);
@@ -18,7 +18,10 @@ function Layout() {
     const isEnabled = useOutletContext()
     const [showModal, setShowModal] = useState(!isEnabled);
     const [percentageChange, setPercentageChange] = useState(0);
-    
+
+    const theme = useTheme();
+    const isMobileScreen = useMediaQuery(theme.breakpoints.down('sm'));
+
     const { data: userName, isLoading: userNameLoading, error: userNameError } = useQuery({
         queryKey: ['userName'],
         queryFn: getUserName
@@ -29,7 +32,7 @@ function Layout() {
         queryFn: getFriendRequestLength
     });
 
-    const { mutate: addApiKeyMutation, isPending} = useMutation({
+    const { mutate: addApiKeyMutation, isPending } = useMutation({
         mutationFn: addApiKey,
         onSuccess: () => {
             revalidator.revalidate();
@@ -57,10 +60,9 @@ function Layout() {
                 <Box
                     sx={{
                         display: "flex",
-                        // overflow: "hidden"
                     }}
                 >
-                    <Sidebar></Sidebar>
+                    {isMobileScreen ? null : <Sidebar />}
                     <Box
                         className="layout"
                         sx={{
