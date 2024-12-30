@@ -31,7 +31,8 @@ function DataGraph({
   selectedGraph, 
   visualizationData,
   width,
-  height 
+  height,
+  isDailyView
 }) {
   const Skeleton = skeletons[selectedGraph] || TreeMapSkeleton;
   const GraphComponent = components[selectedGraph];
@@ -50,6 +51,7 @@ function DataGraph({
       data={visualizationData} 
       width={width}
       height={height}
+      isDailyView={isDailyView}
     />
     </div>
   ) : null;

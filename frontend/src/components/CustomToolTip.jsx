@@ -46,7 +46,7 @@ function CustomTooltip({
               <Typography variant="body2">
                 Value: ({quantity} shares)
               </Typography>
-              <Typography variant="subtitle2">{value.toLocaleString("en-US")}$</Typography>
+              <Typography variant="subtitle2">{value?.toLocaleString("en-US")}$</Typography>
             </li>
             <li className="tooltip-data-row">
               <Typography variant="body2">

@@ -83,10 +83,11 @@ const TransactionsPage = () => {
   }
 
   return (
-    <div className="flex flex-col h-auto max-sm:w-[370px] sm:h-[calc(100vh-10rem)] sm:w-full">
-      <div className="flex-1 overflow-y-auto gap-2 p-4 lg:space-y-6 custom-scrollbar">
+    <div className="flex flex-col mt-4 mb-4 mx-0 h-auto max-sm:w-[430px] sm:h-[calc(100vh-10rem)] sm:w-full">
+      <div className="flex-1 overflow-y-auto p-4 lg:space-y-6 custom-scrollbar ">
         <SummaryCards summaryData={summaryData} />
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-x-2 gap-y-4">
+          
           <TransactionsByQuarter transactions={transactions} />
           <TradingActivityDistribution transactions={transactions} />
         </div>

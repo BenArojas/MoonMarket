@@ -42,6 +42,7 @@ function StockItem() {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const { stock, intradayData } = useLoaderData();
+  console.log(stock)
   const [searchParams] = useSearchParams();
   const [chartData, setChartData] = useState(null);
   const navigate = useNavigate();

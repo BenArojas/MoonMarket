@@ -4,28 +4,77 @@ import * as d3 from "d3";
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import CustomTooltip from "@/components/CustomToolTip";
+import { useStocksDailyData } from '@/hooks/useStocksDailyData';
+import GraphSkeleton from "@/Skeletons/GraphSkeleton";
+import TreeMapSkeleton from "@/Skeletons/TreeMapSkeleton";
 
-export const Treemap = ({ width, height, data }) => {
+export const Treemap = ({ width, height, data, isDailyView }) => {
+
+  const { data: dailyData, isLoading: isDailyDataLoading } = useStocksDailyData(data);
+
+  const processedData = useMemo(() => {
+    // If we're not in daily view or don't have daily data, return original data unchanged
+    if (!isDailyView || !dailyData) return data;
+
+    // Create a complete copy of the original data structure
+    const newData = JSON.parse(JSON.stringify(data));
+
+    // First pass: Update the priceChangePercentage values
+    newData.children.forEach(group => {
+      group.children.forEach(stock => {
+        // Replace the original priceChangePercentage with daily percentage
+        const dailyPercentage = dailyData[stock.ticker];
+        stock.priceChangePercentage = dailyPercentage;
+      });
+    });
+
+    // Get all stocks from both positive and negative groups
+    const allStocks = newData.children.flatMap(group => group.children);
+
+    // Split stocks into new positive and negative groups based on daily performance
+    const positiveStocks = allStocks.filter(stock => stock.priceChangePercentage > 0);
+    const negativeStocks = allStocks.filter(stock => stock.priceChangePercentage <= 0);
+
+    // Reconstruct the children array with the same structure
+    newData.children = [
+      { name: "Positive", value: 0, children: positiveStocks },
+      { name: "Negative", value: 0, children: negativeStocks }
+    ];
+
+    return newData;
+  }, [data, dailyData, isDailyView]);
+
 
   const theme = useTheme();
   const isMobileScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
   const hierarchy = useMemo(() => {
-    return d3.hierarchy(data)
+    return d3.hierarchy(processedData)
       .sum(d => d.value)
       .sort((a, b) => b.value - a.value);
-  }, [data]);
+  }, [processedData]);
 
   // Create a color scale based on priceChangePercentage
   const getColor = (priceChangePercentage) => {
-    if (priceChangePercentage > 40) return theme.palette.primary.light;
-    if (priceChangePercentage > 15) return theme.palette.primary.main;
-    if (priceChangePercentage > 0) return theme.palette.primary.dark;
-    if (priceChangePercentage > -15) return theme.palette.error.light;
-    if (priceChangePercentage > -40) return theme.palette.error.main;
-    return theme.palette.error.dark;
+    if (isDailyView) {
+      // Daily view typically has smaller percentage changes
+      if (priceChangePercentage > 5) return theme.palette.primary.light;
+      if (priceChangePercentage > 2) return theme.palette.primary.main;
+      if (priceChangePercentage > 0) return theme.palette.primary.dark;
+      if (priceChangePercentage > -2) return theme.palette.error.light;
+      if (priceChangePercentage > -5) return theme.palette.error.main;
+      return theme.palette.error.dark;
+    } else {
+      // Original color scale for total gain/loss
+      if (priceChangePercentage > 40) return theme.palette.primary.light;
+      if (priceChangePercentage > 15) return theme.palette.primary.main;
+      if (priceChangePercentage > 0) return theme.palette.primary.dark;
+      if (priceChangePercentage > -15) return theme.palette.error.light;
+      if (priceChangePercentage > -40) return theme.palette.error.main;
+      return theme.palette.error.dark;
+    }
   };
-  
+
 
   const root = useMemo(() => {
     const treeGenerator = d3.treemap().size([width, height]).padding(4);
@@ -114,9 +163,18 @@ export const Treemap = ({ width, height, data }) => {
 
   return (
     <div>
-      <svg width={width} height={height} className="container">
-        {allShapes}
-      </svg>
+      {isDailyDataLoading ? <div style={{
+          width: width,
+          height: height,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+        <TreeMapSkeleton />
+      </div> :
+        <svg width={width} height={height} className="container">
+          {allShapes}
+        </svg>}
     </div>
   );
 };

@@ -8,7 +8,7 @@ import {
 } from "@/utils/dataProcessing.js";
 import useHoldingsData from "@/hooks/useHoldingsData";
 
-function useGraphData(userData, selectedGraph ) {
+function useGraphData(userData, selectedGraph, isDailyView ) {
   const stockList = userData.holdings;
   const stocksInfo = useHoldingsData(stockList, userData);
 
@@ -24,7 +24,7 @@ function useGraphData(userData, selectedGraph ) {
 
     switch (selectedGraph) {
       case "Treemap":
-        return processTreemapData(stockList, stocksInfo);
+        return processTreemapData(stockList, stocksInfo, isDailyView);
       case "DonutChart":
         return processDonutData(stockList, stocksInfo);
       case "Circular":
@@ -36,7 +36,7 @@ function useGraphData(userData, selectedGraph ) {
       default:
         return processTreemapData(stockList, stocksInfo);
     }
-  }, [selectedGraph, stockList, stocksInfo]);
+  }, [selectedGraph, stockList, stocksInfo, isDailyView]);
 
   return {
     stockTickers: portfolioStats.tickers,
