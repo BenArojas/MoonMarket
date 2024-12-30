@@ -6,7 +6,7 @@ import NewUserNoHoldings from "@/components/NewUserNoHoldings";
 import useGraphData from "@/hooks/useGraphData";
 import { PercentageChange } from "@/pages/Layout";
 import { lastUpdateDate } from "@/utils/dataProcessing";
-import { Box, Stack, useMediaQuery, useTheme } from "@mui/material";
+import { Box, Stack, useMediaQuery, useTheme, Button } from "@mui/material";
 import React, { useContext, useEffect, useState, useRef } from "react";
 import DataGraph from "@/components/DataGraph";
 import SnapshotChart from "@/components/SnapShotChart";
@@ -71,11 +71,11 @@ function Portfolio({ userName }) {
         display: "flex",
         flexDirection: isSmallScreen ? "column" : "row",
         gridTemplateColumns: isSmallScreen ? "1fr" : "1000px auto",
-        paddingY: isMobileScreen ? 2 : isSmallScreen ? 2 : 3, 
-        paddingX: isMobileScreen ? 2 : isSmallScreen ? 2 : 5, 
-        marginX: isMobileScreen ? 1 : isSmallScreen ? 1 : 5, 
-        overflowY: "auto", 
-        height: isSmallScreen & !isMobileScreen? '83vh':'100%', 
+        paddingY: isMobileScreen ? 2 : isSmallScreen ? 2 : 3,
+        paddingX: isMobileScreen ? 2 : isSmallScreen ? 2 : 5,
+        marginX: isMobileScreen ? 1 : isSmallScreen ? 1 : 5,
+        overflowY: "auto",
+        height: isSmallScreen & !isMobileScreen ? '83vh' : '100%',
         gap: isMobileScreen ? 2 : isSmallScreen ? 2 : 4,
         alignItems: isMobileScreen ? "center" : "flex-start",
       }}
@@ -85,7 +85,7 @@ function Portfolio({ userName }) {
         {userDataLoading ? (
           <GraphSkeleton />
         ) : (
-          <PortfolioContent userData={userData} theme={theme} isMediumScreen={isMediumScreen}  isMobileScreen={isMobileScreen} isSmallScreen={isSmallScreen}/>
+          <PortfolioContent userData={userData} theme={theme} isMediumScreen={isMediumScreen} isMobileScreen={isMobileScreen} isSmallScreen={isSmallScreen} />
         )}
       </ErrorBoundary>
 
@@ -96,7 +96,7 @@ function Portfolio({ userName }) {
         <Stack spacing={isSmallScreen ? 4 : 3} direction={isSmallScreen ? "column-reverse" : "column"} sx={{ height: "100%" }}>
           <ErrorBoundary FallbackComponent={ErrorFallback}>
             {dailyTimeFrameLoading || userDataLoading ? (
-              <GraphSkeleton height={380}/>
+              <GraphSkeleton height={380} />
             ) : (
               <StackedCardsWrapper
                 dailyTimeFrame={dailyTimeFrame}
@@ -124,11 +124,13 @@ function Portfolio({ userName }) {
   );
 }
 
-function PortfolioContent({ userData,theme, isSmallScreen, isMobileScreen,isMediumScreen }) {
+function PortfolioContent({ userData, theme, isSmallScreen, isMobileScreen, isMediumScreen }) {
   const [selectedGraph, setSelectedGraph] = useState("Treemap");
+  const [isDailyView, setIsDailyView] = useState(false);  
   const { visualizationData, isDataProcessed, value, moneySpent } = useGraphData(
     userData,
-    selectedGraph
+    selectedGraph,
+    isDailyView
   );
 
   const queryClient = useQueryClient();
@@ -153,11 +155,12 @@ function PortfolioContent({ userData,theme, isSmallScreen, isMobileScreen,isMedi
   }
 
   return (
+
     <Box
       sx={{
         display: "flex",
         flexDirection: "column",
-        alignItems:isMobileScreen ? 'unset': "center",
+        alignItems: isMobileScreen ? 'unset' : "center",
         width: isSmallScreen ? "100%" : isMediumScreen ? "800px" : "1000px",
         margin: "auto",
       }}
@@ -166,14 +169,16 @@ function PortfolioContent({ userData,theme, isSmallScreen, isMobileScreen,isMedi
         selectedGraph={selectedGraph}
         setSelectedGraph={setSelectedGraph}
         isMobileScreen={isMobileScreen}
+        isDailyView={isDailyView}
+        setIsDailyView={setIsDailyView}
       />
-      {/* {postSnapshotMutation.error?.message} */}
       <DataGraph
         isDataProcessed={isDataProcessed}
         selectedGraph={selectedGraph}
         visualizationData={visualizationData}
         width={isMobileScreen ? 300 : isSmallScreen ? 500 : isMediumScreen ? 800 : 1000}
         height={isMobileScreen ? 250 : isSmallScreen ? 500 : isMediumScreen ? 550 : 660}
+        isDailyView= {isDailyView}
       />
     </Box>
   );

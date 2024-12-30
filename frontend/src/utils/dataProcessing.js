@@ -1,4 +1,5 @@
 import { teal, red } from '@mui/material/colors';
+import { getStockData } from '@/api/stock'
 
 export function getPortfolioStats(stocksList, stocksInfo) {
   let tickers = [];
@@ -99,6 +100,7 @@ export function processTreemapData(stocksList, stocksInfo) {
 
   return newStocksTree;
 }
+
 export function processDonutData(stocksList, stocksInfo) {
   const stocksInfoMap = stocksInfo.reduce((acc, stock) => {
     acc[stock.ticker] = stock;
@@ -427,12 +429,12 @@ export const calculateTransactionSummary = (transactions, currentStockPrices) =>
       if (position.totalQuantity === 0 || transaction.text.includes("Closed position:")) {
         position.isFullyClosed = true;
         closedTrades++;
-        
+
         // Check if the trade was profitable
         if (position.realizedProfit > 0) {
           profitableTrades++;
         }
-        
+
         totalProfit += position.realizedProfit;
       }
     }
@@ -460,19 +462,19 @@ export const calculateTransactionSummary = (transactions, currentStockPrices) =>
   };
 };
 
- // Format currency
- export const formatCurrency = (amount) => {
+// Format currency
+export const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD'
   }).format(amount);
 };
 
-  // Format date
-  export const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
+// Format date
+export const formatDate = (dateString) => {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+};

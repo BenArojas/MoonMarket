@@ -80,7 +80,7 @@ function SearchBar() {
             }}
             value={tickerInput}
             onChange={handleChange}
-            placeholder="Enter ticker"
+            placeholder="Ticker"
           />
           <input type="submit" hidden />
         </form >
