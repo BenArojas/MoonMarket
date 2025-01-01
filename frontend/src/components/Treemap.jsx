@@ -10,7 +10,7 @@ import TreeMapSkeleton from "@/Skeletons/TreeMapSkeleton";
 
 export const Treemap = ({ width, height, data, isDailyView }) => {
 
-  const { data: dailyData, isLoading: isDailyDataLoading } = useStocksDailyData(data);
+  const { data: dailyData, isLoading: isDailyDataLoading } = useStocksDailyData(data, isDailyView);
 
   const processedData = useMemo(() => {
     // If we're not in daily view or don't have daily data, return original data unchanged
