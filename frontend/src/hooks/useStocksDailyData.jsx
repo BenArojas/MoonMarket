@@ -1,28 +1,50 @@
-import {  useQuery } from "@tanstack/react-query";
+import { useQueries, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { getStockData } from "@/api/stock";
-import React, { useMemo } from "react";
 
+export function useStocksDailyData(stocksData, isDailyView) {
+  const queryClient = useQueryClient();
+  const tickers = stocksData?.children?.flatMap(group => 
+    group.children.map(stock => stock.ticker)
+  ) || [];
 
-export function useStocksDailyData(stocksData) {
-    const tickers = useMemo(() => {
-      return stocksData?.children?.flatMap(group => 
-        group.children.map(stock => stock.ticker)
-      ) || [];
-    }, [stocksData]);
-  
-    return useQuery({
-      queryKey: ['dailyStockData', tickers],
-      queryFn: async () => {
-        const dailyData = {};
-        await Promise.all(
-          tickers.map(async (ticker) => {
-            const data = await getStockData(ticker);
-            dailyData[ticker] = data.changesPercentage;
-          })
-        );
-        return dailyData;
-      },
-      staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
-      enabled: tickers.length > 0
-    });
+  const queries = useQueries({
+    queries: tickers.map((ticker) => ({
+      queryKey: ['dailyStockData', ticker],
+      queryFn: () => getStockData(ticker),
+      staleTime: 5 * 60 * 1000,
+      enabled: isDailyView && !!ticker,
+      retry: 3,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false
+    })),
+  });
+
+  useEffect(() => {
+    if (!isDailyView) {
+      tickers.forEach(ticker => {
+        queryClient.cancelQueries(['dailyStockData', ticker]);
+      });
+    }
+  }, [isDailyView, queryClient, tickers]);
+
+  if (!isDailyView) {
+    return { data: null, isLoading: false, isError: false };
   }
+
+  const isLoading = queries.some(query => query.isLoading);
+  const isError = queries.some(query => query.isError);
+  const data = queries.reduce((acc, query, index) => {
+    if (query.data) {
+      acc[tickers[index]] = query.data.changesPercentage;
+    }
+    return acc;
+  }, {});
+
+  return {
+    data: queries.every(query => query.data) ? data : null,
+    isLoading,
+    isError
+  };
+}
