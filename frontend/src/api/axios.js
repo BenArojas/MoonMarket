@@ -2,12 +2,8 @@ import axios from 'axios'
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-const baseUrl = import.meta.env.VITE_ENV_MODE === 'development'
-  ? import.meta.env.VITE_DEVELOPMENT_BACKEND_BASE_URL
-  : import.meta.env.VITE_PROD_BACKEND_BASE_URL;
-
 const apiConfig = {
-  baseURL: baseUrl,
+  baseURL: import.meta.env.VITE_BASE_URL,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
