@@ -56,7 +56,7 @@ const Login = () => {
   });
 
   const onSubmit = (data) => {
-    loginMutation.mutate({ email: data.email, password: data.password });
+    loginMutation.mutate({ email: data.email.toLowerCase(), password: data.password });
   };
 
   return (

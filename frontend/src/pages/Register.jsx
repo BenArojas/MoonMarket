@@ -37,7 +37,7 @@ function Register() {
   const onSubmit = async (data) => {
     if (data.password === data.confirmPassword) {
       const user = {
-        email: data.email,
+        email: data.email.toLowerCase(),
         username: data.username,
         password: data.password,
         deposits: [
