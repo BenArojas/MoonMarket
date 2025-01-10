@@ -1,0 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Radio+Canada+Big:ital,wght@0,400..700;1,400..700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+@layer components {
+  .underline-effect {
+    @apply relative heading-text p-0;
+  }
+
+  .underline-effect::after {
+    @apply content-[''] absolute w-full h-2 left-0 bottom-[-20px] bg-customTurquoise-400 scale-x-50 hover:scale-x-90 transition-transform duration-100;
+  }
+
+  .heading-text {
+    @apply bg-clip-text pt-4 pb-8 px-8 text-2xl font-extrabold;
+  }
+}

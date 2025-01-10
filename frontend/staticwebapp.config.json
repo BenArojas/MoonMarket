@@ -1,0 +1,21 @@
+{
+    "navigationFallback": {
+      "rewrite": "/index.html",
+      "exclude": [
+        "/images/*.{png,jpg,gif}",
+        "/css/*",
+        "/js/*",
+        "/assets/*",
+        "/api/*"
+      ]
+    },
+    "mimeTypes": {
+      ".json": "text/json"
+    },
+    "globalHeaders": {
+      "Access-Control-Allow-Origin": "https://moonmaket-backend.azurewebsites.net",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Allow-Credentials": "true"
+    }
+  }

@@ -1,0 +1,235 @@
+data
+: 
+current_balance
+: 
+435.3500000000017
+deposits
+: 
+Array(1)
+0
+: 
+amount
+: 
+12000
+date
+: 
+"2024-06-07T20:17:07.670000"
+[[Prototype]]
+: 
+Object
+length
+: 
+1
+[[Prototype]]
+: 
+Array(0)
+disabled
+: 
+false
+email
+: 
+"benarojas11@gmail.com"
+holdings
+: 
+Array(12)
+0
+: 
+avg_bought_price
+: 
+17.44
+position_started
+: 
+"2024-06-07T23:18:40.622000"
+quantity
+: 
+54
+ticker
+: 
+"RIOT"
+[[Prototype]]
+: 
+Object
+1
+: 
+{ticker: 'MARA', avg_bought_price: 23.4, quantity: 73, position_started: '2024-06-07T23:19:06.054000'}
+2
+: 
+{ticker: 'BTBT', avg_bought_price: 4.51, quantity: 448, position_started: '2024-06-07T23:19:26.788000'}
+3
+: 
+{ticker: 'CLSK', avg_bought_price: 14.08, quantity: 186, position_started: '2024-06-07T23:19:51.090000'}
+4
+: 
+{ticker: 'COIN', avg_bought_price: 176.9, quantity: 4, position_started: '2024-06-07T23:20:07.977000'}
+5
+: 
+{ticker: 'IREN', avg_bought_price: 6.93, quantity: 113, position_started: '2024-06-07T23:20:31.090000'}
+6
+: 
+{ticker: 'WULF', avg_bought_price: 2.35, quantity: 229, position_started: '2024-06-07T23:20:47.391000'}
+7
+: 
+{ticker: 'CIFR', avg_bought_price: 3.84, quantity: 250, position_started: '2024-06-07T23:21:07.441000'}
+8
+: 
+{ticker: 'CORZ', avg_bought_price: 4.8, quantity: 21, position_started: '2024-06-07T23:21:46.926000'}
+9
+: 
+{ticker: 'HIVE', avg_bought_price: 5.14, quantity: 92, position_started: '2024-06-07T23:22:18.210000'}
+10
+: 
+{ticker: 'BITF', avg_bought_price: 2.21, quantity: 224, position_started: '2024-06-07T23:22:33.943000'}
+11
+: 
+{ticker: 'IBIT', avg_bought_price: 31.11, quantity: 7, position_started: '2024-06-07T23:22:54.162000'}
+length
+: 
+12
+[[Prototype]]
+: 
+Array(0)
+last_refresh
+: 
+"2024-06-12T13:38:04.785000"
+password
+: 
+"$2b$12$w9Ag4TNajN4t4x2hb5mJeOruqO9scCLo8pEHgax0ZfFja3JySRVwe"
+transactions
+: 
+Array(12)
+0
+: 
+"66636b20d874a6bc0a74f7c4"
+1
+: 
+"66636b3ad874a6bc0a74f7c5"
+2
+: 
+"66636b4ed874a6bc0a74f7c6"
+3
+: 
+"66636b67d874a6bc0a74f7c8"
+4
+: 
+"66636b77d874a6bc0a74f7c9"
+5
+: 
+"66636b8fd874a6bc0a74f7cb"
+6
+: 
+"66636b9fd874a6bc0a74f7cd"
+7
+: 
+"66636bb3d874a6bc0a74f7cf"
+8
+: 
+"66636bdad874a6bc0a74f7d1"
+9
+: 
+"66636bfad874a6bc0a74f7d3"
+10
+: 
+"66636c09d874a6bc0a74f7d4"
+11
+: 
+"66636c1ed874a6bc0a74f7d6"
+length
+: 
+12
+[[Prototype]]
+: 
+Array(0)
+username
+: 
+"Ben"
+
+
+
+tabelchart sample data:
+
+const sampleData = [
+    {
+        "name": "Riot Blockchain, Inc.",
+        "priceChange": -7.020000000000001,
+        "priceChangePercentage": -40,
+        "ticker": "RIOT",
+        "value": 562.68
+    },
+    {
+        "name": "Marathon Digital Holdings, Inc.",
+        "priceChange": -2.7399999999999984,
+        "priceChangePercentage": -12,
+        "ticker": "MARA",
+        "value": 1508.18
+    },
+    {
+        "name": "Bit Digital, Inc.",
+        "priceChange": -1.65,
+        "priceChangePercentage": -37,
+        "ticker": "BTBT",
+        "value": 1281.28
+    },
+    {
+        "name": "CleanSpark, Inc.",
+        "priceChange": 5.090000000000002,
+        "priceChangePercentage": 36,
+        "ticker": "CLSK",
+        "value": 3565.6200000000003
+    },
+    {
+        "name": "Coinbase Global, Inc.",
+        "priceChange": 58.129999999999995,
+        "priceChangePercentage": 33,
+        "ticker": "COIN",
+        "value": 940.12
+    },
+    {
+        "name": "Iris Energy Limited",
+        "priceChange": 6.970000000000001,
+        "priceChangePercentage": 101,
+        "ticker": "IREN",
+        "value": 1570.7
+    },
+    {
+        "name": "TeraWulf Inc.",
+        "priceChange": 2.28,
+        "priceChangePercentage": 97,
+        "ticker": "WULF",
+        "value": 1060.27
+    },
+    {
+        "name": "Cipher Mining Inc.",
+        "priceChange": 1.4000000000000004,
+        "priceChangePercentage": 36,
+        "ticker": "CIFR",
+        "value": 1310
+    },
+    {
+        "name": "Core Scientific, Inc.",
+        "priceChange": 4.29,
+        "priceChangePercentage": 89,
+        "ticker": "CORZ",
+        "value": 190.89
+    },
+    {
+        "name": "HIVE Blockchain Technologies Ltd.",
+        "priceChange": -1.7799999999999998,
+        "priceChangePercentage": -35,
+        "ticker": "HIVE",
+        "value": 309.12
+    },
+    {
+        "name": "Bitfarms Ltd.",
+        "priceChange": 0.9100000000000001,
+        "priceChangePercentage": 41,
+        "ticker": "BITF",
+        "value": 698.88
+    },
+    {
+        "name": "iShares Bitcoin Trust",
+        "priceChange": 5.93,
+        "priceChangePercentage": 19,
+        "ticker": "IBIT",
+        "value": 259.28
+    }
+]

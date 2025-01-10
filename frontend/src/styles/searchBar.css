@@ -1,0 +1,23 @@
+/* search-ticker-row */
+.search-bar{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+  }
+  .search-container{
+    position: relative;
+  }
+  .search-icon {
+    position: absolute;
+    top: 50%;
+    left: 10px;
+    transform: translateY(-50%);
+  }
+  .search-input{
+    padding-left: 30px;
+    border-radius: 30px;
+    border: 1px solid #ccc;
+    box-shadow: 2px 2px 2px #888888;
+    height: 40px;
+  }

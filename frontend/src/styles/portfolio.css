@@ -1,0 +1,26 @@
+/* .portfolio {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 70vh;
+  margin: auto;
+} */
+
+.stock-ticker {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.stock-price {
+  font-size: 14px;
+  color: black;
+}
+
+.positive {
+  background-color: #5bb974;
+}
+
+.negative {
+  background-color: #f28b82;
+}

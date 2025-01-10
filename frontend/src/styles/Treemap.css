@@ -1,0 +1,39 @@
+/* Treemap.css */
+.container .rectangle {
+  transition-duration: 0.3s;
+  transition-property: filter, opacity;
+  opacity: 1;
+  filter: saturate(100%);
+}
+
+.container:hover .rectangle {
+  opacity: 0.4;
+  filter: saturate(50%);
+}
+
+.container rect {
+  outline: 1px solid var(--stock-color);
+  border-radius: 4px;
+  outline-offset: -2px;
+}
+
+.container .rectangle:hover {
+  opacity: 1;
+  filter: saturate(100%);
+}
+
+.treemap-container {
+  position: relative;
+}
+
+.tooltip {
+  position: absolute;
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 8px;
+  pointer-events: none;
+  font-size: 12px;
+  z-index: 100;
+  visibility: hidden;
+}
