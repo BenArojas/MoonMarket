@@ -17,8 +17,9 @@ BASE_URL = 'https://financialmodelingprep.com/api/v3/'
 
 @router.get("/historical_data/{symbol}", response_description="Stock details from API")
 async def get_historical_data(symbol: str, api_key: ApiKey = Depends(get_api_key)) -> Dict[str, Any]:
+    one_year_ago = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
     endpoint = f'historical-price-full/{symbol}'
-    url = f"{BASE_URL}{endpoint}?apikey={api_key.key}"
+    url = f"{BASE_URL}{endpoint}?from={one_year_ago}&apikey={api_key.key}"
     try:
         response = requests.get(url)
         response.raise_for_status()  # Raises an HTTPError for bad responses
