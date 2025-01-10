@@ -6,7 +6,6 @@ import { formatCurrency, formatDate } from '@/utils/dataProcessing'
 import AccountInfoBox from '../AccountInfoBox';
 
 const AccountTabContent = ({ currentBalance, profit, deposits, yearly_expenses }) => {
-  console.log(yearly_expenses)
   let theme = useTheme();
   theme = responsiveFontSizes(theme);
 

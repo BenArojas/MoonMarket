@@ -91,6 +91,7 @@ const FriendsTabContent = ({ friendList, handleSendFriendRequest }) => {
             },
           }}
         >
+          <SearchFriends handleSendFriendRequest={handleSendFriendRequest}/>
           <Typography variant="h6" sx={{ fontWeight: "bold" }}>
             Friend List:
           </Typography>

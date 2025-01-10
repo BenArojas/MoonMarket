@@ -24,7 +24,6 @@ const Profile = () => {
     queryKey: ['friendList'],
     queryFn: getFriendList
   });
-  console.log(userData)
   const { data: friendRequestsData, isLoading: friendRequestsLoading, error: friendRequestsError } = useQuery({
     queryKey: ['friendRequests'],
     queryFn: getFriendRequestUsers
