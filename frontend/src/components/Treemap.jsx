@@ -9,7 +9,6 @@ import GraphSkeleton from "@/Skeletons/GraphSkeleton";
 import TreeMapSkeleton from "@/Skeletons/TreeMapSkeleton";
 
 export const Treemap = ({ width, height, data, isDailyView, }) => {
-  const check = true
   const { data: dailyData, isLoading: isDailyDataLoading } = useStocksDailyData(data, isDailyView);
 
   const processedData = useMemo(() => {
@@ -163,7 +162,7 @@ export const Treemap = ({ width, height, data, isDailyView, }) => {
 
   return (
     <div>
-      {isDailyDataLoading || check ? <div style={{
+      {isDailyDataLoading ? <div style={{
           width: width,
           display: 'flex',
           justifyContent: 'center',
