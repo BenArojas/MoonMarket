@@ -8,8 +8,8 @@ import { useStocksDailyData } from '@/hooks/useStocksDailyData';
 import GraphSkeleton from "@/Skeletons/GraphSkeleton";
 import TreeMapSkeleton from "@/Skeletons/TreeMapSkeleton";
 
-export const Treemap = ({ width, height, data, isDailyView }) => {
-
+export const Treemap = ({ width, height, data, isDailyView, }) => {
+  const check = true
   const { data: dailyData, isLoading: isDailyDataLoading } = useStocksDailyData(data, isDailyView);
 
   const processedData = useMemo(() => {
@@ -163,9 +163,8 @@ export const Treemap = ({ width, height, data, isDailyView }) => {
 
   return (
     <div>
-      {isDailyDataLoading ? <div style={{
+      {isDailyDataLoading || check ? <div style={{
           width: width,
-          height: height,
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',

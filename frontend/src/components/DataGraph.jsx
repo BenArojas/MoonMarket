@@ -26,13 +26,14 @@ const components = {
   Sankey: Sankey
 };
 
-function DataGraph({ 
-  isDataProcessed, 
-  selectedGraph, 
+function DataGraph({
+  isDataProcessed,
+  selectedGraph,
   visualizationData,
   width,
   height,
-  isDailyView
+  isDailyView,
+
 }) {
   const Skeleton = skeletons[selectedGraph] || TreeMapSkeleton;
   const GraphComponent = components[selectedGraph];
@@ -47,12 +48,13 @@ function DataGraph({
 
   return GraphComponent ? (
     <div style={{ display: 'flex', justifyContent: 'center' }}>
-    <GraphComponent  
-      data={visualizationData} 
-      width={width}
-      height={height}
-      isDailyView={isDailyView}
-    />
+      <GraphComponent
+        data={visualizationData}
+        width={width}
+        height={height}
+        isDailyView={isDailyView}
+
+      />
     </div>
   ) : null;
 }
