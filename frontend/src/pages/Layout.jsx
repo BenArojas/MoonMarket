@@ -10,6 +10,8 @@ import { useQuery } from "@tanstack/react-query";
 import AddApiKey from "@/components/AddApiKey";
 import { useRevalidator } from "react-router-dom";
 import { Box, useMediaQuery, useTheme } from "@mui/material";
+import { getHistoricalData } from "@/api/stock";
+
 
 
 export const PercentageChange = createContext(0);
@@ -37,18 +39,34 @@ function Layout() {
     const { mutate: addApiKeyMutation, isPending } = useMutation({
         mutationFn: addApiKey,
         onSuccess: () => {
-        queryClient.invalidateQueries({queryKey:["authStatus"]})
-          setShowModal(false);
-          toast.success("Setup completed successfully!");
+            queryClient.invalidateQueries({ queryKey: ["authStatus"] })
+            setShowModal(false);
+            toast.success("Setup completed successfully!");
         },
         onError: () => {
-          toast.error("Setup failed. Please try again.");
+            toast.error("Setup failed. Please try again.");
         },
-      });
+    });
 
-      const handleApiKeySubmit = (data) => {
+    const handleApiKeySubmit = (data) => {
         addApiKeyMutation(data);
-      };
+    };
+
+    useQuery({
+        queryKey: ["stockData", "BTCUSD"],
+        queryFn: () => getHistoricalData("BTCUSD"),
+        notifyOnChangeProps: ["data"]
+    })
+    // useEffect(() => {
+    //     // Prefetch BTCUSD data
+    //     const prefetchData = async () => {
+    //         await queryClient.prefetchQuery({
+    //             queryKey: ["stockData", "BTCUSD"],
+    //             queryFn: () => getHistoricalData("BTCUSD")
+    //         });
+    //     }
+    //     prefetchData()
+    // }, []);
 
     return (
         <>

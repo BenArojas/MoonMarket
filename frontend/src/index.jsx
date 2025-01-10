@@ -41,6 +41,6 @@ root.render(
         />
       </AuthProvider>
     </ThemeProvider>
-    {/* <ReactQueryDevtools /> */}
+    <ReactQueryDevtools />
   </QueryClientProvider>
 );

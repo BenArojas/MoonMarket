@@ -50,7 +50,6 @@ function Portfolio() {
     queryFn: () => getHistoricalData(selectedTicker),
     staleTime: 120 * 1000,
   });
-  console.log(stockDataLoading)
 
   const { data: dailyTimeFrame, isPending: dailyTimeFrameLoading } = useQuery({
     queryKey: ["dailyTimeFrame"],
