@@ -30,18 +30,15 @@ function ErrorFallback({ error }) {
   );
 }
 
-function Portfolio({ userName }) {
+function Portfolio() {
   const [searchParams] = useSearchParams();
-  const { state } = useLocation();
   const selectedTicker = searchParams.get("selected") || "BTCUSD"; // Default to 'BTCUSD' if not specified
   const queryClient = useQueryClient();
-  // const updateStockPricesMutation = useStockPriceUpdate();
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('xl'));
   const isMobileScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const isMediumScreen = useMediaQuery('(min-width:1550px) and (max-width:1800px)');
 
-  const initialFetchRef = useRef(false);
 
   const { data: userData, isPending: userDataLoading } = useQuery({
     queryKey: ["userData"],
@@ -51,7 +48,6 @@ function Portfolio({ userName }) {
   const { data: stockData, isPending: stockDataLoading } = useQuery({
     queryKey: ["stockData", selectedTicker],
     queryFn: () => getHistoricalData(selectedTicker),
-    enabled: !!selectedTicker,
     staleTime: 120 * 1000,
   });
 
