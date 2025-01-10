@@ -13,6 +13,7 @@ import Test from "@/pages/Test";
 import "./styles/global.css";
 import Layout from "@/pages/Layout";
 import Global from "@/pages/Global";
+import NotFoundPage from "@/pages/NotFoundPage";
 
 const Routes = () => {
   // Combine and conditionally include routes based on authentication status
@@ -84,7 +85,7 @@ const Routes = () => {
     },
     {
       path: "*",
-      element: <div style={{ color: "white" }}>404 - Not Found</div>,
+      element: <NotFoundPage/>,
     },
   ]);
 
