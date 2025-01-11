@@ -55,7 +55,7 @@ function Layout() {
     useQuery({
         queryKey: ["stockData", "BTCUSD"],
         queryFn: () => getHistoricalData("BTCUSD"),
-        notifyOnChangeProps: ["data"]
+        notifyOnChangeProps: []
     })
     // useEffect(() => {
     //     // Prefetch BTCUSD data

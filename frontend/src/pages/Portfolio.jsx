@@ -45,11 +45,20 @@ function Portfolio() {
     queryFn: getUserData,
   });
 
-  const { data: stockData, isPending: stockDataLoading } = useQuery({
+  const { data: stockData, isPending: stockDataLoading, status, fetchStatus } = useQuery({
     queryKey: ["stockData", selectedTicker],
     queryFn: () => getHistoricalData(selectedTicker),
     staleTime: 120 * 1000,
-  });
+    onError: (error) => console.error('Query error:', error),
+    enabled: !!selectedTicker,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+});
+
+console.log("stockData :", stockData)
+console.log("status :", status)
+
+
 
   const { data: dailyTimeFrame, isPending: dailyTimeFrameLoading } = useQuery({
     queryKey: ["dailyTimeFrame"],
@@ -112,7 +121,7 @@ function Portfolio() {
           </ErrorBoundary>
 
           <ErrorBoundary FallbackComponent={ErrorFallback}>
-            {stockDataLoading ? (
+          {(stockDataLoading && fetchStatus !== 'idle') ? (
               <Box sx={{
                 height: 350
               }}><GraphSkeleton /></Box>
