@@ -52,11 +52,11 @@ function Layout() {
         addApiKeyMutation(data);
     };
 
-    useQuery({
-        queryKey: ["stockData", "BTCUSD"],
-        queryFn: () => getHistoricalData("BTCUSD"),
-        notifyOnChangeProps: []
-    })
+    // useQuery({
+    //     queryKey: ["stockData"],
+    //     queryFn: () => getHistoricalData("BTCUSD"),
+    //     notifyOnChangeProps: []
+    // })
     // useEffect(() => {
     //     // Prefetch BTCUSD data
     //     const prefetchData = async () => {

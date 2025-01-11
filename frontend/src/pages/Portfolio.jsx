@@ -6,7 +6,7 @@ import NewUserNoHoldings from "@/components/NewUserNoHoldings";
 import useGraphData from "@/hooks/useGraphData";
 import { PercentageChange } from "@/pages/Layout";
 import { lastUpdateDate } from "@/utils/dataProcessing";
-import { Box, Stack, useMediaQuery, useTheme, Button } from "@mui/material";
+import { Box, Stack, useMediaQuery, useTheme, Button, Typography } from "@mui/material";
 import React, { useContext, useEffect, useState, useRef } from "react";
 import DataGraph from "@/components/DataGraph";
 import SnapshotChart from "@/components/SnapShotChart";
