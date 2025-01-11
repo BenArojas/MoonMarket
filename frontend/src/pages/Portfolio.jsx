@@ -57,6 +57,8 @@ function Portfolio() {
 
 console.log("stockData :", stockData)
 console.log("status :", status)
+console.log("fetchStatus :", fetchStatus)
+
 
 
 
