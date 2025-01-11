@@ -123,7 +123,7 @@ console.log("fetchStatus :", fetchStatus)
           </ErrorBoundary>
 
           <ErrorBoundary FallbackComponent={ErrorFallback}>
-          {(stockDataLoading && fetchStatus !== 'idle') ? (
+          {stockDataLoading  ? (
               <Box sx={{
                 height: 350
               }}><GraphSkeleton /></Box>
