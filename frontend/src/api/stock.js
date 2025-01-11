@@ -21,39 +21,33 @@ export async function getStockData(ticker) {
 }
 
 export async function getHistoricalData(ticker) {
-  if (isValidStockTicker(ticker) === false) {
-    return false;
-  } else {
     const data = await api.get(
       `/stock/historical_data/${ticker}`
     );
     return data.data;
   }
-}
+
 
 export async function getIntradayData(ticker, range) {
-  if (isValidStockTicker(ticker) === false) {
-    return false;
-  } else {
     const data = await api.get(
       `/stock/intraday_chart/${ticker}?range=${range}`
     );
     return data.data;
   }
-}
 
-function isValidStockTicker(ticker) {
-  // Check if ticker is a string and has length between 1 and 5
-  if (typeof ticker === "string" ) {
-    // Check if ticker contains only alphabetic characters
-    if (/^[A-Za-z]+$/.test(ticker)) {
-      // Convert ticker to uppercase
-      ticker = ticker.toUpperCase();
-      return true;
-    }
-  }
-  return false;
-}
+
+// function isValidStockTicker(ticker) {
+//   // Check if ticker is a string and has length between 1 and 5
+//   if (typeof ticker === "string" ) {
+//     // Check if ticker contains only alphabetic characters
+//     if (/^[A-Za-z]+$/.test(ticker)) {
+//       // Convert ticker to uppercase
+//       ticker = ticker.toUpperCase();
+//       return true;
+//     }
+//   }
+//   return false;
+// }
 
 export async function getStocksFromPortfolio(tickers) {
   const stockData = await api.post(`/stock/portfolio`, {

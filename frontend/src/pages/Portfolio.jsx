@@ -56,8 +56,6 @@ function Portfolio() {
     staleTime: 120 * 1000,
     onError: (error) => console.error('Query error:', error),
     enabled: !!selectedTicker,
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   console.log("stockData :", stockData)
