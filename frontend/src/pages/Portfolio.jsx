@@ -47,18 +47,26 @@ function Portfolio() {
 
   const { data: stockData, isPending: stockDataLoading, status, fetchStatus } = useQuery({
     queryKey: ["stockData", selectedTicker],
-    queryFn: () => getHistoricalData(selectedTicker),
+    queryFn: async () => {
+      console.log("Starting fetch for ticker:", selectedTicker);
+      const result = await getHistoricalData(selectedTicker);
+      console.log("Fetch result:", result);
+      return result;
+    },
     staleTime: 120 * 1000,
     onError: (error) => console.error('Query error:', error),
     enabled: !!selectedTicker,
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-});
+  });
 
-console.log("stockData :", stockData)
-console.log("status :", status)
-console.log("fetchStatus :", fetchStatus)
+  console.log("stockData :", stockData)
+  console.log("status :", status)
+  console.log("fetchStatus :", fetchStatus)
 
+  useEffect(() => {
+    console.log("selectedTicker changed to:", selectedTicker);
+  }, [selectedTicker]);
 
 
 
@@ -123,15 +131,20 @@ console.log("fetchStatus :", fetchStatus)
           </ErrorBoundary>
 
           <ErrorBoundary FallbackComponent={ErrorFallback}>
-          {stockDataLoading  ? (
-              <Box sx={{
-                height: 350
-              }}><GraphSkeleton /></Box>
-            ) : (
+            {(status === 'pending' && fetchStatus === 'fetching') ? (
+              <Box sx={{ height: 350 }}>
+                <GraphSkeleton />
+              </Box>
+            ) : stockData ? (
               <CurrentStockCard
                 stockData={stockData.historical}
                 stockTicker={selectedTicker}
               />
+            ) : (
+              // Maybe show a message when no data is available
+              <Box sx={{ height: 350 }}>
+                <Typography>Select a ticker to view data</Typography>
+              </Box>
             )}
           </ErrorBoundary>
         </Stack>
@@ -153,7 +166,7 @@ function PortfolioContent({ userData, theme, isSmallScreen, isMobileScreen, isMe
   const postSnapshotMutation = useMutation({
     mutationFn: postSnapshot,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({queryKey:["dailyTimeFrame"]});
+      await queryClient.invalidateQueries({ queryKey: ["dailyTimeFrame"] });
     },
     onError: (error) => {
       console.error("Error posting a snapshot", error);
