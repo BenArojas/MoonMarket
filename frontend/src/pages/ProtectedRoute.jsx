@@ -20,7 +20,7 @@ export const ProtectedRoute = () => {
     return null; // Or a loading spinner
   }
 
-  if (isError ) {
+  if (isError) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
