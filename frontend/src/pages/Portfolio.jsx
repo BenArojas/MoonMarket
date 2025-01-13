@@ -45,27 +45,11 @@ function Portfolio() {
     queryFn: getUserData,
   });
 
-  const { data: stockData, isPending: stockDataLoading, status, fetchStatus } = useQuery({
+  const { data: stockData, isLoading : stockDataLoading, status, fetchStatus } = useQuery({
     queryKey: ["stockData", selectedTicker],
-    queryFn: async () => {
-      console.log("Starting fetch for ticker:", selectedTicker);
-      const result = await getHistoricalData(selectedTicker);
-      console.log("Fetch result:", result);
-      return result;
-    },
-    staleTime: 120 * 1000,
+    queryFn: ()=> getHistoricalData(selectedTicker),
     onError: (error) => console.error('Query error:', error),
-    enabled: !!selectedTicker,
   });
-
-  console.log("stockData :", stockData)
-  console.log("status :", status)
-  console.log("fetchStatus :", fetchStatus)
-
-  useEffect(() => {
-    console.log("selectedTicker changed to:", selectedTicker);
-  }, [selectedTicker]);
-
 
 
   const { data: dailyTimeFrame, isPending: dailyTimeFrameLoading } = useQuery({
@@ -77,7 +61,6 @@ function Portfolio() {
     mutationFn: (tickers) => updateStockPrices(tickers),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['holdingsData'] });
-      await queryClient.refetchQueries({ queryKey: ['holdingsData'] });
     },
     onError: () => {
       console.log("failed to update stock prices")
@@ -129,21 +112,18 @@ function Portfolio() {
           </ErrorBoundary>
 
           <ErrorBoundary FallbackComponent={ErrorFallback}>
-            {(status === 'pending' && fetchStatus === 'fetching') ? (
-              <Box sx={{ height: 350 }}>
-                <GraphSkeleton />
-              </Box>
-            ) : stockData ? (
-              <CurrentStockCard
-                stockData={stockData.historical}
-                stockTicker={selectedTicker}
-              />
-            ) : (
-              // Maybe show a message when no data is available
-              <Box sx={{ height: 350 }}>
-                <Typography>Select a ticker to view data</Typography>
-              </Box>
-            )}
+            {
+              stockData? (
+                <CurrentStockCard
+                  stockData={stockData.historical}
+                  stockTicker={selectedTicker}
+                />
+              ) : (
+                <Box sx={{ height: 350 }}>
+                  <GraphSkeleton />
+                </Box>
+              ) 
+            }
           </ErrorBoundary>
         </Stack>
       </Box>

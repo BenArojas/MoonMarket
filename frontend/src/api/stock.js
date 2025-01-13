@@ -2,38 +2,35 @@ import api from "@/api/axios";
 
 
 export async function postApiStock(portfolioStock) {
-  return api.post(`/stock/add_stock`, portfolioStock, );
+  return api.post(`/stock/add_stock`, portfolioStock,);
 }
 
 export async function getStockData(ticker) {
-  if (isValidStockTicker(ticker) === false) {
-    return false;
-  } else {
-    const stock = await api.get(
-      `/stock/quote/${ticker}`
-    );
-    if(stock.data.length == 0) {
+  const stock = await api.get(
+    `/stock/quote/${ticker}`
+  );
+  if (stock.data.length == 0) {
     return null;
-  }else{
+  } else {
     return stock.data[0];
   }
 }
-}
+
 
 export async function getHistoricalData(ticker) {
-    const data = await api.get(
-      `/stock/historical_data/${ticker}`
-    );
-    return data.data;
-  }
+  const data = await api.get(
+    `/stock/historical_data/${ticker}`
+  );
+  return data.data;
+}
 
 
 export async function getIntradayData(ticker, range) {
-    const data = await api.get(
-      `/stock/intraday_chart/${ticker}?range=${range}`
-    );
-    return data.data;
-  }
+  const data = await api.get(
+    `/stock/intraday_chart/${ticker}?range=${range}`
+  );
+  return data.data;
+}
 
 
 // function isValidStockTicker(ticker) {
@@ -51,7 +48,7 @@ export async function getIntradayData(ticker, range) {
 
 export async function getStocksFromPortfolio(tickers) {
   const stockData = await api.post(`/stock/portfolio`, {
-    tickers: tickers,  
+    tickers: tickers,
   });
   return stockData.data;
 }

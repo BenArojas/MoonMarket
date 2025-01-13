@@ -13,7 +13,7 @@ export function useStocksDailyData(stocksData, isDailyView) {
       queryKey: ['dailyStockData', ticker],
       queryFn: () => getStockData(ticker),
       staleTime: 5 * 60 * 1000,
-      enabled: isDailyView && !!ticker,
+      enabled: isDailyView ,
       retry: 3,
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
       refetchOnWindowFocus: false,
