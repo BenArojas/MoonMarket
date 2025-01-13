@@ -11,7 +11,7 @@ import React, { useContext, useEffect, useState, useRef } from "react";
 import DataGraph from "@/components/DataGraph";
 import SnapshotChart from "@/components/SnapShotChart";
 import CurrentStockCard from "@/components/CurrentStock";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, skipToken } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import GraphSkeleton from "@/Skeletons/GraphSkeleton";
 import { ErrorBoundary } from "react-error-boundary";
@@ -45,10 +45,9 @@ function Portfolio() {
     queryFn: getUserData,
   });
 
-  const { data: stockData, isLoading : stockDataLoading, status, fetchStatus } = useQuery({
+  const { data: stockData, isLoading : stockDataLoading } = useQuery({
     queryKey: ["stockData", selectedTicker],
-    queryFn: ()=> getHistoricalData(selectedTicker),
-    onError: (error) => console.error('Query error:', error),
+    queryFn: selectedTicker? ()=> getHistoricalData(selectedTicker): skipToken,
   });
 
 
