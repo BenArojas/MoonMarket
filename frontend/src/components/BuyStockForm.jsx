@@ -196,7 +196,7 @@ function BuyStockForm({ stock, isMobile }) {
             />
           </Box>
           <Box sx={{ display: 'flex', flexDirection: 'column', p: 1 }}>
-            <Typography>Comission</Typography>
+            <Typography>Commission($)</Typography>
             <Input
               placeholder="0"
               {...register('commission')}

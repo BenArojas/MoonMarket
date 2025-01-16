@@ -94,7 +94,7 @@ function SharesDialog({
               </Typography>
             </Box>
             <Box sx={{ display: "flex", flexDirection: "column" }}>
-              <label>Enter Commission</label>
+              <label>Enter Commission($)</label>
               <TextField {...register("commission")} />
               <Typography variant="body2" sx={{ color: "red" }}>
                 {errors.quantity?.message ?? null}

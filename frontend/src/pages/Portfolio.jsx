@@ -74,7 +74,7 @@ function Portfolio() {
         display: "flex",
         flexDirection: isSmallScreen ? "column" : "row",
         gridTemplateColumns: isSmallScreen ? "1fr" : "1000px auto",
-        paddingY: isMobileScreen ? 2 : isSmallScreen ? 2 : 3,
+        paddingY: isMobileScreen ? 2 : isSmallScreen ? 2 : 1,
         paddingX: isMobileScreen ? 2 : isSmallScreen ? 2 : 5,
         marginX: isMobileScreen ? 1 : isSmallScreen ? 1 : 5,
         overflowY: "auto",
