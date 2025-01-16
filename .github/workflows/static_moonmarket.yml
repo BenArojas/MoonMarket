@@ -25,40 +25,29 @@ jobs:
           npm run build
           cd ..
 
-      - name: Set up Python version
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: Create and start virtual environment
-        run: |
-          cd backend
-          python -m venv venv
-          source venv/bin/activate
-
-      - name: Install dependencies
-        run: |
-          cd backend
-          pip install -r requirements.txt
-
-       - name: Prepare deployment package
+      - name: Prepare deployment package
         run: |
           # Move frontend build to backend/static
           rm -rf backend/static
           mv frontend/dist backend/static
           
-          # Create deployment zip package
+          # Ensure startup script is executable
+          chmod +x backend/startup.sh
+          
+          # Create deployment package
           cd backend
-          chmod +x startup.sh  # Make startup script executable
-          zip -r ../release.zip ./*
+          zip -r ../deploy.zip ./* -x "venv/*"
 
-      - name: Upload artifact for deployment jobs
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: python-app
-          path: |
-            release.zip
-            !backend/venv/
+          path: deploy.zip
 
   deploy:
     runs-on: ubuntu-latest
@@ -70,14 +59,14 @@ jobs:
       id-token: write
 
     steps:
-      - name: Download artifact from build job
+      - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: python-app
 
-      - name: Unzip artifact for deployment
-        run: unzip release.zip
-      
+      - name: Unzip artifact
+        run: unzip deploy.zip
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -85,7 +74,7 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_97EA46326EC340BD8C54632A368E95E6 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_964B617FACCD4E5082B260811D594B63 }}
 
-      - name: 'Deploy to Azure Web App'
+      - name: Deploy to Azure
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
