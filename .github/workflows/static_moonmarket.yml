@@ -35,33 +35,31 @@ jobs:
           cd backend
           python -m venv venv
           source venv/bin/activate
-      
-      - name: Move frontend build to backend static
-        run: |
-          rm -rf backend/static
-          mv frontend/dist backend/static
 
       - name: Install dependencies
         run: |
           cd backend
           pip install -r requirements.txt
 
-      - name: Make startup script executable
+      - name: Prepare deployment package
         run: |
-          cd backend
-          chmod +x startup.sh
+          # Move frontend build to backend/static
+          rm -rf backend/static
+          mv frontend/dist backend/static
+          
+          # Copy startup.sh to root of deployment package
+          cp backend/startup.sh .
 
-      - name: Zip artifact for deployment
-        run: |
+          # Create deployment zip package
           cd backend
-          zip release.zip ./* -r
+          zip -r ../release.zip ./*
 
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
         with:
           name: python-app
           path: |
-            backend/release.zip
+            release.zip
             !backend/venv/
 
   deploy:
