@@ -1,15 +1,14 @@
-import React, { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { updateUsername, changePassword, addDeposit } from "@/api/user";
 import { answerFriendRequest, sendFriendRequest } from "@/api/friend";
-import { useTheme, useMediaQuery } from "@mui/material";
-import AccountTabContent from '@/components/profile-tabs/AccountTabContent'
-import ProfileTabContent from '@/components/profile-tabs/ProfileTabContent'
-import MoneyTabContent from '@/components/profile-tabs/MoneyTabContent'
-import FriendsTabContent from '@/components/profile-tabs/FriendsTabContent'
-import FriendRequestsTabContent from '@/components/profile-tabs/FriendRequestsTabContent'
+import { addDeposit, changePassword, updateUsername } from "@/api/user";
+import AccountTabContent from '@/components/profile-tabs/AccountTabContent';
+import FriendRequestsTabContent from '@/components/profile-tabs/FriendRequestsTabContent';
+import FriendsTabContent from '@/components/profile-tabs/FriendsTabContent';
+import MoneyTabContent from '@/components/profile-tabs/MoneyTabContent';
+import ProfileTabContent from '@/components/profile-tabs/ProfileTabContent';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge, useMediaQuery, useTheme } from "@mui/material";
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Badge } from "@mui/material";
+import React, { useState } from "react";
 
 
 const ProfileTabs = ({ username, current_balance, friendRequests, friendList, friendRequestsCount, sentFriendRequestsData, profit, deposits, yearly_expenses }) => {

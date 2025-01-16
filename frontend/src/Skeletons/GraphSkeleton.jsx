@@ -1,7 +1,6 @@
-import React from 'react';
+import { useThemeHook } from "@/contexts/ThemeContext";
 import { Card } from '@mui/material';
 import { cardio } from 'ldrs';
-import { useThemeHook } from "@/contexts/ThemeContext";
 
 
 // Register the cardio custom element

@@ -1,12 +1,11 @@
+import CustomTooltip from "@/components/CustomToolTip";
+import { useStocksDailyData } from '@/hooks/useStocksDailyData';
+import TreeMapSkeleton from "@/Skeletons/TreeMapSkeleton";
 import "@/styles/Treemap.css";
-import { useTheme, useMediaQuery } from "@mui/material";
+import { useMediaQuery, useTheme } from "@mui/material";
 import * as d3 from "d3";
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import CustomTooltip from "@/components/CustomToolTip";
-import { useStocksDailyData } from '@/hooks/useStocksDailyData';
-import GraphSkeleton from "@/Skeletons/GraphSkeleton";
-import TreeMapSkeleton from "@/Skeletons/TreeMapSkeleton";
 
 export const Treemap = ({ width, height, data, isDailyView, }) => {
   const { data: dailyData, isLoading: isDailyDataLoading } = useStocksDailyData(data, isDailyView);

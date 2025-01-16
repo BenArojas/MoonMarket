@@ -1,4 +1,3 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery } from "@tanstack/react-query";
 import { Box, Divider, Typography, useTheme, useMediaQuery } from "@mui/material";
 import "@/styles/profile.css";

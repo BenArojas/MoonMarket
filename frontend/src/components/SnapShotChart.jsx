@@ -1,9 +1,9 @@
 import { AreaChart } from "@/components/CurrentStockChart.jsx";
-import { transformSnapshotData, calculatePerformanceData } from "@/utils/dataProcessing";
-import { Card, Box, Typography, useMediaQuery, useTheme } from "@mui/material";
-import React, { useState } from "react";
-import PortfolioStats from "@/components/PortfolioStats";
 import PerformanceChart from "@/components/PerformanceGraph";
+import PortfolioStats from "@/components/PortfolioStats";
+import { calculatePerformanceData, transformSnapshotData } from "@/utils/dataProcessing";
+import { Box, Card, useMediaQuery, useTheme } from "@mui/material";
+import React, { useState } from "react";
 
 const SnapshotChart = React.memo(
   ({

@@ -1,35 +1,28 @@
-import React, { useState, Suspense } from "react";
-import { useLoaderData, Await, defer } from "react-router-dom";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import {
-  ArrowUpCircle,
-  ArrowDownCircle,
-  DollarSign,
-  TrendingUp,
-  Filter,
-} from "lucide-react";
-import { getUserTransactions, deleteTransaction } from "@/api/transaction";
-import TransactionsTable from "@/components/TransactionsTable";
-import SkeletonTable from "@/Skeletons/TableSkeleton";
-import {
-  TextField,
-  Box,
-  Paper,
-  IconButton,
-  Collapse,
-  MenuItem,
-  useTheme,
-} from "@mui/material";
-import { useTransactionSummary } from "@/hooks/useTransactionSummary";
+import { deleteTransaction, getUserTransactions } from "@/api/transaction";
 import { getUserStocks } from "@/api/user";
 import {
   TradingActivityDistribution,
   TransactionsByQuarter,
 } from "@/components/TransactionsGraphs";
-import "@/styles/App.css"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { formatCurrency } from '@/utils/dataProcessing'
+import TransactionsTable from "@/components/TransactionsTable";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useTransactionSummary } from "@/hooks/useTransactionSummary";
+import SkeletonTable from "@/Skeletons/TableSkeleton";
+import "@/styles/App.css";
+import { formatCurrency } from '@/utils/dataProcessing';
+import {
+  MenuItem,
+  TextField,
+  useTheme
+} from "@mui/material";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  ArrowUpCircle,
+  DollarSign,
+  TrendingUp
+} from "lucide-react";
+import { useState } from "react";
 
 // Main component
 const TransactionsPage = () => {

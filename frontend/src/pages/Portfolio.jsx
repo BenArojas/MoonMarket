@@ -6,8 +6,8 @@ import NewUserNoHoldings from "@/components/NewUserNoHoldings";
 import useGraphData from "@/hooks/useGraphData";
 import { PercentageChange } from "@/pages/Layout";
 import { lastUpdateDate } from "@/utils/dataProcessing";
-import { Box, Stack, useMediaQuery, useTheme, Button, Typography } from "@mui/material";
-import React, { useContext, useEffect, useState, useRef } from "react";
+import { Box, Stack, useMediaQuery, useTheme } from "@mui/material";
+import React, { useContext, useEffect, useState } from "react";
 import DataGraph from "@/components/DataGraph";
 import SnapshotChart from "@/components/SnapShotChart";
 import CurrentStockCard from "@/components/CurrentStock";
@@ -15,8 +15,7 @@ import { useMutation, useQuery, useQueryClient, skipToken } from "@tanstack/reac
 import { useSearchParams } from "react-router-dom";
 import GraphSkeleton from "@/Skeletons/GraphSkeleton";
 import { ErrorBoundary } from "react-error-boundary";
-import { useStockPriceUpdate } from '@/hooks/useStockPriceUpdate'
-import { useLocation } from "react-router-dom";
+
 import "@/styles/App.css"
 
 

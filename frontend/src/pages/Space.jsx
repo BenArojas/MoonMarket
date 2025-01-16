@@ -1,16 +1,15 @@
-import React, { useState, useEffect, useRef } from "react";
-import Starfield from "react-starfield";
-import "@/styles/space.css";
-import Moon from "@/components/space/Moon";
-import SpaceshipsFleet from "@/components/space/SpaceshipsFleet";
-import Spaceship from "@/components/space/Spaceship";
-import { getFriendsAndUserHoldings, getFriendList } from "@/api/friend";
+import { getFriendsAndUserHoldings } from "@/api/friend";
 import { getUsersList } from "@/api/user";
 import FriendsSideBar from "@/components/FriendsSideBar";
-import { useThemeHook } from "@/contexts/ThemeContext";
+import Moon from "@/components/space/Moon";
+import Spaceship from "@/components/space/Spaceship";
 import OrbitingCircles from "@/components/ui/orbiting-circles";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useThemeHook } from "@/contexts/ThemeContext";
+import "@/styles/space.css";
 import { useMediaQuery, useTheme } from "@mui/material";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import Starfield from "react-starfield";
 
 
 const INITIAL_SPACESHIP_COUNT = 6;
