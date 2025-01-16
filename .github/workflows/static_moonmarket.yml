@@ -41,17 +41,15 @@ jobs:
           cd backend
           pip install -r requirements.txt
 
-      - name: Prepare deployment package
+       - name: Prepare deployment package
         run: |
           # Move frontend build to backend/static
           rm -rf backend/static
           mv frontend/dist backend/static
           
-          # Copy startup.sh to root of deployment package
-          cp backend/startup.sh .
-
           # Create deployment zip package
           cd backend
+          chmod +x startup.sh  # Make startup script executable
           zip -r ../release.zip ./*
 
       - name: Upload artifact for deployment jobs
