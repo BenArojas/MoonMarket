@@ -3,7 +3,7 @@ name: Build and deploy Python app to Azure Web App - MoonMarket
 on:
   push:
     branches:
-      - master
+      - deploy
   workflow_dispatch:
 
 jobs:
@@ -13,13 +13,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Set up Node.js for frontend build
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
 
-      # Build frontend
       - name: Build Frontend
         run: |
           cd frontend
@@ -38,7 +36,6 @@ jobs:
           python -m venv venv
           source venv/bin/activate
       
-      # Move frontend build to backend static
       - name: Move frontend build to backend static
         run: |
           rm -rf backend/static
@@ -48,8 +45,11 @@ jobs:
         run: |
           cd backend
           pip install -r requirements.txt
-        
-      # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
+
+      - name: Make startup script executable
+        run: |
+          cd backend
+          chmod +x startup.sh
 
       - name: Zip artifact for deployment
         run: |

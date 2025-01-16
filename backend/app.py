@@ -2,6 +2,7 @@
 
 import asyncio
 from contextlib import asynccontextmanager
+import os
 
 from fastapi import FastAPI
 from beanie import init_beanie
@@ -15,9 +16,6 @@ from models.PortfolioSnapshot import PortfolioSnapshot
 from models.friendRequest import FriendRequest
 from models.APIKeyManager import ApiKey
 import logging
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-from decouple import config
 
 
 DESCRIPTION = """
@@ -48,7 +46,6 @@ async def lifespan(app: FastAPI):
             document_models=[User, Stock, Transaction, PortfolioSnapshot, FriendRequest, ApiKey ]
         )
         logger.info("Database initialized")
-        logger.info(f"Starting application in {ENV_MODE} mode")
         yield
     finally:
         
@@ -58,41 +55,18 @@ async def lifespan(app: FastAPI):
             client.close()
             logger.info("Database connection closed")
 
-ENV_MODE = config("ENV_MODE")
-# Create the main app that combines both API and static file serving
+# Get environment variables
+WEBSITE_HOSTNAME = os.getenv('WEBSITE_HOSTNAME', 'localhost:8000')
 app = FastAPI(lifespan=lifespan)
 
-if ENV_MODE == 'production':
-    # Create the API app
-    api_app = FastAPI(
-        title="My Server API",
-        description=DESCRIPTION,
-        version="0.1.0",
+app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[f"https://{WEBSITE_HOSTNAME}"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
-    # Mount the API app
-    app.mount("/api", api_app)
-
-    # Mount the static files directly to the root
-    app.mount("/", StaticFiles(directory="static", html=True), name="static")
-
-    @app.exception_handler(404)
-    async def custom_404_handler(request, exc):
-        return FileResponse('static/index.html')
-
-if ENV_MODE == "development":
-    @app.get("/")
-    def read_root():
-        return {"Hello": "World"}
-
-
-origins = "http://localhost:8000" if ENV_MODE == "production" else "http://localhost:5173" 
-# Add CORS middleware to the main app
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[origins],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
+@app.get("/hello")
+def read_root():
+    return {"Hello": "World"}

@@ -12,31 +12,15 @@ from routes.apiKey import router as APIKeyRouter
 from decouple import config
 
 
-ENV_MODE = config("ENV_MODE")
-
-if ENV_MODE == 'production':
-    from app import api_app
-
-    api_app.include_router(AuthRouter, prefix="/auth")
-    # api_app.include_router(MailRouter, prefix="/mail")
-    api_app.include_router(RegisterRouter, prefix="/register")
-    api_app.include_router(UserRouter, prefix="/user")
-    api_app.include_router(StockRouter, prefix="/stock")
-    api_app.include_router(TransactionRouter, prefix="/transaction")
-    api_app.include_router(PortfolioSnapshotRouter, prefix="/portfolio-snapshot")
-    api_app.include_router(FriendsRouter, prefix="/friends")
-    api_app.include_router(APIKeyRouter, prefix="/api-key")
-
-if ENV_MODE == 'development':
-    app.include_router(AuthRouter, prefix="/auth")
-    # app.include_router(MailRouter, prefix="/mail")
-    app.include_router(RegisterRouter, prefix="/register")
-    app.include_router(UserRouter, prefix="/user")
-    app.include_router(StockRouter, prefix="/stock")
-    app.include_router(TransactionRouter, prefix="/transaction")
-    app.include_router(PortfolioSnapshotRouter, prefix="/portfolio-snapshot")
-    app.include_router(FriendsRouter, prefix="/friends")
-    app.include_router(APIKeyRouter, prefix="/api-key")
+app.include_router(AuthRouter, prefix="/api/auth")
+# app.include_router(MailRouter, prefix="/mail")
+app.include_router(RegisterRouter, prefix="/api/register")
+app.include_router(UserRouter, prefix="/api/user")
+app.include_router(StockRouter, prefix="/api/stock")
+app.include_router(TransactionRouter, prefix="/api/transaction")
+app.include_router(PortfolioSnapshotRouter, prefix="/api/portfolio-snapshot")
+app.include_router(FriendsRouter, prefix="/api/friends")
+app.include_router(APIKeyRouter, prefix="/api/api-key")
 
 
 
