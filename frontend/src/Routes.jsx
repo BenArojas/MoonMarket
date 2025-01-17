@@ -7,6 +7,7 @@ import "./styles/global.css";
 import Layout from "@/pages/Layout";
 import Global from "@/pages/Global";
 import NotFoundPage from "@/pages/NotFoundPage";
+import { loader as stockItemLoader} from '@/pages/StockItem'
 
 // Lazy load your components
 const Portfolio = React.lazy(() => import("@/pages/Portfolio"));
