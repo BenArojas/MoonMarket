@@ -52,10 +52,7 @@ jobs:
       # Create deployment package
       - name: Create deployment package
         run: |
-          # Go to backend directory
           cd backend
-          
-          # Create startup script
           echo '#!/bin/bash
 
           # Create required directories
@@ -126,31 +123,21 @@ jobs:
           nginx -c /home/site/nginx/nginx.conf -g '"'"'daemon off;'"'"' &
 
           # Start FastAPI application
-          cd /home/site/wwwroot
           gunicorn -w 2 -k uvicorn.workers.UvicornWorker --forwarded-allow-ips="*" -b 127.0.0.1:8000 main:app' > startup.sh
           
-          # Make startup script executable
           chmod +x startup.sh
           
-          # List all files before zipping (for debugging)
-          echo "Files to be zipped:"
-          ls -la
+          cd ..
+          # Create a flat deployment package without compression
+          rm -rf deploy
+          mkdir deploy
+          cp -r backend/* deploy/
           
-          # Create deployment package
-          zip -r package.zip ./* -x "venv/*"
-          
-          # Verify zip was created
-          echo "Checking if package.zip was created:"
-          ls -la package.zip
-          
-          # Move zip file up one directory
-          mv package.zip ..
-
-      - name: Upload artifact for deployment jobs
+      - name: Upload artifact for deployment
         uses: actions/upload-artifact@v4
         with:
           name: python-app
-          path: package.zip
+          path: deploy
 
   deploy:
     runs-on: ubuntu-latest
@@ -166,9 +153,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: python-app
-
-      - name: Unzip artifact for deployment
-        run: unzip package.zip
 
       - name: Login to Azure
         uses: azure/login@v2
