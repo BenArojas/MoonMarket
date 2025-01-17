@@ -3,7 +3,7 @@ name: Build and deploy Python app to Azure Web App - MoonMarket
 on:
   push:
     branches:
-      - deploy
+      - master
   workflow_dispatch:
 
 jobs:
@@ -13,11 +13,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Set up Node.js for frontend build
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
 
+      # Build frontend
       - name: Build Frontend
         run: |
           cd frontend
@@ -25,12 +27,18 @@ jobs:
           npm run build
           cd ..
 
-      - name: Set up Python
+      - name: Set up Python version
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-# Move frontend build to backend static
+      - name: Create and start virtual environment
+        run: |
+          cd backend
+          python -m venv venv
+          source venv/bin/activate
+      
+      # Move frontend build to backend static
       - name: Move frontend build to backend static
         run: |
           rm -rf backend/static
@@ -63,14 +71,14 @@ jobs:
       id-token: write
 
     steps:
-      - name: Download artifact
+      - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: python-app
 
-      - name: Unzip artifact  
-        run: unzip deploy.zip
-
+      - name: Unzip artifact for deployment
+        run: unzip release.zip    # Changed from deploy.zip to release.zip
+      
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -78,9 +86,10 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_97EA46326EC340BD8C54632A368E95E6 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_964B617FACCD4E5082B260811D594B63 }}
 
-      - name: Deploy to Azure
+      - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
           app-name: 'MoonMarket'
           slot-name: 'Production'
+      
