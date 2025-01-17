@@ -48,18 +48,95 @@ jobs:
         run: |
           cd backend
           pip install -r requirements.txt
-        
-      - name: Prepare deployment files
+
+      # Create non-compressed deployment package
+      - name: Create deployment package
         run: |
           cd backend
+          # Create startup script
+          echo '#!/bin/bash
+
+          # Create required directories
+          mkdir -p /home/site/nginx
+          mkdir -p /home/site/nginx/conf.d
+
+          # Write Nginx configuration
+          cat > /home/site/nginx/nginx.conf << '"'"'NGINX_CONF'"'"'
+          worker_processes auto;
+          pid /home/site/nginx/nginx.pid;
+
+          events {
+              worker_connections 768;
+          }
+
+          http {
+              access_log /home/site/nginx/access.log;
+              error_log /home/site/nginx/error.log;
+
+              include /etc/nginx/mime.types;
+              default_type application/octet-stream;
+
+              server {
+                  listen ${PORT};
+                  server_name ${WEBSITE_HOSTNAME};
+
+                  # Enable compression
+                  gzip on;
+                  gzip_vary on;
+                  gzip_proxied any;
+                  gzip_comp_level 6;
+                  gzip_types text/plain text/css text/js text/xml text/javascript application/javascript application/json application/xml image/svg+xml;
+
+                  # Serve static files
+                  location / {
+                      root /home/site/wwwroot/static;
+                      index index.html;
+                      try_files $uri /index.html;
+                      
+                      # Cache settings for static files
+                      location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
+                          expires 1y;
+                          add_header Cache-Control "public, no-transform";
+                      }
+                  }
+
+                  # Proxy API requests to FastAPI
+                  location /api/ {
+                      proxy_pass http://127.0.0.1:8000;
+                      proxy_http_version 1.1;
+                      proxy_set_header Upgrade $http_upgrade;
+                      proxy_set_header Connection '"'"'upgrade'"'"';
+                      proxy_set_header Host $host;
+                      proxy_cache_bypass $http_upgrade;
+                      proxy_set_header X-Real-IP $remote_addr;
+                      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                      proxy_set_header X-Forwarded-Proto $scheme;
+                  }
+              }
+          }
+          NGINX_CONF
+
+          # Install Nginx
+          apt-get update
+          apt-get install -y nginx
+
+          # Start Nginx with custom config
+          nginx -c /home/site/nginx/nginx.conf -g '"'"'daemon off;'"'"' &
+
+          # Start FastAPI application
+          cd /home/site/wwwroot
+          gunicorn -w 2 -k uvicorn.workers.UvicornWorker --forwarded-allow-ips="*" -b 127.0.0.1:8000 main:app' > startup.sh
+          
           chmod +x startup.sh
-          zip -r release.zip . -x "venv/*"
+          
+          # Create deployment package
+          zip -r ../package.zip ./* -x "venv/*"
 
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
         with:
           name: python-app
-          path: backend/release.zip
+          path: backend/package.zip
 
   deploy:
     runs-on: ubuntu-latest
@@ -77,8 +154,8 @@ jobs:
           name: python-app
 
       - name: Unzip artifact for deployment
-        run: unzip release.zip    # Changed from deploy.zip to release.zip
-      
+        run: unzip package.zip
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -86,10 +163,15 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_97EA46326EC340BD8C54632A368E95E6 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_964B617FACCD4E5082B260811D594B63 }}
 
-      - name: 'Deploy to Azure Web App'
-        uses: azure/webapps-deploy@v3
+      - name: Deploy to Azure Web App
         id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
         with:
           app-name: 'MoonMarket'
+          package: .
           slot-name: 'Production'
-      
+
+      # # Set the startup command
+      # - name: Update startup command
+      #   run: |
+      #     az webapp config set --name MoonMarket --resource-group moon-market --startup-command "cd /home/site/wwwroot && ./startup.sh"
