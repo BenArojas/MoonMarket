@@ -184,8 +184,3 @@ jobs:
           app-name: 'MoonMarket'
           package: .
           slot-name: 'Production'
-
-      # Set the startup command
-      - name: Update startup command
-        run: |
-          az webapp config set --name MoonMarket --resource-group moon-market --startup-command "cd /home/site/wwwroot && ./startup.sh"xx
