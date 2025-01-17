@@ -1,3 +1,4 @@
+import React from 'react'
 import { RouterProvider, createBrowserRouter, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "@/pages/ProtectedRoute";
 import { PublicRoute } from "@/pages/PublicRoute";

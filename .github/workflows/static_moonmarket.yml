@@ -39,7 +39,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ secrets.REGISTRY_LOGIN_SERVER }}/moonmarket:${{ github.sha }}
+          tags: ${{ secrets.REGISTRY_LOGIN_SERVER }}/moonmarket:${{ github.run_number }}
 
   deploy:
     runs-on: ubuntu-latest
@@ -56,6 +56,5 @@ jobs:
         with:
           containerAppName: moonmarket
           resourceGroup: moon-market
-          imageToDeploy: ${{ secrets.REGISTRY_LOGIN_SERVER }}/moonmarket:${{ github.sha }}
+          imageToDeploy: ${{ secrets.REGISTRY_LOGIN_SERVER }}/moonmarket:${{ github.run_number }}
 
-          
