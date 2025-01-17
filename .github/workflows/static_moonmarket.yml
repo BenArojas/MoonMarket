@@ -31,12 +31,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-
-      - name: Create and start virtual environment
-        run: |
-          cd backend
-          python -m venv venv
-          source venv/bin/activate
       
       # Move frontend build to backend static
       - name: Move frontend build to backend static
@@ -44,16 +38,16 @@ jobs:
           rm -rf backend/static
           mv frontend/dist backend/static
 
-      - name: Install dependencies
-        run: |
-          cd backend
-          pip install -r requirements.txt
-
-      # Create deployment package
-      - name: Create deployment package
+      - name: Create startup script
         run: |
           cd backend
           echo '#!/bin/bash
+
+          # Install Nginx if not already installed
+          if ! command -v nginx &> /dev/null; then
+              apt-get update
+              apt-get install -y nginx
+          fi
 
           # Create required directories
           mkdir -p /home/site/nginx
@@ -115,10 +109,6 @@ jobs:
           }
           NGINX_CONF
 
-          # Install Nginx
-          apt-get update
-          apt-get install -y nginx
-
           # Start Nginx with custom config
           nginx -c /home/site/nginx/nginx.conf -g '"'"'daemon off;'"'"' &
 
@@ -126,18 +116,12 @@ jobs:
           gunicorn -w 2 -k uvicorn.workers.UvicornWorker --forwarded-allow-ips="*" -b 127.0.0.1:8000 main:app' > startup.sh
           
           chmod +x startup.sh
-          
-          cd ..
-          # Create a flat deployment package without compression
-          rm -rf deploy
-          mkdir deploy
-          cp -r backend/* deploy/
-          
+
       - name: Upload artifact for deployment
         uses: actions/upload-artifact@v4
         with:
           name: python-app
-          path: deploy
+          path: backend
 
   deploy:
     runs-on: ubuntu-latest
