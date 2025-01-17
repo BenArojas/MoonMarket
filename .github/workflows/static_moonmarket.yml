@@ -57,3 +57,4 @@ jobs:
           containerAppName: moonmarket
           resourceGroup: moon-market
           imageToDeploy: ${{ secrets.REGISTRY_LOGIN_SERVER }}/moonmarket:${{ github.sha }}
+          
