@@ -15,7 +15,7 @@ from utils.password import hash_password, verify_password
 router = APIRouter( tags=["User"])
 
 
-@router.get("", response_model=UserOut, operation_id="retrieve_user")
+@router.get("/", response_model=UserOut, operation_id="retrieve_user")
 async def get_user(user: User = Depends(get_current_user)):  # type: ignore[no-untyped-def]
     """Return the current user."""
     return user
