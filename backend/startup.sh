@@ -1,25 +1,19 @@
 #!/bin/bash
 
-# Ensure we're in the right directory
-cd /home/site/wwwroot
-
-# Extract the contents if they exist in output.tar.gz
-if [ -f output.tar.gz ]; then
-    tar -xzf output.tar.gz
-    rm output.tar.gz
-fi
-
 # Install Nginx if not already installed
 if ! command -v nginx &> /dev/null; then
     apt-get update
     apt-get install -y nginx
 fi
 
-# Create Nginx configuration
-cat > /etc/nginx/sites-available/default << EOF
+# Create Nginx config directory if it doesnt exist
+mkdir -p /etc/nginx/sites-available
+
+# Write Nginx configuration
+cat > /etc/nginx/sites-available/default << 'EOL'
 server {
-    listen \${PORT};
-    server_name \${WEBSITE_HOSTNAME};
+    listen ${PORT};
+    server_name ${WEBSITE_HOSTNAME};
 
     # Enable compression
     gzip on;
@@ -32,7 +26,7 @@ server {
     location / {
         root /home/site/wwwroot/static;
         index index.html;
-        try_files \$uri /index.html;
+        try_files $uri /index.html;
         
         # Cache settings for static files
         location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
@@ -45,29 +39,19 @@ server {
     location /api/ {
         proxy_pass http://127.0.0.1:8000;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_cache_bypass \$http_upgrade;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
-EOF
+EOL
 
 # Start Nginx
-service nginx start || nginx
-
-# Activate virtual environment if it exists
-if [ -d "antenv" ]; then
-    source antenv/bin/activate
-fi
-
-# Install requirements if they exist
-if [ -f "requirements.txt" ]; then
-    pip install -r requirements.txt
-fi
-
+service nginx start
+sleep 5
 # Start FastAPI application
 gunicorn -w 2 -k uvicorn.workers.UvicornWorker --forwarded-allow-ips="*" -b 127.0.0.1:8000 main:app

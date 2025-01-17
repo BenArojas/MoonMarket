@@ -30,24 +30,28 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Prepare deployment package
+# Move frontend build to backend static
+      - name: Move frontend build to backend static
         run: |
-          # Move frontend build to backend/static
           rm -rf backend/static
           mv frontend/dist backend/static
-          
-          # Ensure startup script is executable
-          chmod +x backend/startup.sh
-          
-          # Create deployment package
-          cd backend
-          zip -r ../deploy.zip ./* -x "venv/*"
 
-      - name: Upload artifact
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+        
+      - name: Prepare deployment files
+        run: |
+          cd backend
+          chmod +x startup.sh
+          zip -r release.zip . -x "venv/*"
+
+      - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
         with:
           name: python-app
-          path: deploy.zip
+          path: backend/release.zip
 
   deploy:
     runs-on: ubuntu-latest
@@ -64,7 +68,7 @@ jobs:
         with:
           name: python-app
 
-      - name: Unzip artifact
+      - name: Unzip artifact  
         run: unzip deploy.zip
 
       - name: Login to Azure
