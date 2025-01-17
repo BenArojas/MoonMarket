@@ -3,7 +3,7 @@ name: Build and deploy Python app to Azure Web App - MoonMarket
 on:
   push:
     branches:
-      - deploy
+      - master
   workflow_dispatch:
 
 jobs:
@@ -49,10 +49,12 @@ jobs:
           cd backend
           pip install -r requirements.txt
 
-      # Create non-compressed deployment package
+      # Create deployment package
       - name: Create deployment package
         run: |
+          # Go to backend directory
           cd backend
+          
           # Create startup script
           echo '#!/bin/bash
 
@@ -127,16 +129,28 @@ jobs:
           cd /home/site/wwwroot
           gunicorn -w 2 -k uvicorn.workers.UvicornWorker --forwarded-allow-ips="*" -b 127.0.0.1:8000 main:app' > startup.sh
           
+          # Make startup script executable
           chmod +x startup.sh
           
+          # List all files before zipping (for debugging)
+          echo "Files to be zipped:"
+          ls -la
+          
           # Create deployment package
-          zip -r ../package.zip ./* -x "venv/*"
+          zip -r package.zip ./* -x "venv/*"
+          
+          # Verify zip was created
+          echo "Checking if package.zip was created:"
+          ls -la package.zip
+          
+          # Move zip file up one directory
+          mv package.zip ..
 
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
         with:
           name: python-app
-          path: backend/package.zip
+          path: package.zip
 
   deploy:
     runs-on: ubuntu-latest
@@ -171,7 +185,7 @@ jobs:
           package: .
           slot-name: 'Production'
 
-      # # Set the startup command
-      # - name: Update startup command
-      #   run: |
-      #     az webapp config set --name MoonMarket --resource-group moon-market --startup-command "cd /home/site/wwwroot && ./startup.sh"
+      # Set the startup command
+      - name: Update startup command
+        run: |
+          az webapp config set --name MoonMarket --resource-group moon-market --startup-command "cd /home/site/wwwroot && ./startup.sh"xx
