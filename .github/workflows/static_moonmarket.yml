@@ -35,7 +35,7 @@ jobs:
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
       - name: Build and push container image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           push: true
@@ -57,4 +57,4 @@ jobs:
           containerAppName: moonmarket
           resourceGroup: moon-market
           imageToDeploy: ${{ secrets.REGISTRY_LOGIN_SERVER }}/moonmarket:${{ github.run_number }}
-
+          debugMode: true
