@@ -55,7 +55,6 @@ jobs:
         uses: azure/container-apps-deploy-action@v1
         with:
           containerAppName: moonmarket
-          resourceGroup: moon-market
+          resourceGroup: MoonMarket  
+          containerAppEnvironment: managedEnvironment-MoonMarket-9ee9  
           imageToDeploy: ${{ secrets.REGISTRY_LOGIN_SERVER }}/moonmarket:${{ github.run_number }}
-          debugMode: true
-          
