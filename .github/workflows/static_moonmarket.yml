@@ -54,7 +54,7 @@ jobs:
       - name: Deploy to Azure Container Apps
         uses: azure/container-apps-deploy-action@v1
         with:
-          containerAppName: moonmarket
-          resourceGroup: MoonMarket  
-          containerAppEnvironment: managedEnvironment-MoonMarket-9ee9  
+          containerAppName: ${{ secrets.CONTAINER_APP_NAME }}
+          resourceGroup: ${{ secrets.RESOURCE_GROUP }}
+          containerAppEnvironment: ${{ secrets.CONTAINER_APP_ENVIRONMENT }}
           imageToDeploy: ${{ secrets.REGISTRY_LOGIN_SERVER }}/moonmarket:${{ github.run_number }}
