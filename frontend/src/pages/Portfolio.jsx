@@ -44,10 +44,20 @@ function Portfolio() {
     queryFn: getUserData,
   });
 
-  const { data: stockData, isLoading : stockDataLoading } = useQuery({
+  const { data: stockData, isLoading: stockDataLoading } = useQuery({
     queryKey: ["stockData", selectedTicker],
-    queryFn: selectedTicker? ()=> getHistoricalData(selectedTicker): skipToken,
+    queryFn: selectedTicker ? async () => {
+      const data = await getHistoricalData(selectedTicker);
+      console.log('Query function response:', data);
+      return data;
+    } : skipToken,
+    onSuccess: (data) => console.log('onSuccess:', data),
+    onError: (err) => console.log('onError:', err),
+    onSettled: (data, error) => console.log('onSettled:', { data, error })
   });
+
+  console.log('Component render - stockData:', stockData);
+  console.log('Component render - isLoading:', stockDataLoading);
 
 
   const { data: dailyTimeFrame, isPending: dailyTimeFrameLoading } = useQuery({
@@ -111,7 +121,7 @@ function Portfolio() {
 
           <ErrorBoundary FallbackComponent={ErrorFallback}>
             {
-              stockData? (
+              stockData ? (
                 <CurrentStockCard
                   stockData={stockData.historical}
                   stockTicker={selectedTicker}
@@ -120,7 +130,7 @@ function Portfolio() {
                 <Box sx={{ height: 350 }}>
                   <GraphSkeleton />
                 </Box>
-              ) 
+              )
             }
           </ErrorBoundary>
         </Stack>
