@@ -1,27 +1,26 @@
 import { getPortfolioSnapshots, postSnapshot } from "@/api/portfolioSnapshot";
 import { getHistoricalData, updateStockPrices } from "@/api/stock";
 import { getUserData } from "@/api/user";
+import CurrentStockCard from "@/components/CurrentStock";
+import DataGraph from "@/components/DataGraph";
 import GraphMenu from "@/components/GraphMenu";
 import NewUserNoHoldings from "@/components/NewUserNoHoldings";
+import SnapshotChart from "@/components/SnapShotChart";
 import useGraphData from "@/hooks/useGraphData";
 import { PercentageChange } from "@/pages/Layout";
+import GraphSkeleton from "@/Skeletons/GraphSkeleton";
+import "@/styles/App.css";
 import { lastUpdateDate } from "@/utils/dataProcessing";
 import { Box, Stack, useMediaQuery, useTheme } from "@mui/material";
-import React, { useContext, useEffect, useState } from "react";
-import DataGraph from "@/components/DataGraph";
-import SnapshotChart from "@/components/SnapShotChart";
-import CurrentStockCard from "@/components/CurrentStock";
-import { useMutation, useQuery, useQueryClient, skipToken } from "@tanstack/react-query";
-import GraphSkeleton from "@/Skeletons/GraphSkeleton";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useContext, useEffect, useState, Suspense } from "react";
 import { ErrorBoundary } from "react-error-boundary";
-import "@/styles/App.css"
-import { appInsights } from '@/appInsights'
 import {
   Await,
   defer,
-  useLoaderData,
-  Suspense
+  useLoaderData
 } from "react-router-dom";
+
 
 
 
