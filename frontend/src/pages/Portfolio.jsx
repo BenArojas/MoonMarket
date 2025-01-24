@@ -15,8 +15,8 @@ import { useMutation, useQuery, useQueryClient, skipToken } from "@tanstack/reac
 import { useSearchParams } from "react-router-dom";
 import GraphSkeleton from "@/Skeletons/GraphSkeleton";
 import { ErrorBoundary } from "react-error-boundary";
-
 import "@/styles/App.css"
+import {appInsights} from '@/appInsights'
 
 
 
@@ -44,13 +44,37 @@ function Portfolio() {
     queryFn: getUserData,
   });
 
-  const { data: stockData, status } = useQuery({
+  const { 
+    data: stockData, 
+    status,
+    error,
+    isLoading,
+    isFetching,
+    isError,
+    failureCount,
+    failureReason,
+    fetchStatus 
+   } = useQuery({
     queryKey: ["stockData", selectedTicker],
     queryFn: selectedTicker ? () => getHistoricalData(selectedTicker) : skipToken,
-  });
-
-  console.log("status: " + status)
-
+    retry: 3,
+    onError: (error) => {
+      appInsights.trackException({ error });
+    }
+   });
+   
+   appInsights.trackTrace({ 
+    message: JSON.stringify({
+      status,
+      fetchStatus,
+      selectedTicker,
+      error: error?.message,
+      failureCount,
+      failureReason: failureReason?.message,
+      isLoading,
+      isFetching
+    })
+   });
 
   const { data: dailyTimeFrame, isPending: dailyTimeFrameLoading } = useQuery({
     queryKey: ["dailyTimeFrame"],
