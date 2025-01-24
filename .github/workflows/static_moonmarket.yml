@@ -59,6 +59,9 @@ jobs:
           containerAppEnvironment: ${{ secrets.CONTAINER_APP_ENVIRONMENT }}
           imageToDeploy: ${{ secrets.REGISTRY_LOGIN_SERVER }}/moonmarket:${{ github.run_number }}
           environmentVariables: |
-            VITE_APPLICATIONINSIGHTS_CONNECTION_STRING=${{ secrets.APPINSIGHTS_CONNECTION_STRING }}
-            DB_NAME=${{ secrets.DB_NAME }}
-            DB_URL=${{ secrets.DB_URL }}
+            name: VITE_APPLICATIONINSIGHTS_CONNECTION_STRING
+            value: ${{ secrets.APPINSIGHTS_CONNECTION_STRING }}
+            name: DB_NAME
+            value: ${{ secrets.DB_NAME }}
+            name: DB_URL
+            value: ${{ secrets.DB_URL }}
