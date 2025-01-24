@@ -44,20 +44,12 @@ function Portfolio() {
     queryFn: getUserData,
   });
 
-  const { data: stockData, isLoading: stockDataLoading } = useQuery({
+  const { data: stockData, status } = useQuery({
     queryKey: ["stockData", selectedTicker],
-    queryFn: selectedTicker ? async () => {
-      const data = await getHistoricalData(selectedTicker);
-      console.log('Query function response:', data);
-      return data;
-    } : skipToken,
-    onSuccess: (data) => console.log('onSuccess:', data),
-    onError: (err) => console.log('onError:', err),
-    onSettled: (data, error) => console.log('onSettled:', { data, error })
+    queryFn: selectedTicker ? () => getHistoricalData(selectedTicker) : skipToken,
   });
 
-  console.log('Component render - stockData:', stockData);
-  console.log('Component render - isLoading:', stockDataLoading);
+  console.log("status: " + status)
 
 
   const { data: dailyTimeFrame, isPending: dailyTimeFrameLoading } = useQuery({

@@ -10,7 +10,6 @@ import { useQuery } from "@tanstack/react-query";
 import AddApiKey from "@/components/AddApiKey";
 import { useRevalidator } from "react-router-dom";
 import { Box, useMediaQuery, useTheme } from "@mui/material";
-import { getHistoricalData } from "@/api/stock";
 
 
 
@@ -52,21 +51,6 @@ function Layout() {
         addApiKeyMutation(data);
     };
 
-    // useQuery({
-    //     queryKey: ["stockData"],
-    //     queryFn: () => getHistoricalData("BTCUSD"),
-    //     notifyOnChangeProps: []
-    // })
-    // useEffect(() => {
-    //     // Prefetch BTCUSD data
-    //     const prefetchData = async () => {
-    //         await queryClient.prefetchQuery({
-    //             queryKey: ["stockData", "BTCUSD"],
-    //             queryFn: () => getHistoricalData("BTCUSD")
-    //         });
-    //     }
-    //     prefetchData()
-    // }, []);
 
     return (
         <>

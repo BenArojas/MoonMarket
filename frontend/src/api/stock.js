@@ -17,15 +17,11 @@ export async function getStockData(ticker) {
 }
 
 
-export async function getHistoricalData(ticker) {
-  try {
-      const response = await api.get(`/stock/historical_data/${ticker}`);
-      console.log('API response:', response);
-      return response.data;
-  } catch (error) {
-      console.error('API error:', error);
-      throw error;
-  }
+export const getHistoricalData = async(ticker)=>{
+  const res = await api.get(
+    `/stock/historical_data/${ticker}`
+  );
+  return res.data;
 }
 
 
