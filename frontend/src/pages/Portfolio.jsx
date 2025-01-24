@@ -20,8 +20,7 @@ import {
   Await,
   defer,
   useLoaderData,
-  useNavigate,
-  useSearchParams,
+  Suspense
 } from "react-router-dom";
 
 
