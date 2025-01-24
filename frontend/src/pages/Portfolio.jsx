@@ -6,8 +6,8 @@ import NewUserNoHoldings from "@/components/NewUserNoHoldings";
 import useGraphData from "@/hooks/useGraphData";
 import { PercentageChange } from "@/pages/Layout";
 import { lastUpdateDate } from "@/utils/dataProcessing";
-import { Box, Stack, useMediaQuery, useTheme, Button, Typography } from "@mui/material";
-import React, { useContext, useEffect, useState, useRef } from "react";
+import { Box, Stack, useMediaQuery, useTheme } from "@mui/material";
+import React, { useContext, useEffect, useState } from "react";
 import DataGraph from "@/components/DataGraph";
 import SnapshotChart from "@/components/SnapShotChart";
 import CurrentStockCard from "@/components/CurrentStock";
@@ -15,8 +15,7 @@ import { useMutation, useQuery, useQueryClient, skipToken } from "@tanstack/reac
 import { useSearchParams } from "react-router-dom";
 import GraphSkeleton from "@/Skeletons/GraphSkeleton";
 import { ErrorBoundary } from "react-error-boundary";
-import { useStockPriceUpdate } from '@/hooks/useStockPriceUpdate'
-import { useLocation } from "react-router-dom";
+
 import "@/styles/App.css"
 
 
@@ -45,10 +44,12 @@ function Portfolio() {
     queryFn: getUserData,
   });
 
-  const { data: stockData, isLoading : stockDataLoading } = useQuery({
+  const { data: stockData, status } = useQuery({
     queryKey: ["stockData", selectedTicker],
-    queryFn: selectedTicker? ()=> getHistoricalData(selectedTicker): skipToken,
+    queryFn: selectedTicker ? () => getHistoricalData(selectedTicker) : skipToken,
   });
+
+  console.log("status: " + status)
 
 
   const { data: dailyTimeFrame, isPending: dailyTimeFrameLoading } = useQuery({
@@ -75,7 +76,7 @@ function Portfolio() {
         display: "flex",
         flexDirection: isSmallScreen ? "column" : "row",
         gridTemplateColumns: isSmallScreen ? "1fr" : "1000px auto",
-        paddingY: isMobileScreen ? 2 : isSmallScreen ? 2 : 3,
+        paddingY: isMobileScreen ? 2 : isSmallScreen ? 2 : 1,
         paddingX: isMobileScreen ? 2 : isSmallScreen ? 2 : 5,
         marginX: isMobileScreen ? 1 : isSmallScreen ? 1 : 5,
         overflowY: "auto",
@@ -112,7 +113,7 @@ function Portfolio() {
 
           <ErrorBoundary FallbackComponent={ErrorFallback}>
             {
-              stockData? (
+              stockData ? (
                 <CurrentStockCard
                   stockData={stockData.historical}
                   stockTicker={selectedTicker}
@@ -121,7 +122,7 @@ function Portfolio() {
                 <Box sx={{ height: 350 }}>
                   <GraphSkeleton />
                 </Box>
-              ) 
+              )
             }
           </ErrorBoundary>
         </Stack>

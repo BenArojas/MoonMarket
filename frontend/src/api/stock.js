@@ -17,11 +17,11 @@ export async function getStockData(ticker) {
 }
 
 
-export async function getHistoricalData(ticker) {
-  const data = await api.get(
+export const getHistoricalData = async(ticker)=>{
+  const res = await api.get(
     `/stock/historical_data/${ticker}`
   );
-  return data.data;
+  return res.data;
 }
 
 
