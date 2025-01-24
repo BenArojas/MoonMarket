@@ -8,6 +8,7 @@ import Layout from "@/pages/Layout";
 import Global from "@/pages/Global";
 import NotFoundPage from "@/pages/NotFoundPage";
 import { loader as stockItemLoader} from '@/pages/StockItem'
+import {loader as homeLoader} from '@/pages/Portfolio'
 
 // Lazy load your components
 const Portfolio = React.lazy(() => import("@/pages/Portfolio"));
@@ -38,6 +39,7 @@ const Routes = () => {
               path: "/home",
               element: <Suspense fallback={<div>Loading...</div>}><Portfolio /></Suspense>,
               errorElement: <Suspense fallback={<div>Loading...</div>}><ErrorPage /></Suspense>,
+              loader: homeLoader,
             },
             {
               path: "/profile",

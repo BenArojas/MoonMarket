@@ -12,11 +12,17 @@ import DataGraph from "@/components/DataGraph";
 import SnapshotChart from "@/components/SnapShotChart";
 import CurrentStockCard from "@/components/CurrentStock";
 import { useMutation, useQuery, useQueryClient, skipToken } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
 import GraphSkeleton from "@/Skeletons/GraphSkeleton";
 import { ErrorBoundary } from "react-error-boundary";
 import "@/styles/App.css"
-import {appInsights} from '@/appInsights'
+import { appInsights } from '@/appInsights'
+import {
+  Await,
+  defer,
+  useLoaderData,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 
 
 
@@ -29,9 +35,17 @@ function ErrorFallback({ error }) {
   );
 }
 
+export async function loader({ params, request }) {
+  const { searchParams } = new URL(request.url);
+  const selectedTicker = searchParams.get("selected") || "BTCUSD";
+
+  const res = await getHistoricalData(selectedTicker)
+  return defer({ historicalData: res.historical });
+}
+
+
 function Portfolio() {
-  const [searchParams] = useSearchParams();
-  const selectedTicker = searchParams.get("selected") || "BTCUSD"; // Default to 'BTCUSD' if not specified
+  const { historicalData } = useLoaderData();
   const queryClient = useQueryClient();
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('xl'));
@@ -44,37 +58,6 @@ function Portfolio() {
     queryFn: getUserData,
   });
 
-  const { 
-    data: stockData, 
-    status,
-    error,
-    isLoading,
-    isFetching,
-    isError,
-    failureCount,
-    failureReason,
-    fetchStatus 
-   } = useQuery({
-    queryKey: ["stockData", selectedTicker],
-    queryFn: selectedTicker ? () => getHistoricalData(selectedTicker) : skipToken,
-    retry: 3,
-    onError: (error) => {
-      appInsights.trackException({ error });
-    }
-   });
-   
-   appInsights.trackTrace({ 
-    message: JSON.stringify({
-      status,
-      fetchStatus,
-      selectedTicker,
-      error: error?.message,
-      failureCount,
-      failureReason: failureReason?.message,
-      isLoading,
-      isFetching
-    })
-   });
 
   const { data: dailyTimeFrame, isPending: dailyTimeFrameLoading } = useQuery({
     queryKey: ["dailyTimeFrame"],
@@ -136,7 +119,7 @@ function Portfolio() {
           </ErrorBoundary>
 
           <ErrorBoundary FallbackComponent={ErrorFallback}>
-            {
+            {/* {
               stockData ? (
                 <CurrentStockCard
                   stockData={stockData.historical}
@@ -147,7 +130,21 @@ function Portfolio() {
                   <GraphSkeleton />
                 </Box>
               )
-            }
+            } */}
+            <Suspense fallback={
+              <Box sx={{ height: 350 }}>
+              <GraphSkeleton />
+            </Box>
+          }>
+            <Await resolve={historicalData}>
+              {(historicalData)=>
+              <CurrentStockCard
+              stockData={historicalData}
+              stockTicker={selectedTicker}
+            />
+              }
+            </Await>
+          </Suspense>
           </ErrorBoundary>
         </Stack>
       </Box>
