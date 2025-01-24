@@ -58,7 +58,6 @@ jobs:
           resourceGroup: ${{ secrets.RESOURCE_GROUP }}
           containerAppEnvironment: ${{ secrets.CONTAINER_APP_ENVIRONMENT }}
           imageToDeploy: ${{ secrets.REGISTRY_LOGIN_SERVER }}/moonmarket:${{ github.run_number }}
-          logAnalyticsWorkspace: ${{ secrets.LOG_ANALYTICS_WORKSPACE }}
           environmentVariables: |
             VITE_APPLICATIONINSIGHTS_CONNECTION_STRING=${{ secrets.APPINSIGHTS_CONNECTION_STRING }}
             DB_NAME=${{ secrets.DB_NAME }}
