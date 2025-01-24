@@ -38,12 +38,15 @@ export async function loader({ params, request }) {
   const selectedTicker = searchParams.get("selected") || "BTCUSD";
 
   const res = await getHistoricalData(selectedTicker)
-  return defer({ historicalData: res.historical });
+  return defer({
+    historicalData: res.historical,
+    selectedTicker: selectedTicker
+  });
 }
 
 
 function Portfolio() {
-  const { historicalData } = useLoaderData();
+  const { historicalData, selectedTicker } = useLoaderData();
   const queryClient = useQueryClient();
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('xl'));
@@ -117,32 +120,16 @@ function Portfolio() {
           </ErrorBoundary>
 
           <ErrorBoundary FallbackComponent={ErrorFallback}>
-            {/* {
-              stockData ? (
-                <CurrentStockCard
-                  stockData={stockData.historical}
-                  stockTicker={selectedTicker}
-                />
-              ) : (
-                <Box sx={{ height: 350 }}>
-                  <GraphSkeleton />
-                </Box>
-              )
-            } */}
-            <Suspense fallback={
-              <Box sx={{ height: 350 }}>
-              <GraphSkeleton />
-            </Box>
-          }>
-            <Await resolve={historicalData}>
-              {(historicalData)=>
-              <CurrentStockCard
-              stockData={historicalData}
-              stockTicker={selectedTicker}
-            />
-              }
-            </Await>
-          </Suspense>
+            <Suspense fallback={<Box sx={{ height: 350 }}><GraphSkeleton /></Box>}>
+              <Await resolve={historicalData}>
+                {(historicalData) => (
+                  <CurrentStockCard
+                    stockData={historicalData}
+                    stockTicker={selectedTicker}
+                  />
+                )}
+              </Await>
+            </Suspense>
           </ErrorBoundary>
         </Stack>
       </Box>
