@@ -43,11 +43,6 @@ jobs:
        uses: azure/login@v1
        with:
          creds: ${{ secrets.AZURE_CREDENTIALS }}
-     - name: Set environment variables
-       run: |
-         echo "APPINSIGHTS_CONNECTION_STRING=${{ secrets.APPINSIGHTS_CONNECTION_STRING }}" >> $GITHUB_ENV
-         echo "DB_NAME=${{ secrets.DB_NAME }}" >> $GITHUB_ENV
-         echo "DB_URL=${{ secrets.DB_URL }}" >> $GITHUB_ENV
      - name: Deploy to Azure Container Apps
        uses: azure/container-apps-deploy-action@v1
        with:
@@ -55,7 +50,3 @@ jobs:
          resourceGroup: ${{ secrets.RESOURCE_GROUP }}
          containerAppEnvironment: ${{ secrets.CONTAINER_APP_ENVIRONMENT }}
          imageToDeploy: ${{ secrets.REGISTRY_LOGIN_SERVER }}/moonmarket:${{ github.run_number }}
-         environmentVariables: |
-           VITE_APPLICATIONINSIGHTS_CONNECTION_STRING=${APPINSIGHTS_CONNECTION_STRING}
-           DB_NAME=${DB_NAME}
-           DB_URL=${DB_URL}
