@@ -1,7 +1,7 @@
 # Use official Python runtime
 FROM python:3.10-slim
 
-# Install nginx and redis dependencies
+# Install nginx and redis
 RUN apt-get update && apt-get install -y nginx redis-tools \
     && rm -rf /var/lib/apt/lists/*
 
@@ -24,12 +24,13 @@ COPY nginx.conf /etc/nginx/nginx.conf
 # Create startup script
 RUN echo '#!/bin/bash\n\
 nginx & \n\
+redis-server & \n\
 gunicorn -w 2 -k uvicorn.workers.UvicornWorker --forwarded-allow-ips="*" -b 127.0.0.1:8000 main:app\n\
 ' > /app/start.sh \
 && chmod +x /app/start.sh
 
-# Expose port
+# Expose ports
 EXPOSE 80
 
-# Start both nginx and FastAPI
+# Start services
 CMD ["/app/start.sh"]

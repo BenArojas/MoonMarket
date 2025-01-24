@@ -1,12 +1,13 @@
 """Cache manager for handling Redis operations."""
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, TYPE_CHECKING
 from fastapi import Request
 import json
-from models.user import User
-from models.APIKeyManager import ApiKey
 import pytz
-
+from models.schemas import CachedUser, Deposit, Holding, YearlyExpenses
+if TYPE_CHECKING:
+    from models.user import User
+    from models.APIKeyManager import ApiKey
 
 class CacheManager:
     """Manages Redis caching operations with write-behind strategy."""
@@ -21,29 +22,49 @@ class CacheManager:
     
     async def get_user_by_session(self, session: str) -> Optional[dict]:
         """Retrieve user data from cache by session."""
-        cache_key = f"{self.prefix}session:{session}"
+        cache_key = f"{self.prefix['user']}session:{session}" 
         data = await self.redis.get(cache_key)
         return json.loads(data) if data else None
     
     async def cache_user(self, user: "User", expire: int = 3600) -> None:
-        """
-        Cache user data with all relevant keys.
+        """Cache user data using CachedUser model."""
+        # Convert to CachedUser first
+        cached_user = CachedUser.from_user(user)
+        user_dict = cached_user.model_dump()
         
-        This method creates three cache entries for quick lookups:
-        - By session token
-        - By email
-        - By username
-        """
-        user_dict = user.dict(exclude={'password'})  # Security: never cache passwords
+        # Convert datetime objects to ISO format
+        if user_dict.get('last_activity'):
+            user_dict['last_activity'] = user_dict['last_activity'].isoformat()
+        if user_dict.get('last_refresh'):
+            user_dict['last_refresh'] = user_dict['last_refresh'].isoformat()
         
+        if user_dict.get('deposits'):
+            user_dict['deposits'] = [
+                deposit.model_dump() if isinstance(deposit, Deposit) else deposit 
+                for deposit in user_dict['deposits']
+            ]
+                    
+        # Handle holdings list
+        if user_dict.get('holdings'):
+            user_dict['holdings'] = [
+                holding.model_dump() if isinstance(holding, Holding) else holding 
+                for holding in user_dict['holdings']
+            ]
+        
+        if user_dict.get('yearly_expenses'):
+            user_dict['yearly_expenses'] = [
+                expense.model_dump() if isinstance(expense, YearlyExpenses) else expense 
+                for expense in user_dict['yearly_expenses']
+            ]
+
         # Cache by session if available
         if user.session:
-            session_key = f"{self.prefix}session:{user.session}"
+            session_key = f"{self.prefix['user']}session:{user.session}"
             await self.redis.setex(session_key, expire, json.dumps(user_dict))
         
-        # Cache by email and username for other lookup methods
-        email_key = f"{self.prefix}email:{user.email}"
-        username_key = f"{self.prefix}username:{user.username}"
+        # Cache by email and username
+        email_key = f"{self.prefix['user']}email:{user.email}"
+        username_key = f"{self.prefix['user']}username:{user.username}"
         await self.redis.setex(email_key, expire, json.dumps(user_dict))
         await self.redis.setex(username_key, expire, json.dumps(user_dict))
     
@@ -109,7 +130,10 @@ class CacheManager:
         for key in api_keys:
             # Only include keys that are active and under rate limit
             if key.is_active and key.requests < key.rate_limit:
-                if now >= key.next_reset:
+                next_reset = key.next_reset
+                if next_reset.tzinfo is None:
+                    next_reset = pytz.UTC.localize(next_reset)
+                if now >= next_reset:
                     # Key should be reset
                     key_dict = key.dict()
                     key_dict['requests'] = 0

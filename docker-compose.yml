@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "80:80"
+    environment:
+      - DB_URL=mongodb+srv://benarojas11:K3oYp7Q5l90htcqh@cluster0.rekurqc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+      - DB_NAME=stock_db
+      - REDIS_HOST=redis  # This points to the Redis service
+      - REDIS_PORT=6379
+      - WEBSITE_HOSTNAME=localhost:8000
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"

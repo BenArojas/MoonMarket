@@ -1,7 +1,7 @@
 """User router."""
 
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, Response, Security
+from fastapi import APIRouter, Depends, HTTPException, Response, Security, Request
 from models.user import User, UserOut, PasswordChangeRequest, Deposit, UserFriend, YearlyExpenses
 from fastapi.responses import JSONResponse
 from utils.auth_user import get_current_user
@@ -124,6 +124,7 @@ def get_year_expenses(user: User, year: int) -> Optional[YearlyExpenses]:
 
 @router.delete("/delete", operation_id="delete_user_account")
 async def delete_user(
+    request: Request,
     current_user: User = Depends(get_current_user)
 ) -> Response:
     """Delete current user."""
@@ -132,7 +133,7 @@ async def delete_user(
     await PortfolioSnapshot.find(PortfolioSnapshot.userId.id == current_user.id).delete()
 
     # End user's session before deletion
-    await current_user.end_session()
+    await current_user.end_session(request)
 
     # Delete the user
     await current_user.delete()

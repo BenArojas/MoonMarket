@@ -80,3 +80,13 @@ app.add_middleware(
 @app.get("/hello")
 def read_root():
     return {"Hello": "World"}
+
+@app.get("/api/test-redis")
+async def test_redis():
+    try:
+        redis_client = app.state.redis
+        await redis_client.set("test", "It works!")
+        value = await redis_client.get("test")
+        return {"redis_test": value}
+    except Exception as e:
+        return {"error": str(e)}

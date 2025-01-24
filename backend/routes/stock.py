@@ -2,7 +2,7 @@
 import asyncio
 from typing import Any, Dict, List
 from utils.api_key import get_api_key
-from fastapi import APIRouter, HTTPException, status, Depends, Query
+from fastapi import APIRouter, HTTPException, status, Depends, Query, Request
 from models.stock import Stock, PortfolioRequest
 from utils.auth_user import get_current_user
 from models.user import User
@@ -16,14 +16,14 @@ BASE_URL = 'https://financialmodelingprep.com/api/v3/'
 
 
 @router.get("/historical_data/{symbol}", response_description="Stock details from API")
-async def get_historical_data(symbol: str, api_key: ApiKey = Depends(get_api_key)) -> Dict[str, Any]:
+async def get_historical_data(request:Request, symbol: str, api_key: ApiKey = Depends(get_api_key)) -> Dict[str, Any]:
     one_year_ago = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
     endpoint = f'historical-price-full/{symbol}'
     url = f"{BASE_URL}{endpoint}?from={one_year_ago}&apikey={api_key.key}"
     try:
         response = requests.get(url)
         response.raise_for_status()  # Raises an HTTPError for bad responses
-        await api_key.increment_usage()
+        await api_key.increment_usage(request)
         historical_stock_price = response.json()
         return historical_stock_price  # Return the data if successful
     except Exception as e:

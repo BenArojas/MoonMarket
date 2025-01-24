@@ -2,7 +2,7 @@
 
 from datetime import datetime, timedelta, timezone
 import secrets
-from fastapi import APIRouter, HTTPException, Security, Response, Depends
+from fastapi import APIRouter, HTTPException, Security, Response, Depends, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from models.user import User
 from utils.password import  verify_password
@@ -15,14 +15,14 @@ router = APIRouter( tags=["Auth"])
 
 
 @router.post("/login")
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login(request: Request,form_data: OAuth2PasswordRequestForm = Depends()):
     """Handle user login and create a new session."""
     user = await User.by_email(form_data.username)
     if user is None or not verify_password(form_data.password, user.password):
         raise HTTPException(status_code=400, detail="Bad email or password")
 
     # Use the create_session method from User model
-    session_token = await user.create_session()
+    session_token = await user.create_session(request)
     session_created_at = datetime.now(timezone.utc)
 
     response = JSONResponse(content={"message": "Login successful"})
@@ -38,9 +38,9 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     return response
 
 @router.post("/logout")
-async def logout(current_user: User = Depends(get_current_user)):
+async def logout(request: Request,current_user: User = Depends(get_current_user)):
     """Handle user logout and end the session."""
-    await current_user.end_session()
+    await current_user.end_session(request)
     
     response = JSONResponse(content={"message": "Logged out successfully"})
     response.delete_cookie("session")

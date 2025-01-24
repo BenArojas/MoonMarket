@@ -18,7 +18,8 @@ def get_next_midnight_in_israel() -> datetime:
     if current_time_in_israel.hour >= 0:
         next_midnight += timedelta(days=1)
     
-    return next_midnight
+    # Convert to UTC before returning
+    return next_midnight.astimezone(pytz.UTC)
 
 class ApiKey(Document):
     """API Key DB representation."""
@@ -32,8 +33,14 @@ class ApiKey(Document):
 
     @property
     async def is_available(self) -> bool:
-        now = datetime.now()
-        if now >= self.next_reset:
+        now = datetime.now(pytz.UTC)  # Make now timezone-aware
+        
+        # Ensure next_reset is timezone-aware
+        next_reset = self.next_reset
+        if next_reset.tzinfo is None:
+            next_reset = pytz.UTC.localize(next_reset)
+            
+        if now >= next_reset:
             await self.reset_usage(now)
         return self.requests < self.rate_limit and self.is_active
 
@@ -50,13 +57,19 @@ class ApiKey(Document):
             
     @staticmethod
     def get_next_reset(from_time: datetime) -> datetime:
+        # Ensure from_time is timezone-aware
+        if from_time.tzinfo is None:
+            from_time = pytz.UTC.localize(from_time)
+            
         next_day = from_time.date() + timedelta(days=1)
-        return datetime.combine(next_day, time.min)
-
+        # Create timezone-aware datetime for next reset
+        next_reset = datetime.combine(next_day, time.min)
+        return pytz.UTC.localize(next_reset)
+    
     async def increment_usage(self, request: Request):
         """Increment usage with cache update."""
         self.requests += 1
-        self.last_used = datetime.now()
+        self.last_used = datetime.now(pytz.UTC)
         
         # Update cache first for immediate rate limiting
         cache_manager = CacheManager(request)
