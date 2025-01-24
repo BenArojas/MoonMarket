@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta, time
 import random
 from typing import Optional, Annotated
-
 import pytz
+from cache.manager import CacheManager
+from fastapi import Request
 from beanie import Document, Indexed
 from pydantic import SecretStr, Field
 
@@ -36,26 +37,56 @@ class ApiKey(Document):
             await self.reset_usage(now)
         return self.requests < self.rate_limit and self.is_active
 
-    async def reset_usage(self, now: datetime):
+    async def reset_usage(self, now: datetime, request: Optional[Request] = None):
+        """Reset API key usage with cache update."""
         self.requests = 0
         self.next_reset = self.get_next_reset(now)
         await self.save()
-
+        
+        if request:
+            cache_manager = CacheManager(request)
+            await cache_manager.invalidate_api_key(self)
+            await cache_manager.cache_api_key(self)
+            
     @staticmethod
     def get_next_reset(from_time: datetime) -> datetime:
         next_day = from_time.date() + timedelta(days=1)
         return datetime.combine(next_day, time.min)
 
-    async def increment_usage(self):
+    async def increment_usage(self, request: Request):
+        """Increment usage with cache update."""
         self.requests += 1
         self.last_used = datetime.now()
+        
+        # Update cache first for immediate rate limiting
+        cache_manager = CacheManager(request)
+        await cache_manager.increment_api_key_usage(self)
+        
+        # Then update database
         await self.save()
 
     @classmethod
-    async def get_available_key(cls) -> Optional["ApiKey"]:
+    async def get_available_key(cls, request: Request) -> Optional["ApiKey"]:
+        """Get available API key with caching."""
+        cache_manager = CacheManager(request)
+        
+        # Try to get available keys from cache
+        cached_keys = await cache_manager.get_available_keys()
+        if cached_keys:
+            # Convert cached data back to ApiKey instances
+            valid_keys = [cls(**key_data) for key_data in cached_keys]
+            return random.choice(valid_keys) if valid_keys else None
+        
+        # If not in cache, query database
         available_keys = await cls.find(cls.is_active == True).to_list()
         valid_keys = [key for key in available_keys if await key.is_available]
-        return random.choice(valid_keys) if valid_keys else None
+        
+        # Cache the results for future requests
+        if valid_keys:
+            await cache_manager.cache_available_keys(valid_keys)
+            return random.choice(valid_keys)
+        
+        return None
 
     class Settings:
         name = "api_keys"

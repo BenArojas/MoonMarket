@@ -3,6 +3,9 @@ from datetime import datetime, timezone
 from typing import Annotated, Any, Optional, List, TYPE_CHECKING
 from beanie import Document, Indexed, PydanticObjectId, Link
 from pydantic import BaseModel, EmailStr, Field
+from fastapi import Request
+from cache.manager import CacheManager
+from secrets import token_urlsafe
 
 if TYPE_CHECKING:
     from .friendRequest import FriendRequest
@@ -130,22 +133,36 @@ class User(Document):
             await request.save()
 
     # Session management methods
-    async def create_session(self) -> str:
-        """Create a new session for the user."""
-        from secrets import token_urlsafe
+    async def create_session(self, request: Request) -> str:
+        """Create a new session for the user with caching."""
+        
         self.session = token_urlsafe(32)
         self.last_activity = datetime.now(timezone.utc)
         await self.save()
+        
+        # Add caching
+        cache_manager = CacheManager(request)
+        await cache_manager.cache_user(self)
+        
         return self.session
 
-    async def end_session(self) -> None:
-        """End the user's current session."""
+    async def end_session(self, request: Request) -> None:
+        """End the user's current session and clear cache."""
+        # Clear cache first
+        cache_manager = CacheManager(request)
+        await cache_manager.invalidate_user(self)
+        
         self.session = None
         await self.save()
 
-    async def update_last_activity(self) -> None:
-        """Update the user's last activity timestamp."""
+    async def update_last_activity(self, request: Request) -> None:
+        """Update the user's last activity timestamp with caching."""
         self.last_activity = datetime.now(timezone.utc)
+        
+        # Update cache first for better read performance
+        cache_manager = CacheManager(request)
+        await cache_manager.cache_user(self)
+        
         await self.save()
 
     # Existing utility methods
@@ -162,10 +179,20 @@ class User(Document):
         return await cls.find_one({"username": username})
 
     @classmethod
-    async def by_session(cls, session: str) -> Optional["User"]:
-        """Get a user by their session token."""
-        return await cls.find_one({"session": session})
-
+    async def by_session(cls, session: str, request: Request) -> Optional["User"]:
+        """Get a user by their session token with caching."""
+        cache_manager = CacheManager(request)
+        cached_user = await cache_manager.get_user_by_session(session)
+        
+        if cached_user:
+            return cls(**cached_user)
+        
+        # If not in cache, query database
+        user = await cls.find_one({"session": session})
+        if user:
+            await cache_manager.cache_user(user)
+        
+        return user
     # Standard Python methods
     def __repr__(self) -> str:
         return f"<User {self.email}>"

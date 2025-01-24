@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "80:80"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DB_URL=your_mongodb_url
+      - DB_NAME=your_db_name
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes  # This enables data persistence
+
+volumes:
+  redis_data:  # This creates a named volume for Redis data persistence
