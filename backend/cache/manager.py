@@ -1,6 +1,8 @@
 """Cache manager for handling Redis operations."""
+import asyncio
 from datetime import datetime
 from typing import Optional, Dict, Any, TYPE_CHECKING
+from cache.utils import convert_datetime_recursive
 from fastapi import Request
 import json
 import pytz
@@ -30,43 +32,37 @@ class CacheManager:
         """Cache user data using CachedUser model."""
         # Convert to CachedUser first
         cached_user = CachedUser.from_user(user)
-        user_dict = cached_user.model_dump()
+        user_dict = cached_user.model_dump(exclude={'password'})
+        # Convert all datetime objects (including nested ones) to ISO format
+        user_dict = convert_datetime_recursive(user_dict)
+        cache_ops = []
+        json_data = json.dumps(user_dict)
         
-        # Convert datetime objects to ISO format
-        if user_dict.get('last_activity'):
-            user_dict['last_activity'] = user_dict['last_activity'].isoformat()
-        if user_dict.get('last_refresh'):
-            user_dict['last_refresh'] = user_dict['last_refresh'].isoformat()
-        
-        if user_dict.get('deposits'):
-            user_dict['deposits'] = [
-                deposit.model_dump() if isinstance(deposit, Deposit) else deposit 
-                for deposit in user_dict['deposits']
-            ]
-                    
-        # Handle holdings list
-        if user_dict.get('holdings'):
-            user_dict['holdings'] = [
-                holding.model_dump() if isinstance(holding, Holding) else holding 
-                for holding in user_dict['holdings']
-            ]
-        
-        if user_dict.get('yearly_expenses'):
-            user_dict['yearly_expenses'] = [
-                expense.model_dump() if isinstance(expense, YearlyExpenses) else expense 
-                for expense in user_dict['yearly_expenses']
-            ]
-
-        # Cache by session if available
+        # Add all cache operations to list
         if user.session:
-            session_key = f"{self.prefix['user']}session:{user.session}"
-            await self.redis.setex(session_key, expire, json.dumps(user_dict))
+            cache_ops.append(
+                self.redis.setex(
+                    f"{self.prefix['user']}session:{user.session}",
+                    expire,
+                    json_data
+                )
+            )
+            
+        cache_ops.extend([
+        self.redis.setex(
+            f"{self.prefix['user']}email:{user.email}",
+            expire,
+            json_data
+        ),
+        self.redis.setex(
+            f"{self.prefix['user']}username:{user.username}",
+            expire,
+            json_data
+        )
+        ])
+            # Execute all cache operations concurrently
+        await asyncio.gather(*cache_ops)
         
-        # Cache by email and username
-        email_key = f"{self.prefix['user']}email:{user.email}"
-        username_key = f"{self.prefix['user']}username:{user.username}"
-        await self.redis.setex(email_key, expire, json.dumps(user_dict))
-        await self.redis.setex(username_key, expire, json.dumps(user_dict))
     
     async def invalidate_user(self, user: "User") -> None:
         """
@@ -135,10 +131,13 @@ class CacheManager:
                     next_reset = pytz.UTC.localize(next_reset)
                 if now >= next_reset:
                     # Key should be reset
-                    key_dict = key.dict()
+                    key_dict = key.model_dump()  # Use model_dump() instead of dict()
                     key_dict['requests'] = 0
                 else:
-                    key_dict = key.dict()
+                    key_dict = key.model_dump()  # Use model_dump() instead of dict()
+                
+                # Convert datetime objects to ISO format strings
+                key_dict = convert_datetime_recursive(key_dict)
                 available_keys.append(key_dict)
         
         if available_keys:

@@ -7,7 +7,7 @@ from fastapi import Request
 from cache.manager import CacheManager
 from secrets import token_urlsafe
 from models.schemas import (
-    Deposit, Holding, YearlyExpenses
+    CachedUser, Deposit, Holding, YearlyExpenses
 )
 
 if TYPE_CHECKING:
@@ -83,38 +83,22 @@ class User(Document):
         cached_data = await cache_manager.get_user_by_session(session)
         
         if cached_data:
-            # Convert nested dictionaries back to proper model instances
-            if cached_data.get('holdings'):
-                cached_data['holdings'] = [Holding(**h) for h in cached_data['holdings']]
-            if cached_data.get('deposits'):
-                cached_data['deposits'] = [Deposit(**d) for d in cached_data['deposits']]
-            if cached_data.get('yearly_expenses'):
-                cached_data['yearly_expenses'] = [YearlyExpenses(**e) for e in cached_data['yearly_expenses']]
-                
-            # Convert datetime strings back to datetime objects
-            if cached_data.get('last_activity'):
-                cached_data['last_activity'] = datetime.fromisoformat(cached_data['last_activity'])
-            if cached_data.get('last_refresh'):
-                cached_data['last_refresh'] = datetime.fromisoformat(cached_data['last_refresh'])
-                
             # Query DB just for sensitive data
             user = await cls.find_one({"session": session})
             if not user:
                 return None
                 
+            # Convert to CachedUser - Pydantic will automatically handle nested datetime conversions
+            # because our models (Holding, Deposit, YearlyExpenses) have datetime fields defined
+            cached_user = CachedUser.model_validate(cached_data)
+            
             # Update user with cached data
-            for key, value in cached_data.items():
-                if key not in ['password']:
+            user_dict = cached_user.model_dump(exclude_unset=True)
+            for key, value in user_dict.items():
+                if hasattr(user, key):
                     setattr(user, key, value)
                     
             return user
-        
-        # If not in cache, query database
-        user = await cls.find_one({"session": session})
-        if user:
-            await cache_manager.cache_user(user)
-        
-        return user
 
     # Session management methods
     async def create_session(self, request: Request) -> str:

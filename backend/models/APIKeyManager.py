@@ -86,8 +86,15 @@ class ApiKey(Document):
         # Try to get available keys from cache
         cached_keys = await cache_manager.get_available_keys()
         if cached_keys:
-            # Convert cached data back to ApiKey instances
-            valid_keys = [cls(**key_data) for key_data in cached_keys]
+            # Convert cached data back to ApiKey instances and handle datetime fields
+            valid_keys = []
+            for key_data in cached_keys:
+                # Convert ISO format strings back to datetime objects
+                if 'next_reset' in key_data:
+                    key_data['next_reset'] = datetime.fromisoformat(key_data['next_reset'])
+                # Add any other datetime fields that need conversion
+                
+                valid_keys.append(cls(**key_data))
             return random.choice(valid_keys) if valid_keys else None
         
         # If not in cache, query database

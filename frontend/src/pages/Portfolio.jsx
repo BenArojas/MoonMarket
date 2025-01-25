@@ -20,11 +20,12 @@ import {
   defer,
   useLoaderData
 } from "react-router-dom";
+import {HistoricalDataCard} from '@/components/HistoricalDataCard'
 
 
 
 
-function ErrorFallback({ error }) {
+export function ErrorFallback({ error }) {
   return (
     <div role="alert">
       <p>Something went wrong:</p>
@@ -33,15 +34,14 @@ function ErrorFallback({ error }) {
   );
 }
 
-export async function loader({ params, request }) {
+export async function loader({ request }) {
   const { searchParams } = new URL(request.url);
   const selectedTicker = searchParams.get("selected") || "BTCUSD";
 
-  const res = await getHistoricalData(selectedTicker)
-  return defer({
-    historicalData: res.historical,
-    selectedTicker: selectedTicker
-  });
+  return {
+    historicalData: getHistoricalData(selectedTicker), 
+    selectedTicker
+  };
 }
 
 
@@ -118,19 +118,7 @@ function Portfolio() {
               />
             )}
           </ErrorBoundary>
-
-          <ErrorBoundary FallbackComponent={ErrorFallback}>
-            <Suspense fallback={<Box sx={{ height: 350 }}><GraphSkeleton /></Box>}>
-              <Await resolve={historicalData}>
-                {(historicalData) => (
-                  <CurrentStockCard
-                    stockData={historicalData}
-                    stockTicker={selectedTicker}
-                  />
-                )}
-              </Await>
-            </Suspense>
-          </ErrorBoundary>
+          <HistoricalDataCard historicalData={historicalData} selectedTicker={selectedTicker}/>
         </Stack>
       </Box>
     </Box>

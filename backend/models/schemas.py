@@ -48,7 +48,14 @@ class CachedUser(BaseModel):
     yearly_expenses: List[YearlyExpenses] = []
     
     @classmethod
-    def from_user(cls, user: Any) -> "CachedUser":  # Using Any to avoid circular import
+    def from_user(cls, user: Any) -> "CachedUser":
         """Create cached version from full user."""
-        user_dict = user.dict(exclude={'password', 'friend_requests_sent', 'friend_requests_received'})
-        return cls(**user_dict)
+        return cls.model_validate(
+            user.dict(
+                exclude={
+                    'password',
+                    'friend_requests_sent',
+                    'friend_requests_received'
+                }
+            )
+        )
