@@ -16,7 +16,7 @@ from models.PortfolioSnapshot import PortfolioSnapshot
 from models.friendRequest import FriendRequest
 from models.APIKeyManager import ApiKey
 import logging
-
+from redis import asyncio as aioredis
 
 DESCRIPTION = """
 This API powers whatever I want to make
@@ -34,27 +34,46 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize application services."""
-    client = None
+    mongo_client = None
+    redis_client = None
     try:
         # Initialize MongoDB client
-        client = AsyncIOMotorClient(CONFIG.DB_URL, maxPoolSize=50, minPoolSize=10)
+        mongo_client = AsyncIOMotorClient(CONFIG.DB_URL, maxPoolSize=50, minPoolSize=10)
+        
+        # Initialize Redis client with retry logic
+        for i in range(3):  # Try 3 times
+            try:
+                redis_client = await aioredis.Redis(
+                    host=CONFIG.REDIS_HOST,
+                    port=CONFIG.REDIS_PORT,
+                    username=CONFIG.REDIS_USERNAME,
+                    password=CONFIG.REDIS_PASSWORD, 
+                    decode_responses=True,
+                    socket_timeout=5
+                )
+                await redis_client.ping()  # Test connection
+                break
+            except Exception as e:
+                if i == 2:  # Last attempt
+                    logger.warning(f"Redis connection failed: {str(e)}")
+                await asyncio.sleep(1)  # Wait before retry
+        
+        app.state.redis = redis_client
         
         # Initialize Beanie
         await init_beanie(
-            database=client[CONFIG.DB_NAME], 
-            document_models=[User, Stock, Transaction, PortfolioSnapshot, FriendRequest, ApiKey ]
+            database=mongo_client[CONFIG.DB_NAME], 
+            document_models=[User, Stock, Transaction, PortfolioSnapshot, FriendRequest, ApiKey]
         )
         logger.info("Database initialized")
         yield
     finally:
+        if mongo_client:
+            mongo_client.close()
+        if redis_client:
+            await redis_client.close()
+        logger.info("Database and Redis connections closed")
         
-        # Close database connection
-        await asyncio.sleep(1)  # Allow pending operations to complete
-        if client:
-            client.close()
-            logger.info("Database connection closed")
-
 # Get environment variables
 WEBSITE_HOSTNAME = os.getenv('WEBSITE_HOSTNAME', 'localhost:8000')
 app = FastAPI(lifespan=lifespan)

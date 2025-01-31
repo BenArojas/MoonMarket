@@ -3,17 +3,17 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from models.user import User
-from fastapi import HTTPException, Cookie
+from fastapi import HTTPException, Cookie, Request
 
 EXPIRATION_TIME = timedelta(hours=1)  # 1 hour
 
-async def get_current_user(session: Optional[str] = Cookie(None)) -> User:
+async def get_current_user(request: Request,session: Optional[str] = Cookie(None)) -> User:
     """Dependency to get the current authenticated user from session cookie."""
     if not session:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     # Use the by_session class method from User model
-    user = await User.by_session(session)
+    user = await User.by_session(session, request)
     if not user or not user.last_activity:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
@@ -30,7 +30,7 @@ async def get_current_user(session: Optional[str] = Cookie(None)) -> User:
         raise HTTPException(status_code=401, detail="Session expired")
 
     # Update last activity timestamp using the model method
-    await user.update_last_activity()
+    await user.update_last_activity(request)
     
     return user
 

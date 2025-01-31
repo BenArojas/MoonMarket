@@ -3,29 +3,16 @@ from datetime import datetime, timezone
 from typing import Annotated, Any, Optional, List, TYPE_CHECKING
 from beanie import Document, Indexed, PydanticObjectId, Link
 from pydantic import BaseModel, EmailStr, Field
+from fastapi import Request
+from cache.manager import CacheManager
+from secrets import token_urlsafe
+from models.schemas import (
+    CachedUser, Deposit, Holding, YearlyExpenses
+)
 
 if TYPE_CHECKING:
     from .friendRequest import FriendRequest
 
-class Deposit(BaseModel):
-    amount: float
-    date: datetime
-
-class Holding(BaseModel):
-    ticker: str
-    avg_bought_price: float
-    quantity: int
-    position_started: datetime
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "ticker": "AAPL",
-                "avg_bought_price": 150,
-                "quantity": 40,
-                "position_started": "2024-04-30T08:24:12"
-            }
-        }
     
 class ApiKeyRequest(BaseModel):
     api_key: str
@@ -49,11 +36,6 @@ class UserFriend(BaseModel):
 class FriendShow(UserFriend):
     request_id: Optional[str] = None
 
-class YearlyExpenses(BaseModel):
-    """Represents commission and tax expenses for a specific year"""
-    year: int
-    commission_paid: float = 0
-    taxes_paid: float = 0
     
 class UserUpdate(BaseModel):
     """Updatable user fields."""
@@ -71,6 +53,7 @@ class UserUpdate(BaseModel):
 class UserOut(UserUpdate):
     """User fields returned to the client."""
     friends: List[PydanticObjectId] | None = []
+
     
 
 class User(Document):
@@ -93,7 +76,64 @@ class User(Document):
     tax_rate: float = 0
     yearly_expenses: List[YearlyExpenses] = []
     
+    
+    @classmethod
+    async def by_session(cls, session: str, request: Request) -> Optional["User"]:
+        cache_manager = CacheManager(request)
+        cached_data = await cache_manager.get_user_by_session(session)
+        
+        if cached_data:
+            # Query DB just for sensitive data
+            user = await cls.find_one({"session": session})
+            if not user:
+                return None
+                
+            # Convert to CachedUser - Pydantic will automatically handle nested datetime conversions
+            # because our models (Holding, Deposit, YearlyExpenses) have datetime fields defined
+            cached_user = CachedUser.model_validate(cached_data)
+            
+            # Update user with cached data
+            user_dict = cached_user.model_dump(exclude_unset=True)
+            for key, value in user_dict.items():
+                if hasattr(user, key):
+                    setattr(user, key, value)
+                    
+            return user
 
+    # Session management methods
+    async def create_session(self, request: Request) -> str:
+        """Create a new session for the user with caching."""
+        
+        self.session = token_urlsafe(32)
+        self.last_activity = datetime.now(timezone.utc)
+        await self.save()
+        
+        # Add caching
+        cache_manager = CacheManager(request)
+        await cache_manager.cache_user(self)
+        
+        return self.session
+
+    async def end_session(self, request: Request) -> None:
+        """End the user's current session and clear cache."""
+        # Clear cache first
+        cache_manager = CacheManager(request)
+        await cache_manager.invalidate_user(self)
+        
+        self.session = None
+        await self.save()
+
+    async def update_last_activity(self, request: Request) -> None:
+        """Update the user's last activity timestamp with caching."""
+        self.last_activity = datetime.now(timezone.utc)
+        
+        # Update cache first for better read performance
+        cache_manager = CacheManager(request)
+        await cache_manager.cache_user(self)
+        
+        await self.save()
+    
+    
     # Friend-related methods
     async def add_friend(self, id: PydanticObjectId):
         self.friends.append(id)
@@ -129,25 +169,6 @@ class User(Document):
             request.status = "rejected"
             await request.save()
 
-    # Session management methods
-    async def create_session(self) -> str:
-        """Create a new session for the user."""
-        from secrets import token_urlsafe
-        self.session = token_urlsafe(32)
-        self.last_activity = datetime.now(timezone.utc)
-        await self.save()
-        return self.session
-
-    async def end_session(self) -> None:
-        """End the user's current session."""
-        self.session = None
-        await self.save()
-
-    async def update_last_activity(self) -> None:
-        """Update the user's last activity timestamp."""
-        self.last_activity = datetime.now(timezone.utc)
-        await self.save()
-
     # Existing utility methods
     @property
     def created(self) -> datetime | None:
@@ -160,11 +181,6 @@ class User(Document):
     @classmethod
     async def by_username(cls, username: str) -> Optional["User"]:
         return await cls.find_one({"username": username})
-
-    @classmethod
-    async def by_session(cls, session: str) -> Optional["User"]:
-        """Get a user by their session token."""
-        return await cls.find_one({"session": session})
 
     # Standard Python methods
     def __repr__(self) -> str:
@@ -184,6 +200,7 @@ class User(Document):
             return self.email == other.email
         return False
 
+    
 class PasswordChangeRequest(BaseModel):
     password: str
     new_password: str

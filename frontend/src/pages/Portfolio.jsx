@@ -1,9 +1,9 @@
 import { getPortfolioSnapshots, postSnapshot } from "@/api/portfolioSnapshot";
 import { getHistoricalData, updateStockPrices } from "@/api/stock";
 import { getUserData } from "@/api/user";
-import CurrentStockCard from "@/components/CurrentStock";
 import DataGraph from "@/components/DataGraph";
 import GraphMenu from "@/components/GraphMenu";
+import { HistoricalDataCard } from '@/components/HistoricalDataCard';
 import NewUserNoHoldings from "@/components/NewUserNoHoldings";
 import SnapshotChart from "@/components/SnapShotChart";
 import useGraphData from "@/hooks/useGraphData";
@@ -13,18 +13,17 @@ import "@/styles/App.css";
 import { lastUpdateDate } from "@/utils/dataProcessing";
 import { Box, Stack, useMediaQuery, useTheme } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useContext, useEffect, useState, Suspense } from "react";
+import { useContext, useEffect, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import {
-  Await,
-  defer,
   useLoaderData
 } from "react-router-dom";
+import { cacheService} from '@/cacheService'
 
 
 
 
-function ErrorFallback({ error }) {
+export function ErrorFallback({ error }) {
   return (
     <div role="alert">
       <p>Something went wrong:</p>
@@ -33,15 +32,29 @@ function ErrorFallback({ error }) {
   );
 }
 
-export async function loader({ params, request }) {
+
+export async function loader({ request }) {
   const { searchParams } = new URL(request.url);
   const selectedTicker = searchParams.get("selected") || "BTCUSD";
+  const cacheKey = `historical-${selectedTicker}`;
 
-  const res = await getHistoricalData(selectedTicker)
-  return defer({
-    historicalData: res.historical,
-    selectedTicker: selectedTicker
-  });
+  // Try to get from cache
+  const cachedData = cacheService.get(cacheKey);
+  if (cachedData) {
+    return {
+      historicalData: cachedData,
+      selectedTicker
+    };
+  }
+
+  // If not in cache or expired, fetch new data
+  const data = await getHistoricalData(selectedTicker);
+  cacheService.set(cacheKey, data);
+
+  return {
+    historicalData: data,
+    selectedTicker
+  };
 }
 
 
@@ -118,19 +131,7 @@ function Portfolio() {
               />
             )}
           </ErrorBoundary>
-
-          <ErrorBoundary FallbackComponent={ErrorFallback}>
-            <Suspense fallback={<Box sx={{ height: 350 }}><GraphSkeleton /></Box>}>
-              <Await resolve={historicalData}>
-                {(historicalData) => (
-                  <CurrentStockCard
-                    stockData={historicalData}
-                    stockTicker={selectedTicker}
-                  />
-                )}
-              </Await>
-            </Suspense>
-          </ErrorBoundary>
+          <HistoricalDataCard historicalData={historicalData} selectedTicker={selectedTicker}/>
         </Stack>
       </Box>
     </Box>

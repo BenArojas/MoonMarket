@@ -31,10 +31,10 @@ export async function loader({ params, request }) {
   const stock = getStockData(ticker);
   const intradayData = getIntradayData(ticker, searchTerm);
 
-  return defer({
+  return {
     intradayData: intradayData,
     stock: stock,
-  });
+  }
 }
 
 function StockItem() {
@@ -184,13 +184,13 @@ function StockHeader({ stock, onRangeChange, currentRange, isMobile }) {
       >
         <Typography variant="h4">{stock.symbol}</Typography>
         <Box sx={{
-           display: "flex",
-           flexDirection:  "row",
-           gap: 4
+          display: "flex",
+          flexDirection: "row",
+          gap: 4
         }}>
-        <StockInfoCard label="Last Price" value={stock.price} />
-        <StockInfoCard label="Previous close" value={stock.previousClose} />
-        <StockInfoCard label="Change (24h)" value={`${stock.changesPercentage}%`} />
+          <StockInfoCard label="Last Price" value={stock.price} />
+          <StockInfoCard label="Previous close" value={stock.previousClose} />
+          <StockInfoCard label="Change (24h)" value={`${stock.changesPercentage}%`} />
         </Box>
         {!isMobile && (
           <>
@@ -222,9 +222,9 @@ function StockHeader({ stock, onRangeChange, currentRange, isMobile }) {
           ))}
         </Select>
         <Box sx={{
-          width: isMobile? 200: "100%",
+          width: isMobile ? 200 : "100%",
         }}>
-        <SearchBar />
+          <SearchBar />
         </Box>
       </Box>
     </Box>
