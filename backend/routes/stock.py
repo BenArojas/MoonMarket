@@ -1,5 +1,6 @@
 
 import asyncio
+import json
 from typing import Any, Dict, List
 from utils.api_key import get_api_key
 from fastapi import APIRouter, HTTPException, status, Depends, Query, Request
@@ -16,18 +17,38 @@ BASE_URL = 'https://financialmodelingprep.com/api/v3/'
 
 
 @router.get("/historical_data/{symbol}", response_description="Stock details from API")
-async def get_historical_data(request:Request, symbol: str, api_key: ApiKey = Depends(get_api_key)) -> Dict[str, Any]:
-    one_year_ago = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
-    endpoint = f'historical-price-full/{symbol}'
-    url = f"{BASE_URL}{endpoint}?from={one_year_ago}&apikey={api_key.key}"
+async def get_historical_data(request: Request, symbol: str, api_key: ApiKey = Depends(get_api_key)) -> Dict[str, Any]:
+    # Try to get from cache first
+    redis_client = request.app.state.redis
+    cache_key = f"historical_data:{symbol}"
+    
     try:
+        # Check cache
+        cached_data = await redis_client.get(cache_key)
+        if cached_data:
+            return json.loads(cached_data)  # Return cached data if found
+        
+        # If not in cache, fetch from API
+        one_year_ago = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
+        endpoint = f'historical-price-full/{symbol}'
+        url = f"{BASE_URL}{endpoint}?from={one_year_ago}&apikey={api_key.key}"
+        
         response = requests.get(url)
-        response.raise_for_status()  # Raises an HTTPError for bad responses
+        response.raise_for_status()
         await api_key.increment_usage(request)
+        
         historical_stock_price = response.json()
-        return historical_stock_price  # Return the data if successful
+        
+        # Store in cache with 2 minute expiration
+        await redis_client.setex(
+            cache_key,
+            120,  # 2 minutes in seconds
+            json.dumps(historical_stock_price)
+        )
+        
+        return historical_stock_price
+        
     except Exception as e:
-        # For any other unexpected errors
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
 
 

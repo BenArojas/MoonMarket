@@ -18,7 +18,6 @@ import { ErrorBoundary } from "react-error-boundary";
 import {
   useLoaderData
 } from "react-router-dom";
-import { cacheService} from '@/cacheService'
 
 
 
@@ -36,23 +35,9 @@ export function ErrorFallback({ error }) {
 export async function loader({ request }) {
   const { searchParams } = new URL(request.url);
   const selectedTicker = searchParams.get("selected") || "BTCUSD";
-  const cacheKey = `historical-${selectedTicker}`;
-
-  // Try to get from cache
-  const cachedData = cacheService.get(cacheKey);
-  if (cachedData) {
-    return {
-      historicalData: cachedData,
-      selectedTicker
-    };
-  }
-
-  // If not in cache or expired, fetch new data
-  const data = await getHistoricalData(selectedTicker);
-  cacheService.set(cacheKey, data);
 
   return {
-    historicalData: data,
+    historicalData: getHistoricalData(selectedTicker), 
     selectedTicker
   };
 }
