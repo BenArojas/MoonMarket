@@ -10,6 +10,8 @@ class DatabaseSettings(BaseSettings):
 class RedisSettings(BaseSettings):
     REDIS_HOST: str = config("REDIS_HOST", default='localhost')
     REDIS_PORT: int = config("REDIS_PORT", cast=int, default=6379)
+    REDIS_USERNAME: str = config("REDIS_USERNAME")
+    REDIS_PASSWORD: str = config("REDIS_PASSWORD")
 
     
 class Settings(DatabaseSettings, RedisSettings):

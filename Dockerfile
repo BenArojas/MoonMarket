@@ -1,8 +1,8 @@
 # Use official Python runtime
 FROM python:3.10-slim
 
-# Install nginx and redis
-RUN apt-get update && apt-get install -y nginx redis-tools \
+# Install nginx only (no redis needed)
+RUN apt-get update && apt-get install -y nginx \
     && rm -rf /var/lib/apt/lists/*
 
 # Set work directory
@@ -21,15 +21,14 @@ COPY frontend/dist static/
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Create startup script
+# Create startup script - removed redis-server
 RUN echo '#!/bin/bash\n\
 nginx & \n\
-redis-server & \n\
 gunicorn -w 2 -k uvicorn.workers.UvicornWorker --forwarded-allow-ips="*" -b 127.0.0.1:8000 main:app\n\
 ' > /app/start.sh \
 && chmod +x /app/start.sh
 
-# Expose ports
+# Expose port
 EXPOSE 80
 
 # Start services
