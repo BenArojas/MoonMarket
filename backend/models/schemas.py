@@ -1,7 +1,7 @@
 """Shared schemas for models."""
 from datetime import datetime
 from typing import List, Optional, Any
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr,  model_validator
 from beanie import PydanticObjectId
 
 class Deposit(BaseModel):
@@ -46,16 +46,22 @@ class CachedUser(BaseModel):
     last_activity: Optional[datetime] = None
     tax_rate: float = 0
     yearly_expenses: List[YearlyExpenses] = []
-    
+
+    @model_validator(mode='before')
     @classmethod
-    def from_user(cls, user: Any) -> "CachedUser":
-        """Create cached version from full user."""
-        return cls.model_validate(
-            user.dict(
-                exclude={
-                    'password',
-                    'friend_requests_sent',
-                    'friend_requests_received'
-                }
-            )
-        )
+    def validate_nested(cls, values):
+        if isinstance(values, dict):
+            # Convert deposits list
+            if 'deposits' in values:
+                values['deposits'] = [
+                    Deposit.model_validate(d) if isinstance(d, dict) else d 
+                    for d in values['deposits']
+                ]
+            
+            # Convert yearly_expenses list
+            if 'yearly_expenses' in values:
+                values['yearly_expenses'] = [
+                    YearlyExpenses.model_validate(e) if isinstance(e, dict) else e 
+                    for e in values['yearly_expenses']
+                ]
+        return values

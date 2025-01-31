@@ -30,38 +30,32 @@ class CacheManager:
     
     async def cache_user(self, user: "User", expire: int = 3600) -> None:
         """Cache user data using CachedUser model."""
-        # Convert to CachedUser first
-        cached_user = CachedUser.from_user(user)
-        user_dict = cached_user.model_dump(exclude={'password'})
-        # Convert all datetime objects (including nested ones) to ISO format
-        user_dict = convert_datetime_recursive(user_dict)
-        cache_ops = []
-        json_data = json.dumps(user_dict)
-        
-        # Add all cache operations to list
-        if user.session:
-            cache_ops.append(
-                self.redis.setex(
-                    f"{self.prefix['user']}session:{user.session}",
-                    expire,
-                    json_data
-                )
-            )
+        # Only proceed if user has a session
+        if not user.session:
+            return
             
-        cache_ops.extend([
-        self.redis.setex(
-            f"{self.prefix['user']}email:{user.email}",
-            expire,
-            json_data
-        ),
-        self.redis.setex(
-            f"{self.prefix['user']}username:{user.username}",
-            expire,
-            json_data
+        # Convert user to dict, excluding sensitive data
+        user_dict = user.dict(
+            exclude={
+                'password',
+                'friend_requests_sent',
+                'friend_requests_received'
+            }
         )
-        ])
-            # Execute all cache operations concurrently
-        await asyncio.gather(*cache_ops)
+        
+        # Convert to CachedUser model which will handle nested validations
+        cached_user = CachedUser.model_validate(user_dict)
+        
+        # Convert to dict and handle datetime serialization
+        serialized_data = cached_user.model_dump()
+        serialized_data = convert_datetime_recursive(serialized_data)
+        
+        # Store in Redis with expiration
+        await self.redis.setex(
+            f"{self.prefix['user']}session:{user.session}",
+            expire,
+            json.dumps(serialized_data)
+        )
         
     
     async def invalidate_user(self, user: "User") -> None:

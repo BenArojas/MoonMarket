@@ -1,9 +1,9 @@
 import { getPortfolioSnapshots, postSnapshot } from "@/api/portfolioSnapshot";
 import { getHistoricalData, updateStockPrices } from "@/api/stock";
 import { getUserData } from "@/api/user";
-import CurrentStockCard from "@/components/CurrentStock";
 import DataGraph from "@/components/DataGraph";
 import GraphMenu from "@/components/GraphMenu";
+import { HistoricalDataCard } from '@/components/HistoricalDataCard';
 import NewUserNoHoldings from "@/components/NewUserNoHoldings";
 import SnapshotChart from "@/components/SnapShotChart";
 import useGraphData from "@/hooks/useGraphData";
@@ -13,14 +13,12 @@ import "@/styles/App.css";
 import { lastUpdateDate } from "@/utils/dataProcessing";
 import { Box, Stack, useMediaQuery, useTheme } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useContext, useEffect, useState, Suspense } from "react";
+import { useContext, useEffect, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import {
-  Await,
-  defer,
   useLoaderData
 } from "react-router-dom";
-import {HistoricalDataCard} from '@/components/HistoricalDataCard'
+import { cacheService} from '@/cacheService'
 
 
 
@@ -34,12 +32,27 @@ export function ErrorFallback({ error }) {
   );
 }
 
+
 export async function loader({ request }) {
   const { searchParams } = new URL(request.url);
   const selectedTicker = searchParams.get("selected") || "BTCUSD";
+  const cacheKey = `historical-${selectedTicker}`;
+
+  // Try to get from cache
+  const cachedData = cacheService.get(cacheKey);
+  if (cachedData) {
+    return {
+      historicalData: cachedData,
+      selectedTicker
+    };
+  }
+
+  // If not in cache or expired, fetch new data
+  const data = await getHistoricalData(selectedTicker);
+  cacheService.set(cacheKey, data);
 
   return {
-    historicalData: getHistoricalData(selectedTicker), 
+    historicalData: data,
     selectedTicker
   };
 }
