@@ -22,7 +22,7 @@ app.include_router(TransactionRouter, prefix="/api/transaction")
 app.include_router(PortfolioSnapshotRouter, prefix="/api/portfolio-snapshot")
 app.include_router(FriendsRouter, prefix="/api/friends")
 app.include_router(APIKeyRouter, prefix="/api/api-key")
-app.include_router(APIKeyRouter, prefix="/api/redis")
+app.include_router(RedisRouter, prefix="/api/redis")
 
 
 
