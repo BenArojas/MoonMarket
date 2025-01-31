@@ -50,10 +50,3 @@ jobs:
          resourceGroup: ${{ secrets.RESOURCE_GROUP }}
          containerAppEnvironment: ${{ secrets.CONTAINER_APP_ENVIRONMENT }}
          imageToDeploy: ${{ secrets.REGISTRY_LOGIN_SERVER }}/moonmarket:${{ github.run_number }}
-         environmentVariables: |
-            REDIS_HOST=${{ secrets.REDIS_HOST }}
-            REDIS_PORT=${{ secrets.REDIS_PORT }}
-            REDIS_USERNAME=${{ secrets.REDIS_USERNAME }}
-            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
-            DB_URL=${{ secrets.DB_URL }}
-            DB_NAME=${{ secrets.DB_NAME }}

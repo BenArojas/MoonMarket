@@ -9,6 +9,7 @@ from routes.transaction import router as TransactionRouter
 from routes.PortfolioSnapshot import router as  PortfolioSnapshotRouter
 from routes.friend import router as FriendsRouter
 from routes.apiKey import router as APIKeyRouter
+from routes.redis import router as RedisRouter
 from decouple import config
 
 
@@ -21,6 +22,8 @@ app.include_router(TransactionRouter, prefix="/api/transaction")
 app.include_router(PortfolioSnapshotRouter, prefix="/api/portfolio-snapshot")
 app.include_router(FriendsRouter, prefix="/api/friends")
 app.include_router(APIKeyRouter, prefix="/api/api-key")
+app.include_router(APIKeyRouter, prefix="/api/redis")
+
 
 
 

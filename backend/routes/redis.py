@@ -1,6 +1,9 @@
+from fastapi import  APIRouter
 from app import app
 
-@app.get("/api/test-redis")
+router = APIRouter(tags=["Redis"])
+
+@router.get("/test-redis")
 async def test_redis():
     try:
         redis_client = app.state.redis
@@ -11,7 +14,7 @@ async def test_redis():
         return {"error": str(e)}
     
     
-@app.get("/api/metrics/cache", include_in_schema=False)
+@router.get("/metrics/cache", include_in_schema=False)
 async def cache_metrics():
     try:
         redis = app.state.redis
@@ -26,7 +29,7 @@ async def cache_metrics():
     except Exception as e:
         return {"error": str(e)}
     
-@app.get("/api/health")
+@router.get("/health")
 async def health_check():
     try:
         # Test Redis connection
