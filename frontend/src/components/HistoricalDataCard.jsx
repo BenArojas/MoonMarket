@@ -7,7 +7,7 @@ import { ErrorBoundary } from "react-error-boundary";
 import {
     Await
 } from "react-router-dom";
-import {ErrorFallback} from '@/pages/Portfolio'
+import {ErrorFallback} from '@/components/ErrorFallBack'
 
 
 export function HistoricalDataCard({ historicalData, selectedTicker }) {

@@ -1,102 +1,127 @@
-import React from 'react'
 import { RouterProvider, createBrowserRouter, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "@/pages/ProtectedRoute";
 import { PublicRoute } from "@/pages/PublicRoute";
-import { Suspense } from "react";
-import "./styles/global.css";
 import Layout from "@/pages/Layout";
-import Global from "@/pages/Global";
 import NotFoundPage from "@/pages/NotFoundPage";
-import { loader as stockItemLoader} from '@/pages/StockItem'
-import {loader as homeLoader} from '@/pages/Portfolio'
+import ErrorPage from '@/pages/ErrorPage'
 
-// Lazy load your components
-const Portfolio = React.lazy(() => import("@/pages/Portfolio"));
-const ErrorPage = React.lazy(() => import("@/pages/ErrorPage"));
-const StockItem = React.lazy(() => import("@/pages/StockItem"));
-const Login = React.lazy(() => import("@/pages/Login"));
-const Profile = React.lazy(() => import("@/pages/Profile"));
-const Transactions = React.lazy(() => import("@/pages/Transactions"));
-const Register = React.lazy(() => import("@/pages/Register"));
-const Space = React.lazy(() => import("@/pages/Space"));
-const Test = React.lazy(() => import("@/pages/Test"));
+const router = createBrowserRouter([
+  {
+    element: <ProtectedRoute />,
+    children: [
+      {
+        element: <Layout />,
+        path: "/",
+        children: [
+          {
+            index: true,
+            element: <Navigate to="/home" replace />,
+          },
+          {
+            path: "/home",
+            async lazy() {
+              const { default: Portfolio, loader } = await import("@/pages/Portfolio");
+              return {
+                Component: Portfolio,
+                loader,
+                ErrorBoundary: (await import("@/components/ErrorFallBack")).default
+              };
+            }
+          },
+          {
+            path: "/profile",
+            async lazy() {
+              const { default: Profile } = await import("@/pages/Profile");
+              return { Component: Profile };
+            }
+          },
+          {
+            path: "/transactions",
+            async lazy() {
+              const { default: Transactions } = await import("@/pages/Transactions");
+              return {
+                Component: Transactions,
+                ErrorBoundary: (await import("@/components/ErrorFallBack")).default
+              };
+            }
+          },
+          {
+            path: "/space",
+            async lazy() {
+              const { default: Space } = await import("@/pages/Space");
+              return {
+                Component: Space,
+                ErrorBoundary: (await import("@/components/ErrorFallBack")).default
+              };
+            }
+          },
+          {
+            path: "/test",
+            async lazy() {
+              const { default: Test } = await import("@/pages/Test");
+              return { Component: Test };
+            }
+          },
+          {
+            path: "/global",
+            async lazy() {
+              const { default: Global } = await import("@/pages/Global");
+              return { Component: Global };
+            }
+          },
+          {
+            path: "stock/:stockTicker",
+            async lazy() {
+              const { default: StockItem, loader } = await import("@/pages/StockItem");
+              return {
+                Component: StockItem,
+                loader,
+                ErrorBoundary: (await import("@/components/ErrorFallBack")).default
+              };
+            }
+          }
+        ],
+      },
+    ],
+  },
+  {
+    element: <PublicRoute />,
+    path: "/",
+    errorElement: <ErrorPage />,
+    async lazy() {
+      const { default: ErrorPage } = await import("@/components/ErrorFallBack");
+      return { ErrorBoundary: ErrorPage };
+    },
+    children: [
+      {
+        path: "/login",
+        async lazy() {
+          const { default: Login } = await import("@/pages/Login");
+          return {
+            Component: Login,
+            ErrorBoundary: (await import("@/components/ErrorFallBack")).default
+          };
+        }
+      },
+      {
+        path: "/register",
+        async lazy() {
+          const { default: Register } = await import("@/pages/Register");
+          return {
+            Component: Register,
+            ErrorBoundary: (await import("@/components/ErrorFallBack")).default
+          };
+        }
+      },
+    ],
+  },
+  {
+    path: "*",
+    element: <NotFoundPage />
+  },
+]);
 
 const Routes = () => {
-  // Combine and conditionally include routes based on authentication status
-  const router = createBrowserRouter([
-    {
-      element: <ProtectedRoute />,
-      children: [
-        {
-          element: <Layout />,
-          path: "/",
-          children: [
-            {
-              index: true, // This marks it as the index route
-              element: <Navigate to="/home" replace />, // Redirect from / to /home
-            },
-            {
-              path: "/home",
-              element: <Suspense fallback={<div>Loading...</div>}><Portfolio /></Suspense>,
-              errorElement: <Suspense fallback={<div>Loading...</div>}><ErrorPage /></Suspense>,
-              loader: homeLoader,
-            },
-            {
-              path: "/profile",
-              element: <Suspense fallback={<div>Loading...</div>}><Profile /></Suspense>,
-            },
-            {
-              path: "/transactions",
-              element: <Suspense fallback={<div>Loading...</div>}><Transactions /></Suspense>,
-              errorElement: <Suspense fallback={<div>Loading...</div>}><ErrorPage /></Suspense>,
-            },
-            {
-              path: "/space",
-              element: <Suspense fallback={<div>Loading...</div>}><Space /></Suspense>,
-              errorElement: <Suspense fallback={<div>Loading...</div>}><ErrorPage /></Suspense>,
-            },
-            {
-              path: "/test",
-              element: <Suspense fallback={<div>Loading...</div>}><Test /></Suspense>,
-            },
-            {
-              path: "/global",
-              element: <Suspense fallback={<div>Loading...</div>}><Global /></Suspense>,
-            },
-            {
-              path: "stock/:stockTicker",
-              element: <Suspense fallback={<div>Loading...</div>}><StockItem /></Suspense>,
-              errorElement: <Suspense fallback={<div>Loading...</div>}><ErrorPage /></Suspense>,
-              loader: stockItemLoader,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      element: <PublicRoute />,
-      path: "/",
-      errorElement: <Suspense fallback={<div>Loading...</div>}><ErrorPage /></Suspense>,
-      children: [
-        {
-          path: "/login",
-          element: <Suspense fallback={<div>Loading...</div>}><Login /></Suspense>,
-          errorElement: <Suspense fallback={<div>Loading...</div>}><ErrorPage /></Suspense>,
-        },
-        {
-          path: "/register",
-          element: <Suspense fallback={<div>Loading...</div>}><Register /></Suspense>,
-          errorElement: <Suspense fallback={<div>Loading...</div>}><ErrorPage /></Suspense>,
-        },
-      ],
-    },
-    {
-      path: "*",
-      element: <Suspense fallback={<div>Loading...</div>}><NotFoundPage /></Suspense>,
-    },
-  ]);
-
-  // Provide the router configuration using RouterProvider
   return <RouterProvider router={router} />;
 };
 
