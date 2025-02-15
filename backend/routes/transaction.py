@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from datetime import datetime
 from utils.auth_user import get_current_user
 from models.user import User, YearlyExpenses
@@ -16,7 +16,8 @@ async def buy_stock_shares(
     ticker: str, 
     quantity: int, 
     transaction_date: datetime,
-    commission: float, 
+    commission: float,
+    request: Request,
     user: User = Depends(get_current_user)
 ):
     # Convert the received datetime to UTC if it isn't already
@@ -101,6 +102,7 @@ async def buy_stock_shares(
 
     # Save the updated user document back to the database
     await user.save()
+    await user.refresh_cache(request)
 
     return {"message": "Stock purchased successfully"}
 
@@ -111,6 +113,7 @@ async def sell_stock_shares(
     price: float, 
     commission: float, 
     transaction_date: datetime, 
+    request: Request,
     user: User = Depends(get_current_user)
 ):
     # Convert the received datetime to UTC if it isn't already
@@ -202,11 +205,12 @@ async def sell_stock_shares(
 
     # Save the updated user document back to the database
     await user.save()
+    await user.refresh_cache(request)
 
     return {"message": "Stock sold successfully"}
 
 @router.delete("/delete_transaction/{transaction_id}")
-async def delete_transaction(transaction_id: str, user: User = Depends(get_current_user)):
+async def delete_transaction(transaction_id: str, request: Request, user: User = Depends(get_current_user)):
     # Find the transaction
     # Convert string ID to PydanticObjectId
     transaction_obj_id = PydanticObjectId(transaction_id)
@@ -234,6 +238,7 @@ async def delete_transaction(transaction_id: str, user: User = Depends(get_curre
     # Delete the transaction and save user changes
     await transaction.delete()
     await user.save()
+    await user.refresh_cache(request)
     
     return {"message": "Transaction deleted successfully"}
 
@@ -276,6 +281,7 @@ async def _handle_purchase_deletion(user: User, transaction: Transaction):
         else:
             # If no shares remain, remove the holding
             user.holdings.remove(holding)
+    
 
 async def _handle_sale_deletion(user: User, transaction: Transaction):
     """Handle deletion of a sale transaction"""

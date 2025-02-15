@@ -122,6 +122,17 @@ class User(Document):
         
         self.session = None
         await self.save()
+    
+    async def refresh_cache(self, request: Request) -> None:
+        """Refresh user's cache data from DB while preserving session."""
+        current_session = self.session
+        
+        # Get fresh data from DB
+        fresh_user = await User.find_one(User.id == self.id)
+        if fresh_user and current_session:
+            fresh_user.session = current_session
+            cache_manager = CacheManager(request)
+            await cache_manager.cache_user(fresh_user)
 
     async def update_last_activity(self, request: Request) -> None:
         """Update the user's last activity timestamp with caching."""
