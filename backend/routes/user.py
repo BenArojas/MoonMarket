@@ -1,6 +1,7 @@
 """User router."""
 
 from typing import Optional
+from cache.manager import CacheManager
 from fastapi import APIRouter, Depends, HTTPException, Response, Security, Request
 from models.user import User, UserOut, PasswordChangeRequest, Deposit, UserFriend, YearlyExpenses
 from fastapi.responses import JSONResponse
@@ -83,26 +84,33 @@ async def users_list(current_user: User = Depends(get_current_user)):
     return users
 
 @router.post("/add_deposit")
-async def add_deposit(deposit:Deposit, user:User = Depends(get_current_user)):
+async def add_deposit(deposit:Deposit,request: Request, user:User = Depends(get_current_user)):
     """Add deposit to user account."""
     user.deposits.append(deposit)
     user.current_balance+=deposit.amount
+
+    # Update cache before DB for better read performance
+    cache_manager = CacheManager(request)
+    await cache_manager.cache_user(user)
+    
     await user.save()
     return user
 
 
 @router.patch("/update-username", operation_id="update_user_details")
-async def update_user(new_username: str, user: User = Depends(get_current_user)) -> str:  
+async def update_user(new_username: str, request: Request, user: User = Depends(get_current_user)) -> str:  
     """Update username field."""
     username_check = await User.by_username(new_username)
     if username_check is not None:
         raise HTTPException(409, "User with that username already exists")
     user.username = new_username
+    cache_manager = CacheManager(request)
+    await cache_manager.cache_user(user)
     await user.save()
     return user.username
 
 @router.patch("/change_password", operation_id="change_password")
-async def update_password(request: PasswordChangeRequest, user:User = Depends(get_current_user)):
+async def update_password(request: PasswordChangeRequest, http_request: Request, user:User = Depends(get_current_user)):
     """change user password."""
     if not verify_password(request.password, user.password):
         raise HTTPException(400, "Passwords do not match")
@@ -110,6 +118,8 @@ async def update_password(request: PasswordChangeRequest, user:User = Depends(ge
     hashed_new_password = hash_password(request.new_password)
     # Update the user's password
     user.password = hashed_new_password
+    cache_manager = CacheManager(http_request)
+    await cache_manager.invalidate_user(user)
     await user.save()
     return JSONResponse(
         status_code=200,

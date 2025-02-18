@@ -1,4 +1,5 @@
-from fastapi import Depends, APIRouter, HTTPException
+from backend.cache.manager import CacheManager
+from fastapi import Depends, APIRouter, HTTPException, Request
 from typing import List
 from models.user import User, FriendShow
 from models.friend import FriendInfo, HoldingInfo
@@ -58,7 +59,7 @@ async def get_sent_friend_requests(current_user: User = Depends(get_current_user
         
 
 @router.post("/send_friend_request/{username}")
-async def send_friend_request(username: str, current_user: User = Depends(get_current_user)):
+async def send_friend_request(username: str,request: Request, current_user: User = Depends(get_current_user)):
     to_user = await User.find_one(User.username == username)
     if not to_user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -89,13 +90,14 @@ async def send_friend_request(username: str, current_user: User = Depends(get_cu
             detail="This user has already sent you a friend request. Please respond to their request instead"
         )
 
-    await current_user.send_friend_request(to_user)
+    await current_user.send_friend_request(to_user, request)
     return {"message": "Friend request sent"}
 
 @router.post("/handle_friend_request/{request_id}")
 async def handle_friend_request(
     request_id: str,
     answer: FriendRequestAnswer,
+    request: Request,
     current_user: User = Depends(get_current_user)
 ):
     friend_request = await FriendRequest.get(request_id)
@@ -113,10 +115,10 @@ async def handle_friend_request(
 
     try:
         if answer == FriendRequestAnswer.accept:
-            await current_user.accept_friend_request(friend_request, from_user)
+            await current_user.accept_friend_request(friend_request, from_user, request)
             message = "Friend request accepted"
         elif answer == FriendRequestAnswer.reject:
-            await current_user.reject_friend_request(friend_request, from_user)
+            await current_user.reject_friend_request(friend_request, from_user, request)
             message = "Friend request rejected"
         
         # Fetch the request again to confirm changes
@@ -207,7 +209,7 @@ async def get_all_friends(current_user: User = Depends(get_current_user)):
     return friend_info_list
 
 @router.delete("/remove-friend/{friend_id}")
-async def remove_friend(friend_id: str, current_user: User = Depends(get_current_user)):
+async def remove_friend(friend_id: str,request: Request, current_user: User = Depends(get_current_user)):
     # Convert string ID to ObjectId
     friend_object_id = ObjectId(friend_id)
     
@@ -222,6 +224,8 @@ async def remove_friend(friend_id: str, current_user: User = Depends(get_current
         await friend.save()
     # Update the user in the database
     await current_user.save()
+    cache_manager = CacheManager(request)
+    await cache_manager.cache_user(current_user)
     
     return {"message": "Friend removed successfully"}
     

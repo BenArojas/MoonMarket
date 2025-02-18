@@ -1,3 +1,4 @@
+from cache.manager import CacheManager
 from fastapi import APIRouter, Depends, HTTPException, Request
 from datetime import datetime
 from utils.auth_user import get_current_user
@@ -100,9 +101,9 @@ async def buy_stock_shares(
     await transaction.insert()
     user.transactions.append(transaction.id)
 
-    # Save the updated user document back to the database
-    await user.save()
-    await user.refresh_cache(request)
+    # Update cache with current state instead of refreshing from DB
+    cache_manager = CacheManager(request)
+    await cache_manager.cache_user(user)
 
     return {"message": "Stock purchased successfully"}
 
@@ -205,7 +206,9 @@ async def sell_stock_shares(
 
     # Save the updated user document back to the database
     await user.save()
-    await user.refresh_cache(request)
+    # Update cache with current state instead of refreshing from DB
+    cache_manager = CacheManager(request)
+    await cache_manager.cache_user(user)
 
     return {"message": "Stock sold successfully"}
 

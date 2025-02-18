@@ -33,6 +33,7 @@ class CacheManager:
         # Only proceed if user has a session
         if not user.session:
             return
+        cache_key = f"{self.prefix['user']}session:{user.session}"
             
         # Convert user to dict, excluding sensitive data
         user_dict = user.dict(
@@ -52,10 +53,10 @@ class CacheManager:
         
         # Store in Redis with expiration
         await self.redis.setex(
-            f"{self.prefix['user']}session:{user.session}",
-            expire,
-            json.dumps(serialized_data)
-        )
+        cache_key,
+        expire,
+        json.dumps(serialized_data)
+    )
         
     
     async def invalidate_user(self, user: "User") -> None:
@@ -63,14 +64,9 @@ class CacheManager:
         Remove all cached entries for a user.
         Called when user data is updated or session ends.
         """
-        keys_to_delete = [
-            f"{self.prefix}session:{user.session}" if user.session else None,
-            f"{self.prefix}email:{user.email}",
-            f"{self.prefix}username:{user.username}"
-        ]
-        keys_to_delete = [k for k in keys_to_delete if k is not None]
-        if keys_to_delete:
-            await self.redis.delete(*keys_to_delete)
+        if user.session:
+            cache_key = f"{self.prefix['user']}session:{user.session}"
+            await self.redis.delete(cache_key)
     
     async def get_api_key(self, key: str) -> Optional[dict]:
         """

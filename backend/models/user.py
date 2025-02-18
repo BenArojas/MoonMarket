@@ -155,7 +155,7 @@ class User(Document):
             self.friends.remove(friend.id)
             await self.save()
 
-    async def send_friend_request(self, to_user: "User"):
+    async def send_friend_request(self, to_user: "User", request):
         from .friendRequest import FriendRequest
         friend_request = FriendRequest(from_user=self, to_user=to_user)
         await friend_request.create()
@@ -163,8 +163,10 @@ class User(Document):
         to_user.friend_requests_received.append(friend_request)
         await self.save()
         await to_user.save()
+        cache_manager = CacheManager(request)
+        await cache_manager.cache_user(self)
 
-    async def accept_friend_request(self, request: "FriendRequest", from_user: "User"):
+    async def accept_friend_request(self, request: "FriendRequest", from_user: "User",http_request: Request ):
         if request.status == "pending":
             request.status = "accepted"
             if from_user.id in self.friends or self.id in from_user.friends:
@@ -174,8 +176,10 @@ class User(Document):
                 await self.add_friend(from_user.id)
                 await from_user.add_friend(self.id)
             await request.save()
+            cache_manager = CacheManager(http_request)
+            await cache_manager.cache_user(self)
 
-    async def reject_friend_request(self, request: "FriendRequest", from_user: "User"):
+    async def reject_friend_request(self, request: "FriendRequest", from_user: "User", http_request: Request):
         if request.status == "pending":
             request.status = "rejected"
             await request.save()
