@@ -88,12 +88,10 @@ async def add_deposit(deposit:Deposit,request: Request, user:User = Depends(get_
     """Add deposit to user account."""
     user.deposits.append(deposit)
     user.current_balance+=deposit.amount
-
-    # Update cache before DB for better read performance
+    await user.save()
+    
     cache_manager = CacheManager(request)
     await cache_manager.cache_user(user)
-    
-    await user.save()
     return user
 
 
@@ -104,9 +102,10 @@ async def update_user(new_username: str, request: Request, user: User = Depends(
     if username_check is not None:
         raise HTTPException(409, "User with that username already exists")
     user.username = new_username
+    
+    await user.save()
     cache_manager = CacheManager(request)
     await cache_manager.cache_user(user)
-    await user.save()
     return user.username
 
 @router.patch("/change_password", operation_id="change_password")
@@ -118,9 +117,10 @@ async def update_password(request: PasswordChangeRequest, http_request: Request,
     hashed_new_password = hash_password(request.new_password)
     # Update the user's password
     user.password = hashed_new_password
+    
+    await user.save()
     cache_manager = CacheManager(http_request)
     await cache_manager.invalidate_user(user)
-    await user.save()
     return JSONResponse(
         status_code=200,
         content={
