@@ -1,4 +1,4 @@
-from backend.cache.manager import CacheManager
+from cache.manager import CacheManager
 from fastapi import Depends, APIRouter, HTTPException, Request
 from typing import List
 from models.user import User, FriendShow

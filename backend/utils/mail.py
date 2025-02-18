@@ -2,7 +2,7 @@
 
 # from fastapi_mail import FastMail, ConnectionConfig, MessageSchema, MessageType
 
-# from backend.config import CONFIG
+# from config import CONFIG
 
 # mail_conf = ConnectionConfig(
 #     MAIL_USERNAME=CONFIG.mail_username,
