@@ -1,6 +1,7 @@
 
 import asyncio
 from typing import Any, Dict, List
+from helpers import fetch_from_fmp
 from utils.api_key import get_api_key
 from fastapi import APIRouter, HTTPException, status, Depends, Query, Request
 from models.stock import Stock, PortfolioRequest
@@ -71,16 +72,8 @@ def get_intraday_chart(symbol: str, range: str = '1month', api_key: ApiKey = Dep
 
 @router.get("/quote/{symbol}")
 def get_stock_quote(symbol:str,api_key: ApiKey = Depends(get_api_key)):
-    
-    try:
-        endpoint = f'quote/{symbol}'
-        url = f"{BASE_URL}{endpoint}?apikey={api_key.key}"
-        response = requests.get(url)
-        response.raise_for_status()  # Raises an HTTPError for bad responses
-        stock_quote = response.json()
-        return stock_quote
-    except requests.RequestException as e:
-        print(f"Error with API key {api_key}: {str(e)}")
+    stock_quote = fetch_from_fmp(symbol, api_key)
+    return stock_quote
 
     
 # Requests from Stock collection

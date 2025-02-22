@@ -1,7 +1,11 @@
 """User router."""
 
+import asyncio
+import json
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, Response, Security, Request
+from cache.manager import CacheManager
+from helpers import  fetch_sentiment, get_stock_price
+from fastapi import APIRouter, Depends, HTTPException, Response, Request
 from models.user import User, UserOut, PasswordChangeRequest, Deposit, UserFriend, YearlyExpenses
 from fastapi.responses import JSONResponse
 from utils.auth_user import get_current_user
@@ -9,8 +13,8 @@ from models.transaction import Transaction
 from models.stock import Stock
 from models.PortfolioSnapshot import PortfolioSnapshot
 from utils.password import hash_password, verify_password
-
-
+from aiohttp import ClientSession
+from datetime import datetime, timezone
 
 router = APIRouter( tags=["User"])
 
@@ -143,3 +147,77 @@ async def delete_user(
     response.delete_cookie("session")
     
     return response
+
+
+# Combined AI endpoint
+@router.post("/ai/insights")
+async def get_combined_ai(request: Request,user: User = Depends(get_current_user)):
+    try:
+        cache_manager = CacheManager(request)
+        cache_key = f"ai_insights:user:{str(user.id)}"
+        cached_data = await cache_manager.redis.get(cache_key)
+            
+        if cached_data:
+            return json.loads(cached_data)
+        
+        holdings = user.holdings
+        total_value = 0
+        stock_values = {}
+        tickers = [holding.ticker for holding in holdings]
+        
+        # Parallel fetch stock prices using asyncio.gather
+        async with ClientSession() as session:
+            tasks = [get_stock_price(ticker, user.api_key.key, session) for ticker in tickers]
+            stock_prices = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Handle any exceptions from stock price fetching
+        stock_values = {}
+        total_value = 0
+        for i, (ticker, price) in enumerate(zip(tickers, stock_prices)):
+            if isinstance(price, Exception):
+                print(f"Error fetching price for {ticker}: {str(price)}")
+                price = (await Stock.find_one(Stock.ticker == ticker)).price if await Stock.find_one(Stock.ticker == ticker) else 0
+            holding = holdings[i]
+            quantity = holding.quantity
+            avg_price = holding.avg_bought_price
+            value = quantity * price
+            total_value += value
+            stock_values[ticker] = {"value": value, "quantity": quantity, "avg_price": avg_price}
+
+        # Generate portfolio insights
+        insights = []
+        if total_value > 0:
+            for ticker, data in stock_values.items():
+                allocation = (data["value"] / total_value) * 100
+                if allocation > 60:
+                    insights.append(f"Your portfolio is heavily weighted toward {ticker} ({allocation:.1f}%)—consider diversifying.")
+                # Add sector analysis if available (e.g., fetch sector from Stock model)
+
+        if not insights:
+            insights.append("Your portfolio looks balanced!")
+            
+        # Fetch or generate sentiment for each ticker (parallel)
+        sentiments = {}
+        sentiment_tasks = [fetch_sentiment(ticker, cache_manager) for ticker in tickers]
+        sentiment_results = await asyncio.gather(*sentiment_tasks, return_exceptions=True)
+        
+        for ticker, result in zip(tickers, sentiment_results):
+                if isinstance(result, Exception):
+                    print(f"Error fetching sentiment for {ticker}: {str(result)}")
+                    sentiments[ticker] = {"sentiment": "0% positive", "sample_posts": ["No data available"]}
+                else:
+                    sentiments[ticker] = result
+        
+        # Combine and cache results
+        response = {
+            "portfolio_insights": insights,
+            "sentiments": sentiments,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+        # Cache for 1 hour (3600 seconds)
+        await cache_manager.redis.setex(cache_key, 3600, json.dumps(response))
+        return response
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating AI insights: {str(e)}")

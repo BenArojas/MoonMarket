@@ -11,6 +11,9 @@ export async function getUserData() {
   const user = await api.get(`/user/`);
   return user.data;
 }
+export async function getUserInsights(){
+  return api.get("/user/ai/insights")
+}
 export async function getUserName() {
   const userName = await api.get(`/user/name`);
   return userName.data;
