@@ -1,6 +1,8 @@
 import { getPortfolioSnapshots, postSnapshot } from "@/api/portfolioSnapshot";
 import { getHistoricalData, updateStockPrices } from "@/api/stock";
-import { getUserData } from "@/api/user";
+import { getUserData, getUserInsights } from "@/api/user";
+import { cacheService } from '@/cacheService';
+import AiDialog from "@/components/AiDialog";
 import DataGraph from "@/components/DataGraph";
 import GraphMenu from "@/components/GraphMenu";
 import { HistoricalDataCard } from '@/components/HistoricalDataCard';
@@ -43,6 +45,25 @@ function Portfolio() {
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('xl'));
   const isMobileScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const isMediumScreen = useMediaQuery('(min-width:1550px) and (max-width:1800px)');
+  const [openInsights, setOpenInsights] = useState(false);
+  const [aiData, setAiData] = useState([]);
+  const [loadingAI, setLoadingAI] = useState(false);
+
+  const fetchInsights = async () => {
+    setLoadingAI(true);
+    try {
+      const response = await getUserInsights();
+      const data = await response.json();
+      setAiData(data);
+      setOpenInsights(true);
+    } catch (error) {
+      console.error("Failed to fetch AI insights:", error);
+      setAiData({ portfolio_insights: ["Error fetching insights. Please try again."], sentiments: {} });
+      setOpenInsights(true);
+    } finally {
+      setLoadingAI(false);
+    }
+  };
 
 
   const { data: userData, isPending: userDataLoading } = useQuery({
@@ -93,6 +114,10 @@ function Portfolio() {
         )}
       </ErrorBoundary>
 
+      <ErrorBoundary FallbackComponent={ErrorFallback}>
+        <AiDialog aiData={aiData} openInsights={openInsights} setOpenInsights={setOpenInsights} />
+      </ErrorBoundary>
+
       <Box sx={{
         width: isSmallScreen ? "100%" : isMediumScreen ? 500 : 600,
         ml: isSmallScreen ? 0 : "auto",
@@ -106,6 +131,8 @@ function Portfolio() {
                 dailyTimeFrame={dailyTimeFrame}
                 userData={userData}
                 updateStockPricesMutation={updateStockPricesMutation}
+                fetchInsights={fetchInsights}
+                loadingAI={loadingAI}
               />
             )}
           </ErrorBoundary>
@@ -180,7 +207,7 @@ function PortfolioContent({ userData, theme, isSmallScreen, isMobileScreen, isMe
   );
 }
 
-const StackedCardsWrapper = ({ dailyTimeFrame, userData, updateStockPricesMutation }) => {
+const StackedCardsWrapper = ({ dailyTimeFrame, userData, updateStockPricesMutation, fetchInsights, loadingAI }) => {
   const { percentageChange, setPercentageChange } =
     useContext(PercentageChange);
   const { stockTickers, value, moneySpent } = useGraphData(userData, "Treemap");
@@ -204,6 +231,8 @@ const StackedCardsWrapper = ({ dailyTimeFrame, userData, updateStockPricesMutati
       value={value}
       dailyTimeFrameData={dailyTimeFrame}
       updateStockPricesMutation={updateStockPricesMutation}
+      fetchInsights={fetchInsights}
+      loadingAI={loadingAI}
     />
 
   );

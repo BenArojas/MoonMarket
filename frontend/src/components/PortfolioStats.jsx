@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react'
-import { Box, Stack, Typography, Tooltip, CircularProgress, useMediaQuery, useTheme } from '@mui/material'
+import { Box, Stack, Typography, Tooltip, CircularProgress, useMediaQuery, useTheme, Button } from '@mui/material'
 import PortfolioValue from "@/components/AnimatedNumber";
 import IconButton from "@mui/material/IconButton";
 import SyncIcon from "@mui/icons-material/Sync";
 import { ArrowDown, ArrowUp } from "lucide-react";
+import { Brain } from "lucide-react";
 
 
 
-function PortfolioStats({ value, percentageChange, stockTickers, incrementalChange, formattedDate, trend, updateStockPricesMutation }) {
+function PortfolioStats({ value, percentageChange, stockTickers, incrementalChange, formattedDate, trend, updateStockPricesMutation, fetchInsights, loadingAI }) {
     const trendColor = trend === 'positive' ? "primary" : "error";
     const theme = useTheme();
     const isMobileScreen = useMediaQuery(theme.breakpoints.down('sm'));
@@ -30,7 +31,7 @@ function PortfolioStats({ value, percentageChange, stockTickers, incrementalChan
         >
             <Stack direction={isMobileScreen ? "row" : 'column'} alignItems="center" sx={{
                 width: isMobileScreen ? "100%" : 'unset',
-                gap: isMobileScreen? 3 : 0,
+                gap: isMobileScreen ? 3 : 0,
             }}>
                 <Typography variant={isMobileScreen ? "h6" : "h5"}>Portfolio Value</Typography>
                 <PortfolioValue value={value} />
@@ -85,6 +86,19 @@ function PortfolioStats({ value, percentageChange, stockTickers, incrementalChan
                         onClick={handleUpdatePrices}
                     >
                         {updateStockPricesMutation.isPending ? <CircularProgress size={24} /> : <SyncIcon />}
+                    </IconButton>
+                </Tooltip>
+                <Tooltip
+                    title={`Get Ai Tips`}
+                    placement="top"
+                >
+                    <IconButton
+                        variant="contained"
+                        sx={{ shrink: 0 }}
+                        // startIcon={<Brain />}
+                        onClick={fetchInsights}
+                    >
+                        {loadingAI ? <CircularProgress size={24} /> : <Brain />}
                     </IconButton>
                 </Tooltip>
 
