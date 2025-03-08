@@ -159,29 +159,26 @@ async def delete_user(
 
 
 # Combined AI endpoint
-@router.post("/ai/insights")
-async def get_combined_ai(request: Request,user: User = Depends(get_current_user)):
+@router.get("/ai/insights")
+async def get_combined_ai(request: Request, user: User = Depends(get_current_user)):
     try:
         cache_manager = CacheManager(request)
         cache_key = f"ai_insights:user:{str(user.id)}"
         cached_data = await cache_manager.redis.get(cache_key)
-            
         if cached_data:
             return json.loads(cached_data)
-        
+
         holdings = user.holdings
         total_value = 0
         stock_values = {}
         tickers = [holding.ticker for holding in holdings]
-        
-        # Parallel fetch stock prices using asyncio.gather
+
+        # Parallel fetch stock prices
         async with ClientSession() as session:
-            tasks = [get_stock_price(ticker, user.api_key.key, session) for ticker in tickers]
+            tasks = [get_stock_price(ticker, session) for ticker in tickers]
             stock_prices = await asyncio.gather(*tasks, return_exceptions=True)
 
-        # Handle any exceptions from stock price fetching
-        stock_values = {}
-        total_value = 0
+        # Process stock prices
         for i, (ticker, price) in enumerate(zip(tickers, stock_prices)):
             if isinstance(price, Exception):
                 print(f"Error fetching price for {ticker}: {str(price)}")
@@ -200,33 +197,36 @@ async def get_combined_ai(request: Request,user: User = Depends(get_current_user
                 allocation = (data["value"] / total_value) * 100
                 if allocation > 60:
                     insights.append(f"Your portfolio is heavily weighted toward {ticker} ({allocation:.1f}%)—consider diversifying.")
-                # Add sector analysis if available (e.g., fetch sector from Stock model)
-
         if not insights:
             insights.append("Your portfolio looks balanced!")
-            
-        # Fetch or generate sentiment for each ticker (parallel)
-        sentiments = {}
-        sentiment_tasks = [fetch_sentiment(ticker, cache_manager) for ticker in tickers]
-        sentiment_results = await asyncio.gather(*sentiment_tasks, return_exceptions=True)
-        
-        for ticker, result in zip(tickers, sentiment_results):
-                if isinstance(result, Exception):
-                    print(f"Error fetching sentiment for {ticker}: {str(result)}")
-                    sentiments[ticker] = {"sentiment": "0% positive", "sample_posts": ["No data available"]}
-                else:
-                    sentiments[ticker] = result
-        
-        # Combine and cache results
+
+        # Return only portfolio insights (no sentiments here)
         response = {
             "portfolio_insights": insights,
-            "sentiments": sentiments,
+            "sentiments": {},  # Empty by default
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
-        
-        # Cache for 1 hour (3600 seconds)
-        await cache_manager.redis.setex(cache_key, 3600, json.dumps(response))
-        return response
 
+        await cache_manager.redis.setex(cache_key, 21600, json.dumps(response))
+        return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating AI insights: {str(e)}")
+    
+
+@router.get("/ai/sentiment/{ticker}")
+async def get_ticker_sentiment(ticker: str, request: Request, user: User = Depends(get_current_user)):
+    try:
+        cache_manager = CacheManager(request)
+        cache_key = f"sentiment:{ticker.upper()}"
+        cached_data = await cache_manager.redis.get(cache_key)
+        if cached_data:
+            return json.loads(cached_data)
+
+        # Fetch sentiment for the single ticker
+        sentiment = await fetch_sentiment(ticker.upper(), cache_manager)
+
+        # Cache for 6 hours
+        await cache_manager.redis.setex(cache_key, 21600, json.dumps(sentiment))
+        return sentiment
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching sentiment for {ticker}: {str(e)}")

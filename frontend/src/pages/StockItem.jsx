@@ -15,7 +15,6 @@ import {
 import { Suspense, useEffect, useState } from "react";
 import {
   Await,
-  defer,
   useLoaderData,
   useNavigate,
   useSearchParams,

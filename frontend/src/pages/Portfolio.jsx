@@ -20,7 +20,7 @@ import { ErrorBoundary } from "react-error-boundary";
 import {
   useLoaderData
 } from "react-router-dom";
-import {ErrorFallback} from "@/components/ErrorFallBack"
+import { ErrorFallback } from "@/components/ErrorFallBack"
 
 
 
@@ -32,7 +32,7 @@ export async function loader({ request }) {
   const selectedTicker = searchParams.get("selected") || "BTCUSD";
 
   return {
-    historicalData: getHistoricalData(selectedTicker), 
+    historicalData: getHistoricalData(selectedTicker),
     selectedTicker
   };
 }
@@ -46,20 +46,18 @@ function Portfolio() {
   const isMobileScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const isMediumScreen = useMediaQuery('(min-width:1550px) and (max-width:1800px)');
   const [openInsights, setOpenInsights] = useState(false);
-  const [aiData, setAiData] = useState([]);
+  const [aiData, setAiData] = useState({ portfolio_insights: [], sentiments: {} });
   const [loadingAI, setLoadingAI] = useState(false);
 
   const fetchInsights = async () => {
     setLoadingAI(true);
     try {
       const response = await getUserInsights();
-      const data = await response.json();
-      setAiData(data);
+      const data = response.data;
+      setAiData({ portfolio_insights: data.portfolio_insights || [], sentiments: {} }); // No sentiments here
       setOpenInsights(true);
     } catch (error) {
-      console.error("Failed to fetch AI insights:", error);
-      setAiData({ portfolio_insights: ["Error fetching insights. Please try again."], sentiments: {} });
-      setOpenInsights(true);
+      throw error;
     } finally {
       setLoadingAI(false);
     }
@@ -114,9 +112,11 @@ function Portfolio() {
         )}
       </ErrorBoundary>
 
-      <ErrorBoundary FallbackComponent={ErrorFallback}>
-        <AiDialog aiData={aiData} openInsights={openInsights} setOpenInsights={setOpenInsights} />
-      </ErrorBoundary>
+      {openInsights && (
+        <ErrorBoundary FallbackComponent={ErrorFallback}>
+          <AiDialog aiData={aiData} openInsights={openInsights} setOpenInsights={setOpenInsights} />
+        </ErrorBoundary>
+      )}
 
       <Box sx={{
         width: isSmallScreen ? "100%" : isMediumScreen ? 500 : 600,
@@ -136,7 +136,7 @@ function Portfolio() {
               />
             )}
           </ErrorBoundary>
-          <HistoricalDataCard historicalData={historicalData} selectedTicker={selectedTicker}/>
+          <HistoricalDataCard historicalData={historicalData} selectedTicker={selectedTicker} />
         </Stack>
       </Box>
     </Box>

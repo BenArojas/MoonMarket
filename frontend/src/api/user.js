@@ -11,8 +11,24 @@ export async function getUserData() {
   const user = await api.get(`/user/`);
   return user.data;
 }
-export async function getUserInsights(){
-  return api.get("/user/ai/insights")
+export async function getUserInsights() {
+  try {
+    const response = await api.get("/user/ai/insights"); 
+    return response;
+  } catch (error) {
+    console.error("API Error in getUserInsights:", error);
+    throw error; // Re-throw to handle in fetchInsights
+  }
+}
+
+export async function getStockSentiment(ticker) {
+  try {
+    const response = await api.get(`/user/ai/sentiment/${ticker.toUpperCase()}`); 
+    return response;
+  } catch (error) {
+    console.error("Error fetching sentiment:", error);
+    throw error; // Re-throw to handle in fetchInsights
+  }
 }
 export async function getUserName() {
   const userName = await api.get(`/user/name`);

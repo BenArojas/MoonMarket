@@ -43,14 +43,11 @@ async def lifespan(app: FastAPI):
         # Initialize Redis client with retry logic
         for i in range(3):  # Try 3 times
             try:
-                redis_client = await aioredis.Redis(
-                    host=CONFIG.REDIS_HOST,
-                    port=CONFIG.REDIS_PORT,
-                    username=CONFIG.REDIS_USERNAME,
-                    password=CONFIG.REDIS_PASSWORD, 
-                    decode_responses=True,
-                    socket_timeout=5
-                )
+                redis_client = await aioredis.from_url(
+                CONFIG.REDIS_URL,
+                decode_responses=True,
+                socket_timeout=5
+            )
                 await redis_client.ping()  # Test connection
                 break
             except Exception as e:
