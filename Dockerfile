@@ -24,7 +24,7 @@ COPY nginx.conf /etc/nginx/nginx.conf
 # Create startup script - removed redis-server
 RUN echo '#!/bin/bash\n\
 nginx & \n\
-gunicorn -w 2 -k uvicorn.workers.UvicornWorker --forwarded-allow-ips="*" -b 127.0.0.1:8000 main:app\n\
+gunicorn -w 2 -k uvicorn.workers.UvicornWorker --forwarded-allow-ips="*" -b 127.0.0.1:8000 main:app --timeout 300\n\
 ' > /app/start.sh \
 && chmod +x /app/start.sh
 
