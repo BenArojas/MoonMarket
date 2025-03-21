@@ -54,7 +54,11 @@ function Portfolio() {
     try {
       const response = await getUserInsights();
       const data = response.data;
-      setAiData({ portfolio_insights: data.portfolio_insights || [], sentiments: {} }); // No sentiments here
+      setAiData({
+        portfolio_insights: data.portfolio_insights || "",
+        citations: data.citations || [],
+        sentiments: {}
+      });
       setOpenInsights(true);
     } catch (error) {
       throw error;

@@ -27,8 +27,15 @@ It supports:
 - Something really cool that will blow your socks off
 """
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
+# Configure logging at the start of the file
+logging.basicConfig(
+    level=logging.INFO, 
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.StreamHandler()  # Outputs logs to console (e.g., terminal or Docker logs)
+    ],
+)
+
 logger = logging.getLogger(__name__)
 
 

@@ -12,7 +12,7 @@ import {
   Button,
   CircularProgress,
 } from "@mui/material";
-import {getStockSentiment} from '@/api/user'
+import { getStockSentiment } from '@/api/user';
 
 export default function AiDialog({ openInsights, setOpenInsights, aiData, loadingAI }) {
   const [tabValue, setTabValue] = useState(0);
@@ -41,11 +41,12 @@ export default function AiDialog({ openInsights, setOpenInsights, aiData, loadin
       }));
     } finally {
       setLoadingSentiment(false);
-      setTicker(""); 
+      setTicker("");
     }
   };
 
   const safeAiData = aiData || { portfolio_insights: [], sentiments: {} };
+  console.log(safeAiData)
 
   return (
     <Dialog open={openInsights} onClose={() => setOpenInsights(false)} maxWidth="sm" fullWidth>
@@ -57,14 +58,33 @@ export default function AiDialog({ openInsights, setOpenInsights, aiData, loadin
         </Tabs>
         {tabValue === 0 && (
           <Box sx={{ mt: 2 }}>
-            {safeAiData.portfolio_insights.length > 0 ? (
-              safeAiData.portfolio_insights.map((insight, index) => (
-                <Typography key={index} paragraph>
-                  {insight}
-                </Typography>
-              ))
+            {safeAiData.portfolio_insights ? (
+              <Typography paragraph sx={{ whiteSpace: "pre-wrap" }}>
+                {safeAiData.portfolio_insights.replace(/<think>[\s\S]*?<\/think>/g, "").trim()}
+              </Typography>
             ) : (
               <Typography>No insights available.</Typography>
+            )}
+            {safeAiData.citations?.length > 0 && (
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="subtitle2">Sources:</Typography>
+                <Box
+                  component="ul"
+                  sx={{
+                    listStyleType: 'disc',
+                    paddingLeft: '10px',
+                    margin: 0,
+                  }}
+                >
+                  {safeAiData.citations.map((link, index) => (
+                    <li key={index}>
+                      <a href={link} target="_blank" rel="noopener noreferrer">
+                        {link}
+                      </a>
+                    </li>
+                  ))}
+                </Box>
+              </Box>
             )}
           </Box>
         )}
@@ -99,11 +119,11 @@ export default function AiDialog({ openInsights, setOpenInsights, aiData, loadin
                         sentiment.sentiment === "bullish"
                           ? "green"
                           : sentiment.sentiment === "bearish"
-                          ? "red"
-                          : "gray",
+                            ? "red"
+                            : "gray",
                     }}
                   >
-                    {sentiment.sentiment} ({sentiment.bullish_pct}% Bullish, {sentiment.bearish_pct}% Bearish)
+                    {sentiment.sentiment} ({sentiment.bullish_pct}% Bullish, {sentiment.bearish_pct}% Bearish, {sentiment.neutral_pct}% Neutral)
                   </Typography>
                   <Typography
                     variant="subtitle2"

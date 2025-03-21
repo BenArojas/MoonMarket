@@ -92,8 +92,8 @@ def get_intraday_chart(symbol: str, range: str = '1month', api_key: ApiKey = Dep
     return {"error": "Unable to fetch data with any of the provided API keys"}
 
 @router.get("/quote/{symbol}")
-def get_stock_quote(symbol:str,api_key: ApiKey = Depends(get_api_key)):
-    stock_quote = fetch_from_fmp(symbol, api_key)
+async def get_stock_quote(symbol:str,api_key: ApiKey = Depends(get_api_key)):
+    stock_quote = await fetch_from_fmp(symbol, api_key.key)
     return stock_quote
 
     
