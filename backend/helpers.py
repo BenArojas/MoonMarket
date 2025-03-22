@@ -247,7 +247,6 @@ async def call_perplexity(portfolio_summary):
             messages=[{"role": "user", "content": prompt}],
             max_tokens=2500
         )
-        logging.info(f"response is {response}")
         # Return a dictionary with content and citations
         return {
             "content": response.choices[0].message.content,

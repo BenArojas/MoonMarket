@@ -248,19 +248,28 @@ async def get_combined_ai(request: Request, user: User = Depends(get_current_use
             "holdings": stock_values,
             "transactions": transactions_summary,
         }
-        logger.info(f"portfolio_summary is: {portfolio_summary}")
 
         insights = await call_perplexity(portfolio_summary)
 
-        # Return only portfolio insights (no sentiments here)
-        response = {
-            "portfolio_insights": insights["content"],  # Extract content for insights
-            "citations": insights["citations"],  # Pass citations to frontend
-            "sentiments": {},
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        }
+        # Check if the response indicates an error by inspecting the content
+        if "Failed to generate insights" not in insights["content"]:
+            response = {
+                "portfolio_insights": insights["content"],
+                "citations": insights["citations"],
+                "sentiments": {},
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+            # Only cache if no error occurred
+            await cache_manager.redis.setex(cache_key, 43200, json.dumps(response))
+        else:
+            # Handle the error case (e.g., return the error response without caching)
+            response = {
+                "portfolio_insights": insights["content"],
+                "citations": insights["citations"],
+                "sentiments": {},
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
 
-        await cache_manager.redis.setex(cache_key, 21600, json.dumps(response))
         return response
     except Exception as e:
         raise HTTPException(
