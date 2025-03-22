@@ -57,7 +57,7 @@ async def get_stocks(user: User = Depends(get_current_user)):
 
 @router.get("/user_transactions", operation_id="retrieve_user_transactions")
 async def get_user_transactions_by_user_id(user: User = Depends(get_current_user)):
-    transactions = get_user_transactions(user.id)
+    transactions = await get_user_transactions(user.id)
     return transactions
 
 

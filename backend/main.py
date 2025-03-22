@@ -13,16 +13,16 @@ from routes.redis import router as RedisRouter
 from decouple import config
 
 
-app.include_router(AuthRouter, prefix="/api/auth")
+app.include_router(AuthRouter, prefix="/auth")
 # app.include_router(MailRouter, prefix="/mail")
-app.include_router(RegisterRouter, prefix="/api/register")
-app.include_router(UserRouter, prefix="/api/user")
-app.include_router(StockRouter, prefix="/api/stock")
-app.include_router(TransactionRouter, prefix="/api/transaction")
-app.include_router(PortfolioSnapshotRouter, prefix="/api/portfolio-snapshot")
-app.include_router(FriendsRouter, prefix="/api/friends")
-app.include_router(APIKeyRouter, prefix="/api/api-key")
-app.include_router(RedisRouter, prefix="/api/redis")
+app.include_router(RegisterRouter, prefix="/register")
+app.include_router(UserRouter, prefix="/user")
+app.include_router(StockRouter, prefix="/stock")
+app.include_router(TransactionRouter, prefix="/transaction")
+app.include_router(PortfolioSnapshotRouter, prefix="/portfolio-snapshot")
+app.include_router(FriendsRouter, prefix="/friends")
+app.include_router(APIKeyRouter, prefix="/api-key")
+app.include_router(RedisRouter, prefix="/redis")
 
 
 
