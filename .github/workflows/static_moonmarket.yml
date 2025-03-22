@@ -3,7 +3,7 @@ name: Build and deploy container app to Azure
 on:
  push:
    branches:
-     - deploy
+     - master
  workflow_dispatch:
 
 jobs:
