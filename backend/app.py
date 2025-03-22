@@ -79,12 +79,12 @@ async def lifespan(app: FastAPI):
         logger.info("Database and Redis connections closed")
         
 # Get environment variables
-WEBSITE_HOSTNAME = os.getenv('WEBSITE_HOSTNAME', 'localhost:8000')
+origins = "http://localhost:5173" 
 app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
         CORSMiddleware,
-        allow_origins=[f"https://{WEBSITE_HOSTNAME}"],
+        allow_origins=[origins],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
