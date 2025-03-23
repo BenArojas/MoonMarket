@@ -1,0 +1,52 @@
+name: Build and deploy container app to Azure
+
+on:
+ push:
+   branches:
+     - master
+ workflow_dispatch:
+
+jobs:
+ build:
+   runs-on: ubuntu-latest
+   steps:
+     - uses: actions/checkout@v4
+     - name: Set up Node.js
+       uses: actions/setup-node@v3
+       with:
+         node-version: "18"
+     - name: Build Frontend
+       run: |
+         cd frontend
+         npm install
+         npm run build
+     - name: Set up Docker Buildx
+       uses: docker/setup-buildx-action@v2
+     - name: Log in to container registry
+       uses: docker/login-action@v2
+       with:
+         registry: ${{ secrets.REGISTRY_LOGIN_SERVER }}
+         username: ${{ secrets.REGISTRY_USERNAME }}
+         password: ${{ secrets.REGISTRY_PASSWORD }}
+     - name: Build and push container image
+       uses: docker/build-push-action@v5
+       with:
+         context: .
+         push: true
+         tags: ${{ secrets.REGISTRY_LOGIN_SERVER }}/moonmarket:${{ github.run_number }}
+
+ deploy:
+   runs-on: ubuntu-latest
+   needs: build
+   steps:
+     - name: Azure Login
+       uses: azure/login@v1
+       with:
+         creds: ${{ secrets.AZURE_CREDENTIALS }}
+     - name: Deploy to Azure Container Apps
+       uses: azure/container-apps-deploy-action@v1
+       with:
+         containerAppName: ${{ secrets.CONTAINER_APP_NAME }}
+         resourceGroup: ${{ secrets.RESOURCE_GROUP }}
+         containerAppEnvironment: ${{ secrets.CONTAINER_APP_ENVIRONMENT }}
+         imageToDeploy: ${{ secrets.REGISTRY_LOGIN_SERVER }}/moonmarket:${{ github.run_number }}
