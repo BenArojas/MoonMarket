@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 import secrets
 from fastapi import APIRouter, HTTPException, Security, Response, Depends, Request
 from fastapi.security import OAuth2PasswordRequestForm
-from models.user import User
+from models.user import User, UserOut
 from utils.password import  verify_password
 from utils.auth_user import get_current_user, EXPIRATION_TIME
 from fastapi.responses import JSONResponse
@@ -46,11 +46,7 @@ async def logout(request: Request,current_user: User = Depends(get_current_user)
     response.delete_cookie("session")
     return response
 
-@router.get("/protected-route")
+@router.get("/protected-route", response_model=UserOut)
 async def protected_route(current_user: User = Depends(get_current_user)):
     """Example of a protected route that requires authentication."""
-    return {
-        "message": "This is a protected route", 
-        "user": str(current_user.id), 
-        "enabled": current_user.enabled
-    }
+    return current_user
