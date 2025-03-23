@@ -1,3 +1,4 @@
+// src/components/GraphMenu.jsx
 import { Box, Button } from "@mui/material";
 import React from "react";
 import AutoAwesomeMosaicIcon from "@mui/icons-material/AutoAwesomeMosaic";
@@ -5,12 +6,13 @@ import DonutLargeIcon from "@mui/icons-material/DonutLarge";
 import TocSharpIcon from "@mui/icons-material/TocSharp";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
-import ListItemButton from "@mui/material/ListItemButton";
-import ListItemIcon from "@mui/material/ListItemIcon";
+import { PremiumListItemButton } from '@/components/PremiumListItemButton'; // Import the new component
 import BlurCircularIcon from "@mui/icons-material/BlurCircular";
 import SearchBar from "@/components/SearchBar.jsx";
 import SchemaIcon from "@mui/icons-material/Schema";
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import { ListItemButton, ListItemIcon } from '@mui/material';
+
 
 function GraphMenu({ selectedGraph, setSelectedGraph, isMobileScreen, isDailyView, setIsDailyView }) {
   const handleListItemClick = (graph) => {
@@ -50,92 +52,53 @@ function GraphMenu({ selectedGraph, setSelectedGraph, isMobileScreen, isDailyVie
           Daily
         </Button>
         <nav aria-label="main mailbox folders">
-          <List
-            sx={{
-              display: "flex",
-              flexDirection: "row",
-              gap: 1,
-            }}
-          >
-            {/* Always show Treemap */}
+          <List sx={{ display: "flex", flexDirection: "row", gap: 1 }}>
+            {/* Treemap - Always available */}
             <ListItem disablePadding>
               <ListItemButton
                 selected={selectedGraph === "Treemap"}
                 onClick={() => handleListItemClick("Treemap")}
-
               >
-                <ListItemIcon
-                  sx={{
-                    justifyContent: "center", // Center the icon
-                  }}
-                >
+                <ListItemIcon sx={{ justifyContent: "center" }}>
                   <AutoAwesomeMosaicIcon />
                 </ListItemIcon>
               </ListItemButton>
             </ListItem>
 
-            {/* Always show DonutChart */}
+            {/* DonutChart - Premium only */}
             <ListItem disablePadding>
-              <ListItemButton
+              <PremiumListItemButton
                 selected={selectedGraph === "DonutChart"}
                 onClick={() => handleListItemClick("DonutChart")}
-              >
-                <ListItemIcon
-                  sx={{
-                    justifyContent: "center", // Center the icon
-                  }}
-                >
-                  <DonutLargeIcon />
-                </ListItemIcon>
-              </ListItemButton>
+                icon={<DonutLargeIcon />}
+              />
             </ListItem>
 
-            {/* Conditionally render other graph options only if not on mobile */}
+            {/* Other graph options - Premium only, hidden on mobile */}
             {!isMobileScreen && (
               <>
                 <ListItem disablePadding>
-                  <ListItemButton
+                  <PremiumListItemButton
                     selected={selectedGraph === "Circular"}
                     onClick={() => handleListItemClick("Circular")}
-                  >
-                    <ListItemIcon
-                      sx={{
-                        justifyContent: "center", // Center the icon
-                      }}
-                    >
-                      <BlurCircularIcon />
-                    </ListItemIcon>
-                  </ListItemButton>
+                    icon={<BlurCircularIcon />}
+                  />
                 </ListItem>
 
                 <ListItem disablePadding>
-                  <ListItemButton
+                  <PremiumListItemButton
                     selected={selectedGraph === "Leaderboards"}
                     onClick={() => handleListItemClick("Leaderboards")}
-                  >
-                    <ListItemIcon
-                      sx={{
-                        justifyContent: "center", // Center the icon
-                      }}
-                    >
-                      <TocSharpIcon />
-                    </ListItemIcon>
-                  </ListItemButton>
+                    icon={<TocSharpIcon />}
+                  />
                 </ListItem>
 
                 <ListItem disablePadding>
-                  <ListItemButton
+                  <PremiumListItemButton
                     selected={selectedGraph === "Sankey"}
                     onClick={() => handleListItemClick("Sankey")}
-                  >
-                    <ListItemIcon
-                      sx={{
-                        justifyContent: "center", // Center the icon
-                      }}
-                    >
-                      <SchemaIcon />
-                    </ListItemIcon>
-                  </ListItemButton>
+                    icon={<SchemaIcon />}
+                  />
                 </ListItem>
               </>
             )}

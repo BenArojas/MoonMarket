@@ -4,8 +4,7 @@ import PortfolioValue from "@/components/AnimatedNumber";
 import IconButton from "@mui/material/IconButton";
 import SyncIcon from "@mui/icons-material/Sync";
 import { ArrowDown, ArrowUp } from "lucide-react";
-import { Brain } from "lucide-react";
-
+import {PremiumAiTipsButton} from '@/components/AiTipsButton'
 
 
 function PortfolioStats({ value, percentageChange, stockTickers, incrementalChange, formattedDate, trend, updateStockPricesMutation, fetchInsights, loadingAI }) {
@@ -88,19 +87,7 @@ function PortfolioStats({ value, percentageChange, stockTickers, incrementalChan
                         {updateStockPricesMutation.isPending ? <CircularProgress size={24} /> : <SyncIcon />}
                     </IconButton>
                 </Tooltip>
-                <Tooltip
-                    title={`Get Ai Tips`}
-                    placement="top"
-                >
-                    <IconButton
-                        variant="contained"
-                        sx={{ shrink: 0 }}
-                        // startIcon={<Brain />}
-                        onClick={fetchInsights}
-                    >
-                        {loadingAI ? <CircularProgress size={24} /> : <Brain />}
-                    </IconButton>
-                </Tooltip>
+                <PremiumAiTipsButton fetchInsights={fetchInsights} loadingAI={loadingAI} />
 
             </Box>
         </Box>
