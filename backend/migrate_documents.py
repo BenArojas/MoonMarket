@@ -39,27 +39,11 @@ async def migrate_transactions():
             document_models=[User, FriendRequest, Stock, PortfolioSnapshot, Transaction]
         )
 
-        # Convert string ID to PydanticObjectId
-        user_id = PydanticObjectId("6701502a7f81ffa5c03b104d")
-        
-        updated_count = 0
-        error_count = 0
-        transactions = await Transaction.find(Transaction.user_id.id == user_id).to_list()
+        users = await User.find_all().to_list()
         # Find all transactions for the specific user using the correct query syntax
-        for transaction in transactions:
-            try:
-                transaction.commission = 8.0
-                await transaction.save()
-                updated_count += 1
-                print(f"Progress: {updated_count} transactions updated", end='\r')
-            except Exception as e:
-                error_count += 1
-                print(f"\nError updating transaction {transaction.id}: {e}")
-                continue
-
-        print(f"\nMigration completed:")
-        print(f"- Successfully updated: {updated_count} transactions")
-        print(f"- Errors encountered: {error_count} transactions")
+        for user in users:
+           user.account_type = "free"
+           await user.save()
 
     except Exception as e:
         print(f"Error during migration: {e}")

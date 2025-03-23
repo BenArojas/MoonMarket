@@ -21,6 +21,7 @@ import {
   useLoaderData
 } from "react-router-dom";
 import { ErrorFallback } from "@/components/ErrorFallBack"
+import { useUser} from '@/contexts/UserContext';
 
 
 
@@ -39,6 +40,7 @@ export async function loader({ request }) {
 
 
 function Portfolio() {
+  const userData = useUser();
   const { historicalData, selectedTicker } = useLoaderData();
   const queryClient = useQueryClient();
   const theme = useTheme();
@@ -68,10 +70,7 @@ function Portfolio() {
   };
 
 
-  const { data: userData, isPending: userDataLoading } = useQuery({
-    queryKey: ["userData"],
-    queryFn: getUserData,
-  });
+
 
 
   const { data: dailyTimeFrame, isPending: dailyTimeFrameLoading } = useQuery({
@@ -109,11 +108,7 @@ function Portfolio() {
     >
 
       <ErrorBoundary FallbackComponent={ErrorFallback}>
-        {userDataLoading ? (
-          <GraphSkeleton />
-        ) : (
           <PortfolioContent userData={userData} theme={theme} isMediumScreen={isMediumScreen} isMobileScreen={isMobileScreen} isSmallScreen={isSmallScreen} />
-        )}
       </ErrorBoundary>
 
       {openInsights && (
@@ -128,7 +123,7 @@ function Portfolio() {
       }}>
         <Stack spacing={isSmallScreen ? 4 : 3} direction={isSmallScreen ? "column-reverse" : "column"} sx={{ height: "100%" }}>
           <ErrorBoundary FallbackComponent={ErrorFallback}>
-            {dailyTimeFrameLoading || userDataLoading ? (
+            {dailyTimeFrameLoading ? (
               <GraphSkeleton height={380} />
             ) : (
               <StackedCardsWrapper

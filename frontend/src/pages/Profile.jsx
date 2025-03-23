@@ -7,18 +7,18 @@ import { getUserData} from "@/api/user";
 import {getFriendList, getFriendRequestUsers, getSentFriendRequest} from '@/api/friend'
 import { MemoizedProfileTabs } from '@/components/ProfileTabs'
 import { useOutletContext } from "react-router-dom";
+import { useUser} from '@/contexts/UserContext';
+
 
 
 const Profile = () => {
+  const userData = useUser();
+
   const theme = useTheme();
   const isMobileScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
   const friendRequestsCount = useOutletContext();
 
-  const { data: userData, isLoading: userLoading, error: userError } = useQuery({
-    queryKey: ['userData'],
-    queryFn: getUserData
-  });
   const { data: friendListData, isLoading: friendListLoading, error: friendListError } = useQuery({
     queryKey: ['friendList'],
     queryFn: getFriendList
@@ -34,11 +34,11 @@ const Profile = () => {
   });
 
 
-  if (userLoading || friendListLoading || friendRequestsLoading || sentFriendRequestsLoading) {
+  if (friendListLoading || friendRequestsLoading || sentFriendRequestsLoading) {
     return <TabsSkeleton />;
   }
 
-  if (userError || friendListError || friendRequestsError || sentFriendRequestsError) {
+  if ( friendListError || friendRequestsError || sentFriendRequestsError) {
     return <ErrorPage />;
   }
 

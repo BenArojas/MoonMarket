@@ -8,6 +8,7 @@ from cache.manager import CacheManager
 from helpers import call_perplexity, fetch_sentiment, get_stock_price
 from fastapi import APIRouter, Depends, HTTPException, Response, Request
 from models.user import (
+    AccountType,
     User,
     UserOut,
     PasswordChangeRequest,
@@ -57,7 +58,7 @@ async def get_stocks(user: User = Depends(get_current_user)):
 
 @router.get("/user_transactions", operation_id="retrieve_user_transactions")
 async def get_user_transactions_by_user_id(user: User = Depends(get_current_user)):
-    transactions = get_user_transactions(user.id)
+    transactions = await get_user_transactions(user.id)
     return transactions
 
 
@@ -199,6 +200,8 @@ async def delete_user(
 # Combined AI endpoint
 @router.get("/ai/insights")
 async def get_combined_ai(request: Request, user: User = Depends(get_current_user)):
+    if user.account_type != AccountType.PREMIUM:
+        raise HTTPException(status_code=403, detail="Premium feature only")
     try:
         cache_manager = CacheManager(request)
         cache_key = f"ai_insights:user:{str(user.id)}"
@@ -281,6 +284,8 @@ async def get_combined_ai(request: Request, user: User = Depends(get_current_use
 async def get_ticker_sentiment(
     ticker: str, request: Request, user: User = Depends(get_current_user)
 ):
+    if user.account_type != AccountType.PREMIUM:
+        raise HTTPException(status_code=403, detail="Premium feature only")
     try:
         cache_manager = CacheManager(request)
         cache_key = f"sentiment:{ticker.upper()}"
