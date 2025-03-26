@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from beanie import init_beanie
 from motor.motor_asyncio import AsyncIOMotorClient
 from starlette.middleware.cors import CORSMiddleware
+from models.subscription import Subscription
 from config import CONFIG
 from models.user import User
 from models.stock import Stock
@@ -67,7 +68,7 @@ async def lifespan(app: FastAPI):
         # Initialize Beanie
         await init_beanie(
             database=mongo_client[CONFIG.DB_NAME], 
-            document_models=[User, Stock, Transaction, PortfolioSnapshot, FriendRequest, ApiKey]
+            document_models=[User, Stock, Transaction, PortfolioSnapshot, FriendRequest, ApiKey, Subscription]
         )
         logger.info("Database initialized")
         yield
