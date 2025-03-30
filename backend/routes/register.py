@@ -28,7 +28,8 @@ async def user_registration(user_register: UserRegister):
         password=hashed, 
         username=user_register.username,
         deposits=user_register.deposits,
-        current_balance=initial_balance
+        current_balance=initial_balance,
+        account_type='free'
     )
     await user.create()
     return user

@@ -10,6 +10,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from starlette.middleware.cors import CORSMiddleware
 from config import CONFIG
 from models.user import User
+from models.subscription import Subscription
 from models.stock import Stock
 from models.transaction import Transaction
 from models.PortfolioSnapshot import PortfolioSnapshot
@@ -67,7 +68,7 @@ async def lifespan(app: FastAPI):
         # Initialize Beanie
         await init_beanie(
             database=mongo_client[CONFIG.DB_NAME], 
-            document_models=[User, Stock, Transaction, PortfolioSnapshot, FriendRequest, ApiKey]
+            document_models=[User, Stock, Transaction, PortfolioSnapshot, FriendRequest, ApiKey, Subscription]
         )
         logger.info("Database initialized")
         yield
@@ -79,12 +80,12 @@ async def lifespan(app: FastAPI):
         logger.info("Database and Redis connections closed")
         
 # Get environment variables
-WEBSITE_HOSTNAME = os.getenv('WEBSITE_HOSTNAME', 'localhost:8000')
+origins = "http://localhost:5173" 
 app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
         CORSMiddleware,
-        allow_origins=[f"https://{WEBSITE_HOSTNAME}"],
+        allow_origins=[origins],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

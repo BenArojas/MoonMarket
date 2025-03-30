@@ -79,6 +79,8 @@ const Profile = () => {
           sentFriendRequestsData={sentFriendRequestsData || []}
           friendList={friendListData || []}
           friendRequestsCount={friendRequestsCount}
+          current_tier ={userData.account_type}
+          userId ={userData.id}
         />
       </Box>
     </div>

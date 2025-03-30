@@ -67,7 +67,7 @@ class UserUpdate(BaseModel):
 
 class UserOut(UserUpdate):
     """User fields returned to the client."""
-
+    id: PydanticObjectId
     friends: List[PydanticObjectId] | None = []
 
 

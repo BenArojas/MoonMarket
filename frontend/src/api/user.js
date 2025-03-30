@@ -1,4 +1,4 @@
-import api, {authCheckApi} from "@/api/axios";
+import api, { authCheckApi } from "@/api/axios";
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -13,7 +13,7 @@ export async function getUserData() {
 }
 export async function getUserInsights() {
   try {
-    const response = await api.get("/user/ai/insights"); 
+    const response = await api.get("/user/ai/insights");
     return response;
   } catch (error) {
     console.error("API Error in getUserInsights:", error);
@@ -23,7 +23,7 @@ export async function getUserInsights() {
 
 export async function getStockSentiment(ticker) {
   try {
-    const response = await api.get(`/user/ai/sentiment/${ticker.toUpperCase()}`); 
+    const response = await api.get(`/user/ai/sentiment/${ticker.toUpperCase()}`);
     return response;
   } catch (error) {
     console.error("Error fetching sentiment:", error);
@@ -61,7 +61,7 @@ export async function addUserSale({ ticker, quantity, price, date, commission })
     `/transaction/sell_stock`,
     null, // Set the request body to null if your API doesn't expect a request body
     {
-      params: { ticker, quantity, price, transaction_date: date.toISOString(), commission  }, // Send the required fields as query parameters
+      params: { ticker, quantity, price, transaction_date: date.toISOString(), commission }, // Send the required fields as query parameters
     }
   );
   return response.data;
@@ -79,17 +79,17 @@ export async function addStockToPortfolio(
     `/stock/add_stock`,
     portfolioStock,
   );
-  
+
   const user = await api.post(
     `/transaction/buy_stock`,
     null,
     {
-      params: { 
-        price, 
-        ticker, 
+      params: {
+        price,
+        ticker,
         quantity,
         commission,
-        transaction_date: date.toISOString() 
+        transaction_date: date.toISOString()
       },
     }
   );
@@ -115,6 +115,10 @@ export async function changePassword(oldPassword, newPassword) {
   toast.success("Password changed successfully");
   return response;
 }
+export async function changeAccountTier({userId, payload}) {
+  const response = await api.post(`/user/toggle-tier/${userId}`, payload)
+  return response.data
+}
 
 export async function addDeposit(money) {
   const currentDate = new Date().toISOString();
@@ -131,10 +135,10 @@ export async function addDeposit(money) {
 }
 
 export async function searchUser(username,) {
-    const response = await api.get(
-      `/user/user_friend/${username}`
-    );
-    return response.data;
+  const response = await api.get(
+    `/user/user_friend/${username}`
+  );
+  return response.data;
 }
 
 
