@@ -12,6 +12,7 @@ from config import CONFIG
 from models.user import User
 from models.stock import Stock
 from models.transaction import Transaction
+from models.subscription import Subscription
 from models.PortfolioSnapshot import PortfolioSnapshot
 from models.friendRequest import FriendRequest
 from models.APIKeyManager import ApiKey
@@ -67,7 +68,7 @@ async def lifespan(app: FastAPI):
         # Initialize Beanie
         await init_beanie(
             database=mongo_client[CONFIG.DB_NAME], 
-            document_models=[User, Stock, Transaction, PortfolioSnapshot, FriendRequest, ApiKey]
+            document_models=[User, Stock, Transaction, PortfolioSnapshot, FriendRequest, ApiKey, Subscription]
         )
         logger.info("Database initialized")
         yield

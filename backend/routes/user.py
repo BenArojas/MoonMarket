@@ -4,6 +4,9 @@ import asyncio
 import json
 import logging
 from typing import Optional
+
+from beanie import PydanticObjectId
+from models.subscription import BillingCycle, Subscription, ToggleTier
 from cache.manager import CacheManager
 from helpers import call_perplexity, fetch_sentiment, get_stock_price
 from fastapi import APIRouter, Depends, HTTPException, Response, Request
@@ -23,7 +26,7 @@ from models.stock import Stock
 from models.PortfolioSnapshot import PortfolioSnapshot
 from utils.password import hash_password, verify_password
 from aiohttp import ClientSession
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 router = APIRouter(tags=["User"])
 logger = logging.getLogger(__name__)
@@ -145,6 +148,78 @@ async def update_user(
     cache_manager = CacheManager(request)
     await cache_manager.cache_user(user)
     return user.username
+
+
+@router.post("/toggle-tier/{user_id}")
+async def toggle_tier(
+    request: ToggleTier,
+    http_request: Request,
+    user: User = Depends(get_current_user),
+):
+    # Validate account_type
+    try:
+        account_type_enum = AccountType(request.account_type)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid account type")
+
+    # Handle FREE tier
+    if account_type_enum == AccountType.FREE:
+        # Deactivate any existing subscription
+        existing_sub = await Subscription.find_one(
+            Subscription.user_id == PydanticObjectId(user.id),  
+            Subscription.active == True, fetch_links=True
+        )
+        if existing_sub:
+            existing_sub.active = False
+            await existing_sub.save()
+
+        # Update user to FREE
+        user.account_type = AccountType.FREE
+        await user.save()
+        return {"message": "Switched to free tier"}
+
+    # Handle PREMIUM tier (requires billing_cycle)
+    if request.billing_cycle is None:
+        raise HTTPException(
+            status_code=400, detail="Billing cycle required for premium tier"
+        )
+
+    try:
+        billing_cycle_enum = BillingCycle(request.billing_cycle)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid billing cycle")
+
+    # Check for existing active subscription
+    existing_sub = await Subscription.find_one(
+        Subscription.user_id == PydanticObjectId(user.id), 
+        Subscription.active == True, fetch_links=True
+    )
+    if existing_sub:
+        existing_sub.active = False  
+        await existing_sub.save()
+
+    # Simulate payment and create new subscription for PREMIUM
+    duration = (
+        timedelta(days=30)
+        if billing_cycle_enum == BillingCycle.MONTHLY
+        else timedelta(days=365)
+    )
+    new_subscription = Subscription(
+        user_id=user.id, 
+        account_type=AccountType.PREMIUM,
+        billing_cycle=billing_cycle_enum,
+        start_date=datetime.now(),
+        end_date=datetime.now() + duration,
+        active=True,
+    )
+    await new_subscription.insert()
+
+    user.account_type = AccountType.PREMIUM
+    await user.save()
+    cache_manager = CacheManager(http_request)
+    await cache_manager.cache_user(user)
+
+    return {"message": f"Upgraded to premium ({request.billing_cycle})"}
 
 
 @router.patch("/change_password", operation_id="change_password")
