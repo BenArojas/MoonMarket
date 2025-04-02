@@ -1,32 +1,29 @@
 # Use official Python runtime as base
 FROM python:3.10-slim
 
-# Install nginx and a specific Node.js version (20.x)
+# Install nginx and Node.js 20.x
 RUN apt-get update && apt-get install -y nginx curl \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-# Verify Node.js and npm versions (optional, for debugging)
-RUN node --version && npm --version
-
 # Set work directory
 WORKDIR /app
 
-# Copy frontend files and build them
+# Copy frontend files and build them into /app/static
 COPY frontend /app/frontend
 RUN cd /app/frontend \
     && npm install \
     && npm run build \
-    && mkdir -p /app/backend/static \
-    && mv /app/frontend/dist/* /app/backend/static/ \
+    && mkdir -p /app/static \
+    && mv /app/frontend/dist/* /app/static/ \
     && rm -rf /app/frontend
 
 # Copy requirements first for caching
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend files (static/ now contains frontend build)
+# Copy backend files
 COPY backend .
 
 # Copy nginx configuration
