@@ -1,9 +1,14 @@
 # Use official Python runtime as base
 FROM python:3.10-slim
 
-# Install nginx and Node.js (with npm)
-RUN apt-get update && apt-get install -y nginx nodejs npm \
+# Install nginx and a specific Node.js version (20.x)
+RUN apt-get update && apt-get install -y nginx curl \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
+
+# Verify Node.js and npm versions (optional, for debugging)
+RUN node --version && npm --version
 
 # Set work directory
 WORKDIR /app
