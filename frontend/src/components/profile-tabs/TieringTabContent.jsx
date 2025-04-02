@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardHeader, CardContent, CardFooter, CardTitle, CardDescription } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Button } from '@mui/material';
+import { Label } from "@/components/ui/label";
 
 const SubscriptionTabContent = ({ currentTier, changeSubscriptionTier, changeSubscriptionTierLoading }) => {
   const [selectedTier, setSelectedTier] = useState(currentTier || 'free');

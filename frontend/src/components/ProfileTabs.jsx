@@ -6,7 +6,7 @@ import FriendsTabContent from '@/components/profile-tabs/FriendsTabContent';
 import MoneyTabContent from '@/components/profile-tabs/MoneyTabContent';
 import ProfileTabContent from '@/components/profile-tabs/ProfileTabContent';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import SubscriptionTabContent from '@/components/profile-tabs/SubscriptionTabContent';
+import SubscriptionTabContent from '@/components/profile-tabs/TieringTabContent';
 import { Badge, useMediaQuery, useTheme } from "@mui/material";
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import React, { useState } from "react";
