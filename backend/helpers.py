@@ -18,7 +18,7 @@ from apify_client import ApifyClient
 import os
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import pytz
-from openai import AsyncOpenAI
+import httpx
 
 logger = logging.getLogger(__name__)
 
@@ -231,7 +231,11 @@ async def get_user_portfolio_data(user: User = Depends(get_current_user)) -> dic
     
 async def call_perplexity(portfolio_summary):
     PERPLEXITY_API_TOKEN = os.getenv("PERPLEXITY_API_TOKEN")
-    client = AsyncOpenAI(api_key=PERPLEXITY_API_TOKEN, base_url="https://api.perplexity.ai")
+    url = "https://api.perplexity.ai/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {PERPLEXITY_API_TOKEN}",
+        "Content-Type": "application/json",
+    }
     prompt = (
         "Skip reasoning steps and provide only the 3–5 insights. "
         f"Analyze this portfolio with real-time context: {json.dumps(portfolio_summary)}. "
@@ -241,16 +245,25 @@ async def call_perplexity(portfolio_summary):
         "(e.g., ticker symbols) for diversification or hedging, and suggest detailed strategies (e.g., allocation percentages, "
         "stop-loss levels, or options plays) tailored to my portfolio."
     )
+    payload = {
+        "model": "sonar-deep-research",
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 2500
+    }
     try:
-        response = await client.chat.completions.create(
-            model="sonar-deep-research",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=2500
-        )
-        # Return a dictionary with content and citations
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, headers=headers, json=payload)
+            response.raise_for_status()  # Raises an exception for 4xx/5xx errors
+            data = response.json()
+            return {
+                "content": data["choices"][0]["message"]["content"],
+                "citations": data.get("citations", [])  # Safely handle missing citations
+            }
+    except httpx.HTTPStatusError as e:
+        print(f"HTTP error calling Perplexity API: {str(e)}")
         return {
-            "content": response.choices[0].message.content,
-            "citations": getattr(response, "citations", [])  # Use getattr to safely handle if citations aren't present
+            "content": f"Failed to generate insights due to an error: {str(e)}",
+            "citations": []
         }
     except Exception as e:
         print(f"Error calling Perplexity API: {str(e)}")
