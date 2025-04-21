@@ -4,7 +4,7 @@ import {
   BriefcaseBusiness,
   Orbit,
   User,
-  LogOut, Globe
+  LogOut, Globe, ListPlus 
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import LightModeIcon from "@mui/icons-material/LightMode";
@@ -29,6 +29,7 @@ function Navbar({ friendRequestsCount }) {
     { icon: Orbit, text: "space" },
     { icon: ArrowLeftRight, text: "transactions" },
     { icon: BriefcaseBusiness, text: "home" },
+    {icon: ListPlus, text: "watchlist"}
   ];
   if (!isMobileScreen) mainNavItems.push({ icon: Globe, text: "global" });
   const rightNavItems = [

@@ -39,11 +39,10 @@ async def migrate_transactions():
             document_models=[User, FriendRequest, Stock, PortfolioSnapshot, Transaction]
         )
 
-        users = await User.find_all().to_list()
-        # Find all transactions for the specific user using the correct query syntax
-        for user in users:
-           user.account_type = "free"
-           await user.save()
+        await User.find_all().update({"$set": {"watchlist": [], "watchlist_portfolio": []}})
+        # Rename watchListPortfolio to watchlist_portfolio if it exists
+        await User.find({"watchListPortfolio": {"$exists": True}}).update({"$rename": {"watchListPortfolio": "watchlist_portfolio"}})
+        await User.find({"portfolio": {"$exists": True}}).update({"$unset": {"portfolio": ""}})
 
     except Exception as e:
         print(f"Error during migration: {e}")

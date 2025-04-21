@@ -36,6 +36,13 @@ const router = createBrowserRouter([
             }
           },
           {
+            path: "/watchlist",
+            async lazy() {
+              const { default: Watchlist } = await import("@/pages/Watchlist");
+              return { Component: Watchlist };
+            }
+          },
+          {
             path: "/transactions",
             async lazy() {
               const { default: Transactions } = await import("@/pages/Transactions");

@@ -55,7 +55,7 @@ function BuyStockForm({ stock, isMobile }) {
     onSuccess: async () => {
       console.log('success');
       await queryClient.invalidateQueries({
-        queryKey: ['userData'],
+        queryKey: ['authStatus'],
         exact: false,  
         refetchType: 'inactive'
       });

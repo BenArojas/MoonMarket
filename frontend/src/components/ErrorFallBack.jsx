@@ -1,3 +1,6 @@
+import { Box, Typography } from "@mui/material";
+
+
 export function ErrorFallback({ error }) {
   return (
     <Box role="alert" sx={{ backgroundColor: "red", color: "white", p: 2, borderRadius: 1 }}>
