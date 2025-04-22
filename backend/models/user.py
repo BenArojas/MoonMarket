@@ -48,6 +48,11 @@ class UserFriend(BaseModel):
 class FriendShow(UserFriend):
     request_id: Optional[str] = None
 
+class WatchListPortfolioStock(BaseModel):
+    ticker: str
+    quantity: int
+
+
 
 class UserUpdate(BaseModel):
     """Updatable user fields."""
@@ -63,12 +68,15 @@ class UserUpdate(BaseModel):
     enabled: bool
     yearly_expenses: List[YearlyExpenses] = []
     account_type: AccountType
+    watchlist: List[str] = []  # List of stock tickers
+    watchlist_portfolio: List[WatchListPortfolioStock] = []  # Simulated portfolio of watchlist stocks with quantities
 
 
 class UserOut(UserUpdate):
     """User fields returned to the client."""
     id: PydanticObjectId
     friends: List[PydanticObjectId] | None = []
+
 
 
 class User(Document):
@@ -91,6 +99,8 @@ class User(Document):
     last_activity: Optional[datetime] = None
     tax_rate: float = 0
     yearly_expenses: List[YearlyExpenses] = []
+    watchlist: List[str] = []  # List of stock tickers
+    watchlist_portfolio: List[WatchListPortfolioStock] = []  # Simulated portfolio of watchlist stocks with quantities
     account_type: AccountType = AccountType.FREE
 
     @classmethod

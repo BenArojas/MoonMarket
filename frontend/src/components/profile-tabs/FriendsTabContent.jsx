@@ -43,7 +43,7 @@ const FriendsTabContent = ({ friendList, handleSendFriendRequest }) => {
   const removeFriendMutation = useMutation({
     mutationFn: removeFriend,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({queryKey:"friendList"});
+      await queryClient.invalidateQueries({queryKey:"authStatus"});
     },
   });
   const [open, setOpen] = React.useState(false);

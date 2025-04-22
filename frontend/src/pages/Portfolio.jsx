@@ -1,13 +1,14 @@
 import { getPortfolioSnapshots, postSnapshot } from "@/api/portfolioSnapshot";
 import { getHistoricalData, updateStockPrices } from "@/api/stock";
-import { getUserData, getUserInsights } from "@/api/user";
-import { cacheService } from '@/cacheService';
+import { getUserInsights } from "@/api/user";
 import AiDialog from "@/components/AiDialog";
 import DataGraph from "@/components/DataGraph";
+import { ErrorFallback } from "@/components/ErrorFallBack";
 import GraphMenu from "@/components/GraphMenu";
 import { HistoricalDataCard } from '@/components/HistoricalDataCard';
 import NewUserNoHoldings from "@/components/NewUserNoHoldings";
 import SnapshotChart from "@/components/SnapShotChart";
+import { useUser } from '@/contexts/UserContext';
 import useGraphData from "@/hooks/useGraphData";
 import { PercentageChange } from "@/pages/Layout";
 import GraphSkeleton from "@/Skeletons/GraphSkeleton";
@@ -20,8 +21,6 @@ import { ErrorBoundary } from "react-error-boundary";
 import {
   useLoaderData
 } from "react-router-dom";
-import { ErrorFallback } from "@/components/ErrorFallBack"
-import { useUser} from '@/contexts/UserContext';
 
 
 
