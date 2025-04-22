@@ -26,7 +26,7 @@ export default function CurrentStockCard({
   const buyShares = useMutation({
     mutationFn: addUserPurchase,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({queryKey:["userData"]}) 
+      await queryClient.invalidateQueries({queryKey:["authStatus"]}) 
     },
     onError: (error) => {
       console.error("Error posting transaction", error);
@@ -36,7 +36,7 @@ export default function CurrentStockCard({
   const sellShares = useMutation({
     mutationFn: addUserSale,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({queryKey:["userData"]})  
+      await queryClient.invalidateQueries({queryKey:["authStatus"]})  
     },
     onError: (error) => {
       console.error("Error posting transaction", error);

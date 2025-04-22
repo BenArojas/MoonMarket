@@ -19,6 +19,12 @@ import {
   useNavigate,
   useSearchParams,
 } from "react-router-dom";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import api from '@/api/axios'
+import { FlagIcon } from '@heroicons/react/24/solid';
+import { useUser } from '@/contexts/UserContext';
+
+
 
 const defaultTime = "1week";
 
@@ -37,6 +43,8 @@ export async function loader({ params, request }) {
 }
 
 function StockItem() {
+  const userData = useUser();
+  const watchlist = userData.watchlist
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -44,6 +52,7 @@ function StockItem() {
   const [searchParams] = useSearchParams();
   const [chartData, setChartData] = useState(null);
   const navigate = useNavigate();
+
 
   let range = searchParams.get("time") || defaultTime;
 
@@ -83,6 +92,7 @@ function StockItem() {
                   onRangeChange={handleRangeChange}
                   currentRange={range}
                   isMobile={isMobile}
+                  watchlist={watchlist}
                 />
                 <Suspense fallback={<ChartLoadingFallback />}>
                   {chartData ? (
@@ -151,7 +161,19 @@ function NoStockFound() {
   );
 }
 
-function StockHeader({ stock, onRangeChange, currentRange, isMobile }) {
+function StockHeader({ stock, onRangeChange, currentRange, isMobile, watchlist }) {
+  console.log("watchlist is: ", watchlist)
+
+  const queryClient = useQueryClient();
+
+
+  const addToWatchlistMutation = useMutation({
+    mutationFn: (ticker) => api.post('/watchlist/toggle', { ticker }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['authStatus']);
+    }
+  });
+
   const timeRanges = [
     { value: "1week", label: "1 Week" },
     { value: "1month", label: "1 Month" },
@@ -209,6 +231,15 @@ function StockHeader({ stock, onRangeChange, currentRange, isMobile }) {
           flexWrap: isMobile ? "wrap" : "nowrap",
         }}
       >
+        <button
+            onClick={() => addToWatchlistMutation.mutate(stock.symbol)}
+            className={`${watchlist?.includes(stock.symbol) ? 'text-yellow-500' : 'text-blue-500'
+              } `}
+            title="Add to Watchlist"
+            disabled={addToWatchlistMutation.isPending}
+          >
+            <FlagIcon className="h-6 w-6" />
+          </button>
         <Select
           value={currentRange}
           onChange={(e) => onRangeChange(e.target.value)}
@@ -223,8 +254,11 @@ function StockHeader({ stock, onRangeChange, currentRange, isMobile }) {
         <Box sx={{
           width: isMobile ? 200 : "100%",
         }}>
+          
           <SearchBar />
+          
         </Box>
+        
       </Box>
     </Box>
   );

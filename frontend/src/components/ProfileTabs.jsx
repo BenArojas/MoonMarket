@@ -22,7 +22,7 @@ const ProfileTabs = ({ username, current_balance, friendRequests, friendList, fr
   const updateUsernameMutation = useMutation({
     mutationFn: updateUsername,
     onSuccess: async () => {
-      await queryClient.invalidateQueries('userName')
+      await queryClient.invalidateQueries('authStatus')
     },
   });
 
@@ -33,14 +33,14 @@ const ProfileTabs = ({ username, current_balance, friendRequests, friendList, fr
   const addDepositMutation = useMutation({
     mutationFn: addDeposit,
     onSuccess: async () => {
-      await queryClient.invalidateQueries('userData');
+      await queryClient.invalidateQueries('authStatus');
     },
   });
 
   const changeSubscriptionTierMutation = useMutation({
     mutationFn: changeAccountTier,
     onSuccess: async () => {
-      await queryClient.invalidateQueries('userData');
+      await queryClient.invalidateQueries('authStatus');
     },
   });
 

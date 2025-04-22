@@ -9,7 +9,7 @@ export const useStockPriceUpdate = () => {
       return updateStockPrices(tickers);
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['userData'] });
+      await queryClient.invalidateQueries({ queryKey: ['authStatus'] });
     },
   });
 };

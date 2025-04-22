@@ -12,7 +12,6 @@ class Stock(Document):
     last_updated: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     
-    
     class Config:
         json_schema_extra = {
             "example": {
