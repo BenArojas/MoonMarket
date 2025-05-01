@@ -9,6 +9,7 @@ interface SubscriptionTabContentProps{
   changeSubscriptionTier: (payload: ChangeTierPayload) => void
   changeSubscriptionTierLoading: boolean
 }
+
 const SubscriptionTabContent = ({ currentTier, changeSubscriptionTier, changeSubscriptionTierLoading }: SubscriptionTabContentProps) => {
   const [selectedTier, setSelectedTier] = useState(currentTier || 'free');
   const [billingCycle, setBillingCycle] = useState('monthly');
