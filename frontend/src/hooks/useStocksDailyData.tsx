@@ -21,29 +21,13 @@ interface StocksData {
   children: StockGroup[];
 }
 
-export interface StockData {
-  avgVolume: number;
-  change: number;
+export type StockData  = {
   changesPercentage: number;
   dayHigh: number;
   dayLow: number;
-  earningsAnnouncement: string;
-  eps: number;
-  exchange: string;
-  marketCap: number;
-  name: string;
-  open: number;
-  pe: number;
   previousClose: number;
   price: number;
-  priceAvg50: number;
-  priceAvg200: number;
-  sharesOutstanding: number;
   symbol: string;
-  timestamp: number;
-  volume: number;
-  yearHigh: number;
-  yearLow: number;
 }
 
 // Define return type

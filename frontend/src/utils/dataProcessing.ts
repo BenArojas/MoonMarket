@@ -5,11 +5,9 @@ import { Transaction } from '@/hooks/useTransactionSummary';
 
 export type StockInfo = {
   earnings: string;
-  last_updated: string;
   name: string;
   price: number;
   ticker: string
-  _id: string
 }
 
 export function getPortfolioStats(stocksList: HoldingData[], stocksInfo: StockInfo[]) {
@@ -83,7 +81,7 @@ export function processTreemapData(stocksList: HoldingData[], stocksInfo: StockI
 
     const stockData: StockData = {
       name: stockInfo.name,
-      id: stockInfo._id,
+      id: crypto.randomUUID(),
       ticker: holding.ticker,
       value,
       avgSharePrice: stock_avg_price.toFixed(2),

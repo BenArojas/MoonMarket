@@ -1,24 +1,23 @@
 import asyncio
 import json
 import logging
-from typing import Dict, List
+from typing import Dict, List, Optional
 from models import PortfolioSnapshot
 from models.transaction import Transaction
 from utils.auth_user import get_current_user
 from cache.manager import CacheManager
-from models.APIKeyManager import ApiKey
-from utils.api_key import get_api_key
-from models.stock import Stock
 from datetime import datetime, timezone
 from models.user import User
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request
 import aiohttp
 from aiohttp import ClientSession
 from apify_client import ApifyClient
 import os
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import pytz
+import yfinance as yf
 import httpx
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -93,15 +92,6 @@ async def analyze_sentiment(ticker: str, posts: List[dict]) -> Dict[str, float]:
     return avg_scores
 
 
-async def get_stock_price(ticker: str, api_key: ApiKey = Depends(get_api_key)) -> float:
-    stock = await Stock.find_one(Stock.ticker == ticker)
-    if not stock or (datetime.now(timezone.utc) - stock.last_updated).days > 1:
-        # Fetch from FMP using user's ApiKey (simplified)
-        stock_quote = await fetch_from_fmp(ticker, api_key)
-        price = stock_quote['price']
-        await Stock.find_one(Stock.ticker == ticker).update({"$set": {"price": price, "last_updated": datetime.now(timezone.utc)}})
-        return price
-    return stock.price
 
 
 async def fetch_from_fmp(ticker: str, api_key: str) -> Dict:
@@ -204,30 +194,6 @@ async def fetch_sentiment(ticker: str, cache_manager: CacheManager) -> Dict:
     return result
 
 
-async def get_user_portfolio_data(user: User = Depends(get_current_user)) -> dict:
-
-    # Get holdings
-    holdings = user.holdings
-    tickers = [h.ticker for h in holdings]
-
-    # Get current stock prices (via FMP or Stock model)
-    async with ClientSession() as session:
-        tasks = [get_stock_price(ticker, user.api_key.key, session) for ticker in tickers]
-        stock_prices = await asyncio.gather(*tasks, return_exceptions=True)
-
-    # Get transactions
-    transactions = await Transaction.find(Transaction.user_id == user.id).to_list()
-    snapshots = await PortfolioSnapshot.find(PortfolioSnapshot.userId == user.id).sort(
-        PortfolioSnapshot.timestamp
-    ).to_list()
-
-    return {
-        "holdings": holdings,
-        "stock_prices": {tickers[i]: price for i, price in enumerate(stock_prices) if not isinstance(price, Exception)},
-        "transactions": transactions,
-        "snapshots": snapshots,
-        "user": user
-    }
     
 async def call_perplexity(portfolio_summary):
     PERPLEXITY_API_TOKEN = os.getenv("PERPLEXITY_API_TOKEN")
@@ -271,3 +237,99 @@ async def call_perplexity(portfolio_summary):
             "content": f"Failed to generate insights due to an error: {str(e)}",
             "citations": []
         }
+        
+        
+
+# --- Helper Function to Fetch from yfinance ---
+async def fetch_stock_data_yf(ticker_symbol: str) -> dict:
+    """
+    Fetches stock data (name, price, next earnings date) for a single ticker.
+    Uses ticker.earnings_dates and handles timezones by converting to UTC.
+    Returns a dictionary. Earnings date will be None if unavailable/error.
+    """
+    name: Optional[str] = None
+    price: Optional[float] = None
+    earnings_date_iso: Optional[str] = None
+
+    try:
+        ticker = yf.Ticker(ticker_symbol)
+        info = ticker.info # For name and price
+
+        # --- Extract Name and Price ---
+        price = info.get('currentPrice') \
+                or info.get('regularMarketPrice') \
+                or info.get('previousClose')
+        name = info.get('longName') or info.get('shortName')
+
+        # Basic validation for essential data
+        if not name or price is None:
+            logging.error(f"Essential data (name/price) missing for {ticker_symbol}")
+            return {"ticker": ticker_symbol, "error": "Failed to retrieve essential data (name/price)"}
+
+        # --- Try to Extract Next Earnings Date (Simplified) ---
+        try:
+            earnings_df = ticker.earnings_dates
+            if earnings_df is not None and not earnings_df.empty:
+                # Ensure the index is datetime type
+                if pd.api.types.is_datetime64_any_dtype(earnings_df.index):
+                    # Get current time in UTC (timezone-aware)
+                    now_utc = datetime.now(timezone.utc)
+
+                    # Convert earnings dates index to UTC (handles aware/naive cases)
+                    try:
+                        # If index is timezone-aware (like 'America/New_York'), convert it
+                        if earnings_df.index.tz is not None:
+                             utc_earnings_dates = earnings_df.index.tz_convert('UTC')
+                        # If index is timezone-naive, assume it represents UTC (less common for yf)
+                        else:
+                             utc_earnings_dates = earnings_df.index.tz_localize('UTC')
+                    except Exception as tz_err:
+                         logging.warning(f"Timezone conversion issue for {ticker_symbol}: {tz_err}")
+                         utc_earnings_dates = pd.DatetimeIndex([]) # Empty index on error
+
+
+                    # Filter for future dates (comparing aware UTC with aware UTC)
+                    future_dates = utc_earnings_dates[utc_earnings_dates >= now_utc]
+
+                    if not future_dates.empty:
+                        # Get the soonest future date
+                        next_earnings_date_utc = future_dates.min()
+                        # Format as ISO string (already in UTC)
+                        earnings_date_iso = next_earnings_date_utc.isoformat()
+                else:
+                     logging.warning(f"Earnings date index for {ticker_symbol} is not a datetime type.")
+
+        except Exception as e:
+            # Log if fetching/processing earnings_dates fails, but don't stop overall fetch
+            logging.warning(f"Could not determine earnings date for {ticker_symbol} using earnings_dates: {e}")
+
+        # --- Prepare final result ---
+        return {
+            "ticker": ticker_symbol,
+            "name": name,
+            "price": float(price), # Convert to float
+            "earnings": earnings_date_iso, # This will be None if lookup failed
+        }
+
+    except Exception as e:
+        # Handle broader errors during yfinance interaction (e.g., invalid ticker)
+        logging.error(f"Overall yfinance fetch error for {ticker_symbol}: {e}")
+        return {"ticker": ticker_symbol, "error": f"yfinance fetch error: {str(e)}"}
+    
+
+async def get_or_fetch_stock_price(ticker: str, request: Request) -> dict:
+    """
+    Attempts to get stock price from Redis cache; falls back to Yahoo Finance.
+    Returns a dictionary with ticker and price or an error.
+    """
+    # Check cache first
+    cache_manager = CacheManager(request)
+    cached_data = await cache_manager.get_stock_info_for_ticker(ticker)
+    if cached_data and "price" in cached_data and cached_data["price"] is not None:
+        return {"ticker": ticker, "price": cached_data["price"]}
+    # Cache miss or invalid data, fetch from Yahoo Finance
+    result = await fetch_stock_data_yf(ticker)
+    if "price" in result:
+        # Fetch succeeded, cache the result
+        await cache_manager.cache_stock_info_for_ticker(ticker, result, 1200)
+    return result

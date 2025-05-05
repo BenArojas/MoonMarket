@@ -54,7 +54,7 @@ async def lifespan(app: FastAPI):
                 redis_client = await aioredis.from_url(
                 CONFIG.REDIS_URL,
                 decode_responses=True,
-                socket_timeout=5
+                socket_timeout=5, max_connections=10
             )
                 await redis_client.ping()  # Test connection
                 break

@@ -8,7 +8,7 @@ from typing import Optional
 from beanie import PydanticObjectId
 from models.subscription import BillingCycle, Subscription, ToggleTier
 from cache.manager import CacheManager
-from helpers import call_perplexity, fetch_sentiment, get_stock_price
+from helpers import call_perplexity, fetch_sentiment, get_or_fetch_stock_price
 from fastapi import APIRouter, Depends, HTTPException, Response, Request
 from models.user import (
     AccountType,
@@ -50,19 +50,20 @@ async def get_holdings(user: User = Depends(get_current_user)):
     return user.holdings
 
 
-@router.get("/stocks")
-async def get_stocks(user: User = Depends(get_current_user)):
-    # Get unique tickers from user's holdings
-    tickers = set(holding.ticker for holding in user.holdings)
-    # Fetch only the stocks that the user holds
-    stocks = await Stock.find({"ticker": {"$in": list(tickers)}}).to_list()
-    return stocks
-
 
 @router.get("/user_transactions", operation_id="retrieve_user_transactions")
 async def get_user_transactions_by_user_id(user: User = Depends(get_current_user)):
     transactions = await get_user_transactions(user.id)
     return transactions
+
+@router.get("/stocks", operation_id="retrieve_user_transactions")
+async def get_user_portfolio_stocks(request: Request, user: User = Depends(get_current_user)):
+    user_holdings = user.holdings
+    tickers_list = [holding.ticker for holding in user_holdings]
+    results = []
+    tickers_to_fetch = []
+    cache_manager = CacheManager(request)
+    return 
 
 
 @router.get(
@@ -291,18 +292,11 @@ async def get_combined_ai(request: Request, user: User = Depends(get_current_use
 
         # Parallel fetch stock prices
         async with ClientSession() as session:
-            tasks = [get_stock_price(ticker, session) for ticker in tickers]
+            tasks = [get_or_fetch_stock_price(ticker, request) for ticker in tickers]
             stock_prices = await asyncio.gather(*tasks, return_exceptions=True)
 
         # Process stock prices
         for i, (ticker, price) in enumerate(zip(tickers, stock_prices)):
-            if isinstance(price, Exception):
-                print(f"Error fetching price for {ticker}: {str(price)}")
-                price = (
-                    (await Stock.find_one(Stock.ticker == ticker)).price
-                    if await Stock.find_one(Stock.ticker == ticker)
-                    else 0
-                )
             holding = holdings[i]
             quantity = holding.quantity
             avg_price = holding.avg_bought_price
@@ -315,10 +309,8 @@ async def get_combined_ai(request: Request, user: User = Depends(get_current_use
             }
 
         user_transactions = await get_user_transactions(user.id)
-        logger.info(f"transactions are: {user_transactions}")
 
         transactions_summary = summarize_transactions(user_transactions, stock_values)
-        logger.info(f"transactions_summary are: {transactions_summary}")
 
         # Prepare data for AI model
         portfolio_summary = {

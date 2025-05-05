@@ -3,13 +3,12 @@ import api from "@/api/axios";
 
 
 export async function getStockData(ticker: string) {
-  const stock = await api.get(
-    `/stock/quote/${ticker}`
-  );
-  if (stock.data.length == 0) {
-    return null;
-  } else {
-    return stock.data[0];
+  try {
+    const stock = await api.get(`/stock/quote/${ticker}`);
+    return stock.data; // Return the object directly
+  } catch (error) {
+    // console.error(`Error fetching stock data for ${ticker}:`, error);
+    return null; // Return null on error
   }
 }
 
@@ -42,18 +41,15 @@ export async function getIntradayData(ticker: string, range: string) {
 //   return false;
 // }
 
-export async function getStocksFromPortfolio(tickers: string[]) {
-  const stockData = await api.post(`/stock/portfolio`, {
-    tickers: tickers,
-  });
+export async function getStocksFromPortfolio() {
+  const stockData = await api.get(`/stock/portfolio`);
   return stockData.data;
 }
 
-export async function updateStockPrices(tickers: string[]) {
+export async function updateStockPrices() {
   try {
-    const response = await api.put(
-      `/stock/update_stock_prices`,
-      { tickers }, // Send tickers array in request body
+    const response = await api.post(
+      `/stock/update_stock_prices`
     );
     return response.data;
   } catch (error) {
@@ -62,9 +58,3 @@ export async function updateStockPrices(tickers: string[]) {
   }
 }
 
-export async function deleteStock(ticker: string) {
-  const stock = await api.delete(
-    `/stock/delete/${ticker}`
-  );
-  return stock.data; // Return response data if needed
-}

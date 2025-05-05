@@ -12,7 +12,6 @@ interface SnapshotChartProps {
   incrementalChange: number
   value: number
   percentageChange: number
-  stockTickers: string[]
   dailyTimeFrameData: SnapshotData[]
   loadingAI: boolean
   fetchInsights: () => void
@@ -23,7 +22,6 @@ const SnapshotChart = React.memo(
     value,
     percentageChange,
     formattedDate,
-    stockTickers,
     dailyTimeFrameData,
     fetchInsights,
     loadingAI
@@ -35,18 +33,9 @@ const SnapshotChart = React.memo(
     const trend = percentageChange > 0 ? "positive" : "negative";
     const theme = useTheme();
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('xl'));
-    const queryClient = useQueryClient();
 
 
-    const updateStockPricesMutation = useMutation({
-      mutationFn: (tickers: string[]) => updateStockPrices(tickers),
-      onSuccess: async () => {
-        await queryClient.invalidateQueries({ queryKey: ['holdingsData'] });
-      },
-      onError: () => {
-        console.log("failed to update stock prices")
-      }
-    });
+
 
 
     return (
@@ -77,9 +66,7 @@ const SnapshotChart = React.memo(
                 formattedDate={formattedDate}
                 incrementalChange={incrementalChange}
                 percentageChange={percentageChange}
-                stockTickers={stockTickers}
                 value={value}
-                updateStockPricesMutation={updateStockPricesMutation}
                 fetchInsights={fetchInsights}
                 loadingAI={loadingAI}
               />
@@ -131,9 +118,7 @@ const SnapshotChart = React.memo(
                     formattedDate={formattedDate}
                     incrementalChange={incrementalChange}
                     percentageChange={percentageChange}
-                    stockTickers={stockTickers}
                     value={value}
-                    updateStockPricesMutation={updateStockPricesMutation}
                     fetchInsights={fetchInsights}
                     loadingAI={loadingAI}
                   />

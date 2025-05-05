@@ -1,19 +1,26 @@
-import {  useQuery} from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { getStocksFromPortfolio } from "@/api/stock";
-import { HoldingData } from "@/contexts/UserContext";
+import { StockInfo } from "@/utils/dataProcessing";
 
 
 
-function useHoldingsData(holdingsList: HoldingData[]) {
-  const tickers = holdingsList.map((holding) => holding.ticker);
+// Optionally, type the return value of the hook
+type HoldingsDataReturn = {
+  holdingsData: StockInfo[];
+  holdingsDataLoading: boolean;
+  holdingsError: Error | null;
+};
 
-  const { data: holdingsData = [], isPending: holdingsDataLoading, error } = useQuery({
-    queryKey: ["holdingsData", tickers],
-    queryFn: () => getStocksFromPortfolio(tickers),
-    staleTime: 0,
+function useHoldingsData(): HoldingsDataReturn {
+  const { data: holdingsData = [], isPending: holdingsDataLoading, error: holdingsError } = useQuery<
+  StockInfo[] 
+  >({
+    queryKey: ["holdingsData"],
+    queryFn: () => getStocksFromPortfolio(),
+    staleTime: 5 * 60 * 1000,
   });
 
-  return { holdingsData, holdingsDataLoading, error };
+  return { holdingsData, holdingsDataLoading, holdingsError };
 }
 
 export default useHoldingsData;

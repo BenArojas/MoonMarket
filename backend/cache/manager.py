@@ -167,3 +167,14 @@ class CacheManager:
         """Cache historical stock data for a single ticker."""
         cache_key = f"stock:historical:{ticker}:{time_range}:{','.join(metrics)}"
         await self.redis.setex(cache_key, expire, json.dumps(data))
+    
+    async def get_stock_info_for_ticker(self, ticker: str,) -> Optional[dict]:
+        """Retrieve historical stock data for a single ticker from cache."""
+        cache_key = f"stock:{ticker}"
+        data = await self.redis.get(cache_key)
+        return json.loads(data) if data else None
+    
+    async def cache_stock_info_for_ticker(self, ticker: str, data: dict, expire: int) -> None:
+        """Cache historical stock data for a single ticker."""
+        cache_key = f"stock:{ticker}"
+        await self.redis.setex(cache_key, expire, json.dumps(data))

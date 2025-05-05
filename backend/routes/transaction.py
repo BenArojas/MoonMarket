@@ -1,9 +1,9 @@
+from helpers import fetch_stock_data_yf
 from cache.manager import CacheManager
 from fastapi import APIRouter, Depends, HTTPException, Request
 from datetime import datetime
 from utils.auth_user import get_current_user
 from models.user import User, YearlyExpenses
-from models.stock import Stock
 from models.transaction import Transaction
 from models.user import Holding
 import pytz
@@ -34,7 +34,7 @@ async def buy_stock_shares(
         raise HTTPException(status_code=400, detail="Transaction date cannot be in the future")
 
     # Fetch the stock from the database
-    stock = await Stock.find_one(Stock.ticker == ticker)
+    stock = await fetch_stock_data_yf(ticker)
 
     if not stock:
         raise HTTPException(status_code=404, detail="Stock not found")
@@ -130,7 +130,7 @@ async def sell_stock_shares(
         raise HTTPException(status_code=400, detail="Transaction date cannot be in the future")
     
     # Fetch the stock from the database
-    stock = await Stock.find_one(Stock.ticker == ticker)
+    stock = await fetch_stock_data_yf(ticker)
 
     if not stock:
         raise HTTPException(status_code=404, detail="Stock not found")

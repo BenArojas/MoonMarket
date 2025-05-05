@@ -16,7 +16,8 @@ import { UserData } from "@/contexts/UserContext";
 
 function useGraphData(userData: UserData, selectedGraph: string, isDailyView: boolean = false) {
   const stockList = userData.holdings;
-  const { holdingsData, holdingsDataLoading, error } = useHoldingsData(stockList);
+  const { holdingsData, holdingsDataLoading, holdingsError } = useHoldingsData();
+  console.log(holdingsData)
 
 
   const portfolioStats = (stockList.length > 0 && holdingsData.length > 0)
@@ -49,7 +50,7 @@ function useGraphData(userData: UserData, selectedGraph: string, isDailyView: bo
     moneySpent: portfolioStats.totalSpent,
     isDataProcessed: stockList.length > 0 && holdingsData.length > 0,
     holdingsDataLoading,
-    error,
+    holdingsError,
   };
 }
 

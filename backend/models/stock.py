@@ -22,5 +22,13 @@ class Stock(Document):
             }
         }
 
-class PortfolioRequest(BaseModel):
+class TickersRequest(BaseModel):
     tickers: List[str]
+
+# Define a response model matching your desired output structure
+class StockData(BaseModel):
+    ticker: str
+    name: Optional[str] = None
+    price: Optional[float] = None
+    earnings: Optional[str] = None # Store as ISO format string
+    error: Optional[str] = None # Add field to indicate fetch errors

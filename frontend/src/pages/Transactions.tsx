@@ -1,5 +1,4 @@
 import { deleteTransaction, getUserTransactions } from "@/api/transaction";
-import { getUserStocks } from "@/api/user";
 import {
   TradingActivityDistribution,
   TransactionsByQuarter,
@@ -7,6 +6,7 @@ import {
 import TransactionsTable from "@/components/TransactionsTable";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import useHoldingsData from "@/hooks/useHoldingsData";
 import { Transaction, useTransactionSummary } from "@/hooks/useTransactionSummary";
 import SkeletonTable from "@/Skeletons/TableSkeleton";
 import "@/styles/App.css";
@@ -35,22 +35,17 @@ const TransactionsPage = () => {
     queryFn: getUserTransactions
   });
 
-  const {
-    data: stocks = [],
-    isLoading: stocksLoading,
-    error: stocksError
-  } = useQuery({
-    queryKey: ['userStocks'],
-    queryFn: getUserStocks
-  });
+
+  const { holdingsData, holdingsDataLoading, holdingsError } = useHoldingsData();
+
 
   const summaryData = useTransactionSummary({
     transactions,
-    stocks,
+    holdingsData,
   });
 
   // Show loading state
-  if (transactionsLoading || stocksLoading) {
+  if (transactionsLoading || holdingsDataLoading) {
     return (
       <div className="h-[calc(100vh-10rem)] flex flex-col">
         <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
@@ -61,7 +56,7 @@ const TransactionsPage = () => {
   }
 
   // Show error state
-  if (transactionsError || stocksError) {
+  if (transactionsError || holdingsError) {
     return (
       <div className="h-[calc(100vh-10rem)] flex flex-col">
         <div className="flex-1 p-6">

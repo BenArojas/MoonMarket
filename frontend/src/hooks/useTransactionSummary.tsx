@@ -1,15 +1,8 @@
 import { useMemo } from 'react';
-import { calculateTransactionSummary } from '@/utils/dataProcessing'
+import { calculateTransactionSummary, StockInfo } from '@/utils/dataProcessing'
 
 // Define interface for Stock based on console.log output
-interface Stock {
-  _id: string;
-  name: string;
-  ticker: string;
-  price: number;
-  earnings: string | null;
-  last_updated: string;
-}
+
 
 // Define interface for User in Transaction
 interface User {
@@ -32,23 +25,21 @@ export interface Transaction {
   user_id: User;
 }
 
-
-
 // Define props interface for the hook
 interface TransactionSummaryProps {
   transactions: Transaction[];
-  stocks: Stock[];
+  holdingsData: StockInfo[];
 }
 
-export const useTransactionSummary = ({ transactions, stocks }: TransactionSummaryProps) => {
+export const useTransactionSummary = ({ transactions, holdingsData }: TransactionSummaryProps) => {
 
   // Create a map of current stock prices
   const currentStockPrices = useMemo(() => {
-    return stocks.reduce((acc: Record<string, number>, stock) => {
-      acc[stock.ticker] = stock.price;
+    return holdingsData.reduce((acc: Record<string, number>, holding) => {
+      acc[holding.ticker] = holding.price;
       return acc;
     }, {});
-  }, [stocks]);
+  }, [holdingsData]);
 
   const summaryData = useMemo(() => {
     return calculateTransactionSummary(transactions, currentStockPrices);
