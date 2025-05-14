@@ -190,7 +190,6 @@ async def get_all_friends(
                     stock_cache[holding.ticker] = stock
 
             if stock:
-                print(stock)
                 holding_value = stock['price'] * holding.quantity
                 holdings_value += holding_value
                 cost_basis += holding.avg_bought_price * holding.quantity

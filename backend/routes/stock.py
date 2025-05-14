@@ -121,7 +121,6 @@ async def get_stock_quote(symbol: str):
 
     return stock_quote
 
-# --- FastAPI Route ---
 @router.get(
     "/portfolio", response_description="Get stocks data using yfinance and Redis cache"
 )
@@ -172,8 +171,6 @@ async def get_user_stocks_redis(
                 results.append(StockData(ticker=ticker, error=stock_data["error"]))
 
     return results
-
-
 
 
 @router.post("/update_stock_prices")
