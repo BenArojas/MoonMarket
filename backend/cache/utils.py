@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import Enum
 
 
 def convert_datetime_recursive(obj):
@@ -9,4 +10,6 @@ def convert_datetime_recursive(obj):
         return [convert_datetime_recursive(item) for item in obj]
     elif isinstance(obj, datetime):
         return obj.isoformat() if obj else None
+    elif isinstance(obj, Enum):
+        return obj.value  # Or obj.name, depending on your preference
     return obj

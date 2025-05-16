@@ -1,12 +1,10 @@
 """Cache manager for handling Redis operations."""
-import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, TYPE_CHECKING
 from cache.utils import convert_datetime_recursive
 from fastapi import Request
 import json
 import pytz
-from models.schemas import CachedUser, Deposit, Holding, YearlyExpenses
 if TYPE_CHECKING:
     from models.user import User
     from models.APIKeyManager import ApiKey
@@ -19,8 +17,11 @@ class CacheManager:
         self.redis = request.app.state.redis
         self.prefix = {
             "user": "user:",
-            "api_key": "api_key:"
+            "api_key": "api_key:",
+            "session": "session:"
         } 
+    
+    # ----- Session Management Methods -----
     
     async def get_user_by_session(self, session: str) -> Optional[dict]:
         """Retrieve user data from cache by session."""
@@ -28,36 +29,77 @@ class CacheManager:
         data = await self.redis.get(cache_key)
         return json.loads(data) if data else None
     
+    async def create_session(self, user: "User", ttl: int = 3600) -> None:
+        """Create a new session in Redis for the user."""
+        if not user.session:
+            return
+            
+        # Store session metadata
+        session_key = f"{self.prefix['session']}{user.session}"
+        expires_at = datetime.now(timezone.utc) + timedelta(seconds=ttl)
+        
+        await self.redis.setex(
+            session_key,
+            ttl,
+            json.dumps({"expires_at": expires_at.isoformat()})
+        )
+        
+        # Also cache the user data
+        await self.cache_user(user, expire=ttl)
+    
+    async def get_session_data(self, session: str) -> Optional[dict]:
+        """Retrieve session metadata from Redis."""
+        cache_key = f"{self.prefix['session']}{session}"
+        data = await self.redis.get(cache_key)
+        if data:
+            session_data = json.loads(data)
+            session_data["expires_at"] = datetime.fromisoformat(session_data["expires_at"])
+            return session_data
+        return None
+    
+    async def extend_session(self, session: str, ttl: int = 3600) -> None:
+        """Extend session TTL in Redis."""
+        cache_key = f"{self.prefix['session']}{session}"
+        session_data = await self.get_session_data(session)
+        if session_data:
+            expires_at = datetime.now(timezone.utc) + timedelta(seconds=ttl)
+            await self.redis.setex(
+                cache_key,
+                ttl,
+                json.dumps({"expires_at": expires_at.isoformat()})
+            )
+    
+    async def invalidate_session(self, session: str) -> None:
+        """Invalidate session in Redis."""
+        # Remove session metadata
+        session_key = f"{self.prefix['session']}{session}"
+        await self.redis.delete(session_key)
+        
+        # Remove cached user data associated with this session
+        user_key = f"{self.prefix['user']}session:{session}"
+        await self.redis.delete(user_key)
+    
+    # ----- User Management Methods -----
+    
     async def cache_user(self, user: "User", expire: int = 3600) -> None:
         """Cache user data using CachedUser model."""
         # Only proceed if user has a session
         if not user.session:
             return
+            
         cache_key = f"{self.prefix['user']}session:{user.session}"
             
         # Convert user to dict, excluding sensitive data
-        user_dict = user.dict(
-            exclude={
-                'password',
-                'friend_requests_sent',
-                'friend_requests_received'
-            }
-        )
+        user_dict = user.model_dump()
         
-        # Convert to CachedUser model which will handle nested validations
-        cached_user = CachedUser.model_validate(user_dict)
-        
-        # Convert to dict and handle datetime serialization
-        serialized_data = cached_user.model_dump()
-        serialized_data = convert_datetime_recursive(serialized_data)
+        serialized_data = convert_datetime_recursive(user_dict)
         
         # Store in Redis with expiration
         await self.redis.setex(
-        cache_key,
-        expire,
-        json.dumps(serialized_data)
-    )
-        
+            cache_key,
+            expire,
+            json.dumps(serialized_data)
+        )
     
     async def invalidate_user(self, user: "User") -> None:
         """
@@ -67,6 +109,8 @@ class CacheManager:
         if user.session:
             cache_key = f"{self.prefix['user']}session:{user.session}"
             await self.redis.delete(cache_key)
+    
+    # ----- API Key Management Methods -----
     
     async def get_api_key(self, key: str) -> Optional[dict]:
         """
@@ -156,6 +200,8 @@ class CacheManager:
             cached_data['requests'] += 1
             cached_data['last_used'] = datetime.now().isoformat()
             await self.redis.setex(cache_key, 300, json.dumps(cached_data))
+            
+    # ----- Stock Data Methods -----
             
     async def get_historical_stock_data_for_ticker(self, ticker: str, time_range: str, metrics: list) -> Optional[dict]:
         """Retrieve historical stock data for a single ticker from cache."""

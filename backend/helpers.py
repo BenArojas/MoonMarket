@@ -110,7 +110,6 @@ async def fetch_from_fmp(ticker: str, api_key: str) -> Dict:
     Returns a dict with stock quote data, including 'price'.
     """
     url = f"{BASE_URL}quote/{ticker}?apikey={api_key}"
-    logger.info(f"Sending request to URL: {url}")  # Log the URL before the request
     
     async with aiohttp.ClientSession() as session:
         try:
@@ -260,13 +259,13 @@ async def call_perplexity(portfolio_summary):
                 "citations": data.get("citations", [])  # Safely handle missing citations
             }
     except httpx.HTTPStatusError as e:
-        print(f"HTTP error calling Perplexity API: {str(e)}")
+        logger.error(f"HTTP error calling Perplexity API: {str(e)}")
         return {
             "content": f"Failed to generate insights due to an error: {str(e)}",
             "citations": []
         }
     except Exception as e:
-        print(f"Error calling Perplexity API: {str(e)}")
+        logger.error(f"Error calling Perplexity API: {str(e)}")
         return {
             "content": f"Failed to generate insights due to an error: {str(e)}",
             "citations": []
