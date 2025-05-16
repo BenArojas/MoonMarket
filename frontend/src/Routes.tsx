@@ -96,41 +96,45 @@ const router = createBrowserRouter([
       },
     ],
   },
-  {
+ {
     element: <PublicRoute />,
     path: "/",
-    async lazy(): Promise<LazyRouteComponent> {
-      const { default: Login } = await import("@/pages/Login.tsx");
-      return {
-        Component: Login,
-        ErrorBoundary: (await import("@/components/ErrorFallBack")).default };
-    },
     children: [
       {
-        path: "/login",
+        index: true, // Render Login for the root path (/)
         async lazy(): Promise<LazyRouteComponent> {
           const { default: Login } = await import("@/pages/Login.tsx");
           return {
             Component: Login,
-            ErrorBoundary: (await import("@/components/ErrorFallBack")).default
+            ErrorBoundary: (await import("@/components/ErrorFallBack")).default,
           };
-        }
+        },
       },
       {
-        path: "/register",
+        path: "login",
+        async lazy(): Promise<LazyRouteComponent> {
+          const { default: Login } = await import("@/pages/Login.tsx");
+          return {
+            Component: Login,
+            ErrorBoundary: (await import("@/components/ErrorFallBack")).default,
+          };
+        },
+      },
+      {
+        path: "register",
         async lazy(): Promise<LazyRouteComponent> {
           const { default: Register } = await import("@/pages/Register");
           return {
             Component: Register,
-            ErrorBoundary: (await import("@/components/ErrorFallBack")).default
+            ErrorBoundary: (await import("@/components/ErrorFallBack")).default,
           };
-        }
+        },
       },
     ],
   },
   {
     path: "*",
-    element: <NotFoundPage />
+    element: <NotFoundPage />,
   },
 ]as RouteObject[]);
 

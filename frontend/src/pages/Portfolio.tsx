@@ -10,7 +10,7 @@ import NewUserNoHoldings from "@/components/NewUserNoHoldings";
 import SnapshotChart from "@/components/SnapShotChart";
 import { UserData, useUser } from '@/contexts/UserContext';
 import useGraphData from "@/hooks/useGraphData";
-import { PercentageChange } from "@/pages/Layout";
+import { PercentageChange } from "@/contexts/PercentageChangeContext";
 import GraphSkeleton from "@/Skeletons/GraphSkeleton";
 import "@/styles/App.css";
 import { lastUpdateDate, SnapshotData } from "@/utils/dataProcessing";

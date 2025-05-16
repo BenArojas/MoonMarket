@@ -1,11 +1,8 @@
 
 from typing import List
-from fastapi import APIRouter, HTTPException, Depends
-from utils.auth_user import get_current_user
+from fastapi import APIRouter, HTTPException
 from models.APIKeyManager import ApiKey
-from models.user import ApiKeyRequest, User
 import aiohttp
-from pydantic import HttpUrl
 
 router = APIRouter( tags=["ApiKey"])
 
@@ -20,24 +17,6 @@ async def validate_fmp_key(api_key: str) -> bool:
                 return not isinstance(data, dict) or 'Error Message' not in data
             return False
         
-@router.post("/add-api-key")
-async def add_api_key(request: ApiKeyRequest, user: User = Depends(get_current_user)):
-    existing_key = await ApiKey.find_one(ApiKey.key == request.api_key)
-    if existing_key:
-        raise HTTPException(status_code=400, detail="This API key is already in use")
-    
-    is_valid = await validate_fmp_key(request.api_key)
-    if not is_valid:
-        raise HTTPException(status_code=400, detail="Invalid API key")
-
-    key = ApiKey(key=request.api_key)
-    await key.insert()
-    
-    user.enabled = True
-    user.tax_rate = request.tax_rate
-    await user.save()
-    
-    return {"message": "Setup completed successfully"}
 
 # Get all API keys
 @router.get("/api-keys", response_model=List[ApiKey])

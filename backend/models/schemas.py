@@ -2,8 +2,9 @@
 from datetime import datetime, timezone
 from typing import List, Optional, Any
 from fastapi import Request
-from pydantic import BaseModel, EmailStr,  model_validator
+from pydantic import BaseModel, EmailStr,  model_validator, validator
 from beanie import PydanticObjectId
+from user import ApiProvider
 
 
 class Deposit(BaseModel):
@@ -68,3 +69,18 @@ class CachedUser(BaseModel):
                 ]
         return values
     
+
+class AccountSetupRequest(BaseModel):
+    api_provider: ApiProvider # 'fmp' or 'ibkr'
+    tax_rate: float
+    api_key: Optional[str] = None # Optional: only provided if api_provider is 'fmp'
+
+    @validator('api_key', always=True)
+    def check_api_key_for_fmp(cls, v, values):
+        # 'values' is a dict of other fields in the model
+        provider = values.get('api_provider')
+        if provider == ApiProvider.FMP and not v:
+            raise ValueError('API key is required for FMP provider')
+        if provider == ApiProvider.FMP and v and len(v) != 32: # Assuming FMP key is 32 chars
+             raise ValueError('FMP API key must be 32 characters')
+        return v

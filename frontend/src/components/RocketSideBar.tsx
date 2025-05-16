@@ -1,9 +1,9 @@
-import React, { useContext } from "react";
+import  { useContext } from "react";
 import { Box } from "@mui/material";
 import mainlogo from "/ToTheMoon.png";
 import spaceship from "/spaceship.png";
 import { Link } from "react-router-dom";
-import { PercentageChange } from "@/pages/Layout";
+import { PercentageChange } from "@/contexts/PercentageChangeContext";
 import ShootingStars from "@/components/ShootingStars";
 
 interface RocketSideBarProps{

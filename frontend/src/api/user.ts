@@ -3,11 +3,8 @@ import { Dayjs } from "dayjs";
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-interface ApiKeyData {
-  apiKey: string;
-  taxRate: number;
-}
-interface Deposit {
+
+type Deposit = {
   amount: number;
   date: string
 }
@@ -181,8 +178,14 @@ export async function searchUser(username: string) {
   return response.data;
 }
 
+type ApiKeyData = {
+  taxRate: number;
+  api_provider: string
+  apiKey?: string;
+}
+
 export async function addApiKey(data: ApiKeyData) {
-  const response = await api.post(`/user/add-api-key`, data);
+  const response = await api.post(`/user/complete-setup`, data);
   return response.data;
 }
 

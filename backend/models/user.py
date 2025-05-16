@@ -18,6 +18,10 @@ class AccountType(Enum):
     FREE = "free"
     PREMIUM = "premium"
 
+class ApiProvider(str, Enum): 
+    IBKR = "ibkr"
+    FMP = "fmp" # Let's be specific, as "other" is vague if you add more later
+
 
 class ApiKeyRequest(BaseModel):
     api_key: str
@@ -83,22 +87,33 @@ class User(Document):
     email: Annotated[str, Indexed(EmailStr, unique=True)]
     password: str
     username: Annotated[str, Indexed(str, unique=True)]
-    holdings: List[Holding] = []
-    transactions: List[PydanticObjectId] = []
-    deposits: List[Deposit] = []
+    
+     # Account Setup & Provider
+    api_provider: Optional[ApiProvider] = None # NEW: To store if user chose IBKR or FMP
+    enabled: bool = False # This flag indicates if basic setup (API/Provider + Tax) is done
+    tax_rate: float = 0.0
+
+    # IBKR Specific OAuth Tokens (Store Encrypted!) - Placeholder for now
+    # ibkr_access_token: Optional[str] = None 
+    # ibkr_refresh_token: Optional[str] = None
+    # ibkr_token_expiry: Optional[datetime] = None
+    # ibkr_is_connected: bool = False # Flag to quickly check IBKR connection status
+    
+    
+    holdings: List[Holding]  = Field(default_factory=list)
+    transactions: List[PydanticObjectId]  = Field(default_factory=list)
+    deposits: List[Deposit]  = Field(default_factory=list)
     current_balance: float = 0
     profit: float = 0
     last_refresh: Optional[datetime] = None
-    friends: List[PydanticObjectId] = []
-    friend_requests_sent: List[Link["FriendRequest"]] = []
-    friend_requests_received: List[Link["FriendRequest"]] = []
-    enabled: bool = False
+    friends: List[PydanticObjectId] = Field(default_factory=list)
+    friend_requests_sent: List[Link["FriendRequest"]]  = Field(default_factory=list)
+    friend_requests_received: List[Link["FriendRequest"]]  = Field(default_factory=list)
     session: Optional[str] = None
     last_activity: Optional[datetime] = None
-    tax_rate: float = 0
-    yearly_expenses: List[YearlyExpenses] = []
-    watchlist: List[str] = []  # List of stock tickers
-    watchlist_portfolio: List[WatchListPortfolioStock] = []  # Simulated portfolio of watchlist stocks with quantities
+    yearly_expenses: List[YearlyExpenses]  = Field(default_factory=list)
+    watchlist: List[str] = Field(default_factory=list)
+    watchlist_portfolio: List[WatchListPortfolioStock] = Field(default_factory=list)  # Simulated portfolio of watchlist stocks with quantities
     account_type: AccountType = AccountType.FREE
 
     @classmethod
