@@ -7,7 +7,7 @@ from typing import Optional
 
 from beanie import PydanticObjectId
 from models.APIKeyManager import ApiKey
-from models.schemas import AccountSetupRequest
+from models.user import AccountSetupRequest
 from routes.apiKey import validate_fmp_key
 from models.subscription import BillingCycle, Subscription, ToggleTier
 from cache.manager import CacheManager

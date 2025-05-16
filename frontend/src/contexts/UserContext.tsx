@@ -31,6 +31,10 @@ export interface UserData {
     quantity: number;
   }>;
   friends: string[];
+  ibkr_access_token?: string
+  ibkr_refresh_token?: string
+  ibkr_token_expiry?: string;
+  ibkr_is_connected?: boolean;
 }
 
 interface UserProviderProps {

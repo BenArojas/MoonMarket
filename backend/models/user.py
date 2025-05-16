@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 from typing import Annotated, Any, Optional, List, TYPE_CHECKING
 from beanie import Document, Indexed, PydanticObjectId, Link
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, validator
 from fastapi import Request
 from secrets import token_urlsafe
 from models.schemas import CachedUser, Deposit, Holding, YearlyExpenses
@@ -21,6 +21,21 @@ class AccountType(Enum):
 class ApiProvider(str, Enum): 
     IBKR = "ibkr"
     FMP = "fmp" # Let's be specific, as "other" is vague if you add more later
+    
+class AccountSetupRequest(BaseModel):
+    api_provider: ApiProvider # 'fmp' or 'ibkr'
+    tax_rate: float
+    api_key: Optional[str] = None # Optional: only provided if api_provider is 'fmp'
+
+    @validator('api_key', always=True)
+    def check_api_key_for_fmp(cls, v, values):
+        # 'values' is a dict of other fields in the model
+        provider = values.get('api_provider')
+        if provider == ApiProvider.FMP and not v:
+            raise ValueError('API key is required for FMP provider')
+        if provider == ApiProvider.FMP and v and len(v) != 32: # Assuming FMP key is 32 chars
+             raise ValueError('FMP API key must be 32 characters')
+        return v
 
 
 class ApiKeyRequest(BaseModel):
@@ -94,10 +109,10 @@ class User(Document):
     tax_rate: float = 0.0
 
     # IBKR Specific OAuth Tokens (Store Encrypted!) - Placeholder for now
-    # ibkr_access_token: Optional[str] = None 
-    # ibkr_refresh_token: Optional[str] = None
-    # ibkr_token_expiry: Optional[datetime] = None
-    # ibkr_is_connected: bool = False # Flag to quickly check IBKR connection status
+    ibkr_access_token: Optional[str] = None 
+    ibkr_refresh_token: Optional[str] = None
+    ibkr_token_expiry: Optional[datetime] = None
+    ibkr_is_connected: bool = False # Flag to quickly check IBKR connection status
     
     
     holdings: List[Holding]  = Field(default_factory=list)

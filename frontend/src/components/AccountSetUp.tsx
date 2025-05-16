@@ -14,19 +14,13 @@ import { Loader2, Rocket, KeyRound, PercentSquare } from 'lucide-react'; // Adde
 import { addApiKey } from '@/api/user'; // Assuming this can handle { apiKey?, taxRate, accountType }
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
+import { useUser } from '@/contexts/UserContext';
 
 interface AccountSetUpProps {
     isOpen: boolean;
     onClose: () => void;
 }
 
-// Hypothetical: Assuming your authStatus query returns something like this
-interface AuthStatusData {
-    isUserAuthenticated: boolean;
-    isAccountSetupComplete: boolean;
-    isIbkrConnected?: boolean; // IMPORTANT for IBKR flow
-    // ... other auth related data
-}
 
 const AccountSetUp: React.FC<AccountSetUpProps> = ({ isOpen, onClose }) => {
     const [step, setStep] = useState<number>(1);
@@ -34,14 +28,10 @@ const AccountSetUp: React.FC<AccountSetUpProps> = ({ isOpen, onClose }) => {
     const [apiKey, setApiKey] = useState<string>('');
     const [taxRate, setTaxRate] = useState<string>('');
     const queryClient = useQueryClient();
+    const userData = useUser();
 
-    // Fetch authStatus to check if IBKR is connected
-    const { data: authStatusData } = useQuery<AuthStatusData>({
-        queryKey: ["authStatus"]
-        // Your queryFn to fetch auth status
-    });
 
-    const isIbkrSuccessfullyConnected = authStatusData?.isIbkrConnected === true;
+    const isIbkrSuccessfullyConnected = userData?.ibkr_is_connected === true;
 
     const { mutate: submitAccountSetupMutation, isPending } = useMutation({
         mutationFn: (data: { apiKey?: string; taxRate: number; api_provider: 'fmp' | 'ibkr' }) => addApiKey(data), // Adjust addApiKey to accept accountType
