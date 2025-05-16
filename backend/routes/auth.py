@@ -1,8 +1,7 @@
 """Authentication routes for FastAPI."""
 
-from datetime import datetime, timedelta, timezone
-import secrets
-from fastapi import APIRouter, HTTPException, Security, Response, Depends, Request
+from datetime import datetime, timezone
+from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from models.user import User, UserOut
 from utils.password import  verify_password
