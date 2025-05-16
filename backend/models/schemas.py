@@ -1,8 +1,10 @@
 """Shared schemas for models."""
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Any
+from fastapi import Request
 from pydantic import BaseModel, EmailStr,  model_validator
 from beanie import PydanticObjectId
+
 
 class Deposit(BaseModel):
     amount: float
@@ -65,3 +67,4 @@ class CachedUser(BaseModel):
                     for e in values['yearly_expenses']
                 ]
         return values
+    
