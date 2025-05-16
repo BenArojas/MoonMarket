@@ -1,9 +1,14 @@
 version: '3.8'
-
 services:
-  app:
+  web:
     build: .
+    image: moonMarket-ibkr-api
+    container_name: moonMarket
     ports:
       - "80:80"
+      - "5055:5055"
+      - "5056: 5056"
     env_file:
       - backend/.env    # Use the same .env file
+    # volumes:
+    #  - backend/:/app/webapp
