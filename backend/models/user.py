@@ -109,11 +109,12 @@ class User(Document):
     tax_rate: float = 0.0
 
     # IBKR Specific OAuth Tokens (Store Encrypted!) - Placeholder for now
-    ibkr_access_token: Optional[str] = None 
-    ibkr_refresh_token: Optional[str] = None
-    ibkr_token_expiry: Optional[datetime] = None
-    ibkr_is_connected: bool = False # Flag to quickly check IBKR connection status
+    # ibkr_access_token: Optional[str] = None 
+    # ibkr_refresh_token: Optional[str] = None
+    # ibkr_token_expiry: Optional[datetime] = None
     
+    ibkr_is_connected: bool = False # Flag to quickly check IBKR connection status
+    ibkr_last_verified: Optional[datetime] = None
     
     holdings: List[Holding]  = Field(default_factory=list)
     transactions: List[PydanticObjectId]  = Field(default_factory=list)

@@ -20,7 +20,11 @@ RUN apt-get update && apt-get upgrade -y && \
     mkdir gateway && cd gateway && \
     curl -O https://download2.interactivebrokers.com/portal/clientportal.gw.zip && \
     unzip clientportal.gw.zip && rm clientportal.gw.zip && \
+    ls -lR . && \  # Debug: List all files to verify structure
+    chmod +x bin/run.sh && \  # Ensure run.sh is executable
     apt-get remove -y unzip curl && apt-get autoremove -y && apt-get clean
+RUN keytool -genkey -keyalg RSA -alias selfsigned -keystore gateway/root/cacert.jks \
+    -storepass mywebapi -validity 730 -keysize 2048 -dname "CN=localhost"
 
 # Stage 4: Final image
 FROM python:3.10-alpine
@@ -39,14 +43,14 @@ COPY --from=java-builder /app/gateway /app/gateway
 # Copy application files
 COPY backend .
 COPY --from=frontend /app/dist static/
-COPY webapp webapp
-COPY scripts scripts
 COPY conf.yaml gateway/root/conf.yaml
 COPY nginx.conf /etc/nginx/nginx.conf
+COPY supervisord.conf /app/supervisord.conf
 COPY start.sh /app/start.sh
 
 # Make start script executable
 RUN chmod +x /app/start.sh
+RUN apk add --no-cache supervisor
 
 # Expose ports for Nginx and Interactive Brokers Gateway
 EXPOSE 80 5055 5056
