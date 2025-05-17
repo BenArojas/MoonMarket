@@ -11,6 +11,7 @@ from routes.friend import router as FriendsRouter
 from routes.apiKey import router as APIKeyRouter
 from routes.redis import router as RedisRouter
 from routes.watchlist import router as WatchlistRouter
+from routes.ibkr import router as IbkrRouter
 
 app.include_router(AuthRouter, prefix="/api/auth")
 # app.include_router(MailRouter, prefix="/mail")
@@ -23,7 +24,7 @@ app.include_router(FriendsRouter, prefix="/api/friends")
 app.include_router(APIKeyRouter, prefix="/api/api-key")
 app.include_router(RedisRouter, prefix="/api/redis")
 app.include_router(WatchlistRouter, prefix="/api/watchlist")
-
+app.include_router(IbkrRouter, prefix="/api/ibkr")
 
 
 

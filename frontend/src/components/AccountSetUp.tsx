@@ -12,9 +12,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Loader2, Rocket, KeyRound, PercentSquare } from 'lucide-react'; // Added icons
 import { addApiKey } from '@/api/user'; // Assuming this can handle { apiKey?, taxRate, accountType }
-import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
-import { useUser } from '@/contexts/UserContext';
+import { getIbkrConnection, IbkrConnectionResponse } from '@/api/ibkr';
 
 interface AccountSetUpProps {
     isOpen: boolean;
@@ -28,15 +28,14 @@ const AccountSetUp: React.FC<AccountSetUpProps> = ({ isOpen, onClose }) => {
     const [apiKey, setApiKey] = useState<string>('');
     const [taxRate, setTaxRate] = useState<string>('');
     const queryClient = useQueryClient();
-    const userData = useUser();
 
 
     // const isIbkrSuccessfullyConnected = userData?.ibkr_is_connected === true;
 
     const { mutate: submitAccountSetupMutation, isPending } = useMutation({
-        mutationFn: (data: { apiKey?: string; taxRate: number; api_provider: 'fmp' | 'ibkr' }) => addApiKey(data), // Adjust addApiKey to accept accountType
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["authStatus"] });
+        mutationFn: (data: { apiKey?: string; tax_rate: number; api_provider: 'fmp' | 'ibkr' }) => addApiKey(data), // Adjust addApiKey to accept accountType
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ["authStatus"] });
             toast.success("Cosmic configuration complete! Your settings are saved.");
             onClose(); // Close modal on final success
             // Reset state for next time modal opens
@@ -100,10 +99,27 @@ const AccountSetUp: React.FC<AccountSetUpProps> = ({ isOpen, onClose }) => {
 
         submitAccountSetupMutation({
             apiKey: apiProvider === 'fmp' ? apiKey : undefined, // Only send apiKey if FMP
-            taxRate: parseFloat(taxRate),
+            tax_rate: parseFloat(taxRate),
             api_provider: apiProvider,
         });
     };
+
+    const { mutate: verifyIbkrConnection, isPending: isVerifying } = useMutation({
+    mutationFn: getIbkrConnection, // Pass function reference, not getIbkrConnection()
+    onSuccess: (data: IbkrConnectionResponse) => {
+      if (data.isAuthenticated) {
+        setStep(3); // Move to tax rate step
+        toast.success("IBKR connection verified! Ready for tax setup.");
+      } else {
+        toast.error("IBKR login not detected. Please log in via the Gateway.");
+      }
+    },
+    onError: (error: Error) => {
+      toast.error(
+        error.message || "Failed to verify IBKR connection. Please try again."
+      );
+    },
+  });
 
     const renderStepContent = () => {
         switch (step) {
@@ -182,21 +198,6 @@ const AccountSetUp: React.FC<AccountSetUpProps> = ({ isOpen, onClose }) => {
                         </>
                     );
                 } else if (apiProvider === 'ibkr') {
-                    const { mutate: verifyIbkrConnection, isPending: isVerifying } = useMutation({
-                        mutationFn: () => fetch('/api/auth/ibkr/verify', { credentials: 'include' }).then(res => res.json()),
-                        onSuccess: (data) => {
-                            if (data.isAuthenticated) {
-                                setStep(3); // Move to tax rate step
-                                toast.success("IBKR connection verified! Ready for tax setup.");
-                            } else {
-                                toast.error("IBKR login not detected. Please log in via the Gateway.");
-                            }
-                        },
-                        onError: () => {
-                            toast.error("Failed to verify IBKR connection. Please try again.");
-                        },
-                    });
-
                     return (
                         <>
                             <AlertDialogHeader>

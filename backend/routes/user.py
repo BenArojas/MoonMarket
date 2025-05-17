@@ -292,7 +292,6 @@ async def add_api_key(
         #     # It means they selected IBKR but haven't completed the OAuth.
         #     # You might want to prompt them or handle this state.
         #     pass
-        
         pass
     
     user.enabled = True

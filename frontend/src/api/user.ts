@@ -179,7 +179,7 @@ export async function searchUser(username: string) {
 }
 
 type ApiKeyData = {
-  taxRate: number;
+  tax_rate: number;
   api_provider: string
   apiKey?: string;
 }

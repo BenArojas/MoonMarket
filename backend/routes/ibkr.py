@@ -121,7 +121,7 @@ router = APIRouter(tags=["Ibkr"])
 
 GATEWAY_URL = "https://localhost:5055"  # Adjust to your Gateway port
 
-@router.get("/auth/ibkr/verify")
+@router.get("/auth/verify")
 async def verify_ibkr_connection(user: User = Depends(get_current_user)):
     async with httpx.AsyncClient(verify=False) as client:  # Ignore self-signed SSL for localhost
         try:
@@ -141,7 +141,7 @@ async def verify_ibkr_connection(user: User = Depends(get_current_user)):
             print(f"Verification error: {e}")
             return {"isAuthenticated": False}
         
-@router.get("/ibkr/{endpoint:path}")
+@router.get("/{endpoint:path}")
 async def proxy_ibkr_request(endpoint: str, user: User = Depends(get_current_user)):
     if not user.ibkr_is_connected:
         raise HTTPException(status_code=401, detail="IBKR not connected")
