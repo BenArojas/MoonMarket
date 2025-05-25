@@ -114,28 +114,46 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 import httpx
+import logging
 
 router = APIRouter(tags=["Ibkr"])
 
-GATEWAY_URL = "https://localhost:5055"  # Adjust to your Gateway port
+GATEWAY_URL = "https://gateway:5055"  # Adjust to your Gateway port
+
+@router.post("/logout")
+async def logout_ibkr():
+    try:
+        async with httpx.AsyncClient(verify=False) as client:
+            response = await client.post(f"{GATEWAY_URL}/v1/api/iserver/logout")
+            return {"success": True, "message": "Logged out of IBKR session"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Logout failed: {str(e)}")
+
+logger = logging.getLogger("uvicorn")
 
 async def verify_ibkr_connection():
-    async with httpx.AsyncClient(verify=False) as client:  # Ignore self-signed SSL for localhost
+    logger.info("🔍 verify_ibkr_connection() called")
+    async with httpx.AsyncClient(verify=False) as client:
         try:
             response = await client.get(f"{GATEWAY_URL}/v1/api/iserver/auth/status")
+            logger.info(f"📡 Raw IBKR response status: {response.status_code}")
+            logger.info(f"📄 Raw IBKR response body: {response.text}")
+
             response.raise_for_status()
             status_data = response.json()
+
             is_authenticated = status_data.get("authenticated", False)
             if is_authenticated:
-                return True
+                logger.info("✅ IBKR says authenticated!")
+                return {"isAuthenticated": True}
             else:
-                return False
+                logger.warning("❌ IBKR says NOT authenticated.")
+                return {"isAuthenticated": False}
         except httpx.HTTPError as e:
-            print(f"Verification error: {e}")
-            return False
+            logger.error(f"⚠️ HTTP Error during auth check: {e}")
+            return {"isAuthenticated": False}
         
 async def proxy_ibkr_request(endpoint: str):
-
     async with httpx.AsyncClient(verify=False) as client:
         try:
             response = await client.get(f"{GATEWAY_URL}/v1/api/{endpoint}")

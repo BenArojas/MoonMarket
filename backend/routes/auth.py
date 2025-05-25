@@ -1,6 +1,7 @@
 """Authentication routes for FastAPI."""
 
 from datetime import datetime, timezone
+import logging
 from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from models.user import User, UserOut
@@ -49,4 +50,5 @@ async def logout(request: Request,current_user: User = Depends(get_current_user)
 @router.get("/protected-route")
 async def protected_route(is_authenticated = Depends(verify_ibkr_connection)) :
     """Example of a protected route that requires authentication."""
+    logging.info(f"Protected route called ")
     return is_authenticated

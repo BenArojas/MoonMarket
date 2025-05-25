@@ -5,10 +5,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const PublicRoute: React.FC = () => {
   const { isAuth, isLoading, isError } = useAuth();
   const location = useLocation();
+  const queryClient = useQueryClient();
 
   if (isLoading) {
     return (
@@ -33,6 +35,16 @@ export const PublicRoute: React.FC = () => {
       >
         <Rocket className="mr-2 h-4 w-4" />
         Open IBKR Gateway Login
+      </Button>
+      <Button
+        onClick={async () => {
+          // Wait a few seconds for login to complete
+          await new Promise((res) => setTimeout(res, 2000));
+          // Refetch auth status
+          queryClient.invalidateQueries({ queryKey: ["authStatus"] });
+        }}
+      >
+        I logged in – Continue
       </Button>
     </div>
   );
