@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '@/api/axios';
-import { UserData, useUser } from '@/contexts/UserContext';
+import { UserData } from '@/contexts/UserContext';
 import { PlusIcon } from '@heroicons/react/24/solid';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '@mui/material/styles';
@@ -61,7 +61,7 @@ interface UpdatePortfolioResponse {
 
 
 const Watchlist: React.FC = () => {
-  const userData = useUser() as UserData | null;
+  const userData = {};
   const watchlist: string[] = userData?.watchlist || [];
   const watchlistPortfolio: PortfolioItem[] = userData?.watchlist_portfolio || [];
   const queryClient = useQueryClient();

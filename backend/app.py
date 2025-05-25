@@ -79,17 +79,22 @@ async def lifespan(app: FastAPI):
             await redis_client.close()
         logger.info("Database and Redis connections closed")
         
-# Get environment variables
-origins = "http://localhost:5173" 
 app = FastAPI(lifespan=lifespan)
 
+origins = [
+    "http://localhost:5173",  # Direct dev frontend
+    "http://localhost",       # nginx-proxied root (e.g., http://localhost)
+    "http://localhost:80",    # Same as above, explicit port
+]
+
 app.add_middleware(
-        CORSMiddleware,
-        allow_origins=[origins],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 @app.get("/hello")
 def read_root():

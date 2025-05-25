@@ -1,36 +1,37 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import path from 'path';
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import path from "path";
 
 export default defineConfig({
-  plugins: [
-    react()
-  ],
+  plugins: [react()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  publicDir: 'public',
+  server: {
+    host: process.env.VITE_HOST || "localhost",
+    port: parseInt(process.env.PORT || "5173", 10),
+  },
+  publicDir: "public",
   build: {
-    target: 'esnext',
-    minify: 'terser',
+    target: "esnext",
+    minify: "terser",
     terserOptions: {
       compress: {
         drop_console: true,
-        drop_debugger: true
-      }
+        drop_debugger: true,
+      },
     },
     rollupOptions: {
       output: {
         manualChunks: {
-          // Custom manual chunks for splitting vendor libraries
-          'react-vendor': ['react', 'react-dom'],
-          'ui-vendor': ['@mui/material', '@emotion/react', '@emotion/styled'],
-        }
-      }
+          "react-vendor": ["react", "react-dom"],
+          "ui-vendor": ["@mui/material", "@emotion/react", "@emotion/styled"],
+        },
+      },
     },
     cssCodeSplit: true,
-    sourcemap: false
-  }
+    sourcemap: false,
+  },
 });

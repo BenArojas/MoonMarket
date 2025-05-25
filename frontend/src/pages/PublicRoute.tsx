@@ -1,33 +1,39 @@
-// PublicRoute.jsx
-import React from 'react';
-import { Outlet, Navigate, useLocation, Location } from 'react-router-dom';
-import { useQuery } from "@tanstack/react-query";
-import { fetchAuthStatus } from '@/api/auth';
-import type { UserData } from '@/contexts/UserContext';
+// PublicRoute.tsx
+import React from "react";
+import { Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Rocket } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 
 export const PublicRoute: React.FC = () => {
-  const location: Location = useLocation();
-  const { 
-    data: authData, 
-    isLoading, 
-    isError 
-  } = useQuery<UserData | null>({
-    queryKey: ['authStatus'],
-    queryFn: fetchAuthStatus,
-    retry: false,
-    refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000, // Consider auth status fresh for 5 minutes
-  });
+  const { isAuth, isLoading, isError } = useAuth();
+  const location = useLocation();
 
   if (isLoading) {
-    return null; // Or a loading spinner
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
-  if (!isError && authData?.enabled) {
-    // Redirect to the page they were trying to visit or home
-    const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/home";
+  if (!isError && isAuth === true) {
+    // If the user is authenticated, redirect to the "from" location or default to "/home"
+    const from = location.state?.from?.pathname || "/home";
     return <Navigate to={from} replace />;
   }
 
-  return <Outlet />;
+  return (
+    <div className="flex flex-col items-center justify-center h-screen">
+      <p className="mb-4 text-lg">Please log in to your IBKR account</p>
+      <Button
+        onClick={() => window.open("https://localhost:5055", "_blank")}
+        className="w-64 bg-blue-600 hover:bg-blue-700 text-white"
+      >
+        <Rocket className="mr-2 h-4 w-4" />
+        Open IBKR Gateway Login
+      </Button>
+    </div>
+  );
 };

@@ -114,15 +114,12 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 import httpx
-from models.user import ApiProvider, User
-from utils.auth_user import get_current_user
 
 router = APIRouter(tags=["Ibkr"])
 
 GATEWAY_URL = "https://localhost:5055"  # Adjust to your Gateway port
 
-@router.get("/auth/verify")
-async def verify_ibkr_connection(user: User = Depends(get_current_user)):
+async def verify_ibkr_connection():
     async with httpx.AsyncClient(verify=False) as client:  # Ignore self-signed SSL for localhost
         try:
             response = await client.get(f"{GATEWAY_URL}/v1/api/iserver/auth/status")
@@ -130,28 +127,22 @@ async def verify_ibkr_connection(user: User = Depends(get_current_user)):
             status_data = response.json()
             is_authenticated = status_data.get("authenticated", False)
             if is_authenticated:
-                user.ibkr_is_connected = True
-                user.ibkr_last_verified = datetime.utcnow()
-                # user.api_provider = ApiProvider.IBKR
-                await user.save()
-                return {"isAuthenticated": True}
+                return True
             else:
-                return {"isAuthenticated": False}
+                return False
         except httpx.HTTPError as e:
             print(f"Verification error: {e}")
-            return {"isAuthenticated": False}
+            return False
         
-@router.get("/{endpoint:path}")
-async def proxy_ibkr_request(endpoint: str, user: User = Depends(get_current_user)):
-    if not user.ibkr_is_connected:
-        raise HTTPException(status_code=401, detail="IBKR not connected")
+async def proxy_ibkr_request(endpoint: str):
+
     async with httpx.AsyncClient(verify=False) as client:
         try:
             response = await client.get(f"{GATEWAY_URL}/v1/api/{endpoint}")
             response.raise_for_status()
             return response.json()
         except httpx.HTTPError as e:
-            raise HTTPException(status_code=e.response.status_code, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e))
         
 #frontend example
 # const fetchPortfolio = async () => {

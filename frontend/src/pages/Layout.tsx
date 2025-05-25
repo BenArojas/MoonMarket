@@ -2,7 +2,6 @@ import { getFriendRequestLength } from "@/api/friend";
 import AccountSetUp from "@/components/AccountSetUp";
 import Greetings from "@/components/Greetings";
 import Sidebar from "@/components/Sidebar";
-import { useUser } from '@/contexts/UserContext';
 import "@/styles/global.css";
 import { Box, useMediaQuery, useTheme } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
@@ -16,22 +15,15 @@ const Layout: React.FC = () => {
   const theme = useTheme();
   const isMobileScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
-  const user = useUser();
-  const username = user?.username || 'Guest';
-  const isEnabled = user?.enabled || false; // Simplified to boolean
+  const username =  'Guest';
 
-  // Automatically show modal when isEnabled is false
-  const [showModal, setShowModal] = useState<boolean>(!isEnabled);
 
   const { data: friendRequestsLength } = useQuery({
     queryKey: ['friendRequestsLength'],
     queryFn: getFriendRequestLength,
   });
 
-  // Update showModal when isEnabled changes
-  useEffect(() => {
-    setShowModal(!isEnabled);
-  }, [isEnabled]);
+
 
   return (
     <PercentageChange.Provider
@@ -51,14 +43,7 @@ const Layout: React.FC = () => {
           }}
         >
           <Greetings username={username} friendRequestsCount={friendRequestsLength} />
-          {isEnabled ? (
             <Outlet context={friendRequestsLength} />
-          ) : (
-            <AccountSetUp
-              isOpen={showModal}
-              onClose={() => setShowModal(false)}
-            />
-          )}
         </Box>
       </Box>
     </PercentageChange.Provider>

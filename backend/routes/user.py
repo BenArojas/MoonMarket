@@ -12,10 +12,9 @@ from routes.apiKey import validate_fmp_key
 from models.subscription import BillingCycle, Subscription, ToggleTier
 from cache.manager import CacheManager
 from helpers import call_perplexity, fetch_sentiment, get_stock_price
-from fastapi import APIRouter, Depends, HTTPException, Response, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Response, Request
 from models.user import (
     AccountType,
-    ApiProvider,
     User,
     UserOut,
     PasswordChangeRequest,
@@ -93,7 +92,7 @@ async def get_user_by_username(
             status_code=400, detail="Cannot retrieve your own profile as a friend"
         )
 
-    user = await User.find_one(User.username == username)
+    user: User = await User.find_one(User.username == username)
 
     if user:
         if user.id in current_user.friends:
@@ -154,6 +153,8 @@ async def update_user(
     return user.username
 
 
+
+
 @router.post("/toggle-tier/{user_id}")
 async def toggle_tier(
     request: ToggleTier,
@@ -170,8 +171,9 @@ async def toggle_tier(
     if account_type_enum == AccountType.FREE:
         # Deactivate any existing subscription
         existing_sub = await Subscription.find_one(
-            Subscription.user_id == PydanticObjectId(user.id),  
-            Subscription.active == True, fetch_links=True
+            Subscription.user_id == PydanticObjectId(user.id),
+            Subscription.active == True,
+            fetch_links=True,
         )
         if existing_sub:
             existing_sub.active = False
@@ -195,11 +197,12 @@ async def toggle_tier(
 
     # Check for existing active subscription
     existing_sub = await Subscription.find_one(
-        Subscription.user_id == PydanticObjectId(user.id), 
-        Subscription.active == True, fetch_links=True
+        Subscription.user_id == PydanticObjectId(user.id),
+        Subscription.active == True,
+        fetch_links=True,
     )
     if existing_sub:
-        existing_sub.active = False  
+        existing_sub.active = False
         await existing_sub.save()
 
     # Simulate payment and create new subscription for PREMIUM
@@ -209,7 +212,7 @@ async def toggle_tier(
         else timedelta(days=365)
     )
     new_subscription = Subscription(
-        user_id=user.id, 
+        user_id=user.id,
         account_type=AccountType.PREMIUM,
         billing_cycle=billing_cycle_enum,
         start_date=datetime.now(),
@@ -251,53 +254,22 @@ async def update_password(
 def get_year_expenses(user: User, year: int) -> Optional[YearlyExpenses]:
     return next((exp for exp in user.yearly_expenses if exp.year == year), None)
 
+
 @router.post("/complete-setup")
 async def add_api_key(
-    request_data: AccountSetupRequest, 
-    user: User = Depends(get_current_user)
+    request_data: AccountSetupRequest, user: User = Depends(get_current_user)
 ):
-    if user.enabled and user.api_provider:
+    if user.enabled:
         # User might be trying to re-run setup or change settings.
         # Decide if this is an update or should be disallowed/handled differently.
         # For now, let's allow updates.
         pass
-    user.tax_rate = request_data.tax_rate
-    user.api_provider = request_data.api_provider
-    if request_data.api_provider == ApiProvider.FMP: 
-        existing_key = await ApiKey.find_one(ApiKey.key == request_data.api_key)
-        if existing_key:
-            raise HTTPException(status_code=400, detail="This API key is already in use")
-    
-        is_valid = await validate_fmp_key(request_data.api_key)
-        if not is_valid:
-            raise HTTPException(status_code=400, detail="Invalid API key")
-
-        key = ApiKey(request_data.api_key)
-        await key.insert()
-        # Set IBKR specific fields to None if switching from IBKR to FMP
-        # user.ibkr_access_token = None 
-        # user.ibkr_refresh_token = None
-        # user.ibkr_token_expiry = None
-        # user.ibkr_is_connected = False
-    elif request_data.api_provider == ApiProvider.IBKR:
-        # For IBKR, the primary connection (OAuth tokens) is handled by separate OAuth endpoints.
-        # This "/complete-setup" endpoint for an IBKR user is primarily to set the tax_rate
-        # and confirm that they've chosen IBKR as their provider.
-        # We assume the OAuth flow has already happened if they are at this stage with IBKR.
-        
-        # Ensure IBKR connection flag is set if it's not already (e.g. if they went through OAuth then came here)
-        # This flag (`ibkr_is_connected`) should ideally be set upon successful token exchange in the OAuth callback.
-        # if not user.ibkr_is_connected:
-        #     # This scenario is unlikely if the frontend guides them properly.
-        #     # It means they selected IBKR but haven't completed the OAuth.
-        #     # You might want to prompt them or handle this state.
-        #     pass
-        pass
-    
+    user.account_id = request_data.account_id
     user.enabled = True
     await user.save()
-    
+
     return {"message": "Setup completed successfully"}
+
 
 @router.delete("/delete", operation_id="delete_user_account")
 async def delete_user(

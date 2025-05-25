@@ -5,12 +5,11 @@ import TabsSkeleton from "@/Skeletons/TabsSkeleton";
 import {getFriendList, getFriendRequestUsers, getSentFriendRequest} from '@/api/friend'
 import { MemoizedProfileTabs } from '@/components/ProfileTabs'
 import { useOutletContext } from "react-router-dom";
-import { useUser} from '@/contexts/UserContext';
 
 
 
 const Profile = () => {
-  const userData = useUser();
+  const userData = {};
 
   const theme = useTheme();
   const isMobileScreen = useMediaQuery(theme.breakpoints.down('sm'));

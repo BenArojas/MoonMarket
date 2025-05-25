@@ -67,7 +67,7 @@
     "zod": "^3.23.8"
   },
   "scripts": {
-    "start": "vite",
+    "start": "vite --host",
     "build": "vite build",
     "serve": "vite preview"
   },

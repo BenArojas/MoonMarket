@@ -8,6 +8,7 @@ from utils.password import  verify_password
 from utils.auth_user import get_current_user, EXPIRATION_TIME
 from fastapi.responses import JSONResponse
 from config import COOKIE_SECURE
+from routes.ibkr import verify_ibkr_connection
 
 router = APIRouter( tags=["Auth"])
 
@@ -45,7 +46,7 @@ async def logout(request: Request,current_user: User = Depends(get_current_user)
     response.delete_cookie("session")
     return response
 
-@router.get("/protected-route", response_model=UserOut)
-async def protected_route(current_user: User = Depends(get_current_user)):
+@router.get("/protected-route")
+async def protected_route(is_authenticated = Depends(verify_ibkr_connection)) :
     """Example of a protected route that requires authentication."""
-    return current_user
+    return is_authenticated

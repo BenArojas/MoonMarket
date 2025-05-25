@@ -35,16 +35,16 @@ async def get_current_user(request: Request, session: Optional[str] = Cookie(Non
 
 
 # Optional: Add session cleanup utility
-async def cleanup_expired_sessions():
-    """Utility function to clean up expired sessions."""
-    expiration_threshold = datetime.now(timezone.utc) - EXPIRATION_TIME
-    users_with_expired_sessions = await User.find(
-        {
-            "session": {"$ne": None},
-            "last_activity": {"$lt": expiration_threshold}
-        }
-    ).to_list()
+# async def cleanup_expired_sessions():
+#     """Utility function to clean up expired sessions."""
+#     expiration_threshold = datetime.now(timezone.utc) - EXPIRATION_TIME
+#     users_with_expired_sessions = await User.find(
+#         {
+#             "session": {"$ne": None},
+#             "last_activity": {"$lt": expiration_threshold}
+#         }
+#     ).to_list()
     
-    for user in users_with_expired_sessions:
-        await user.end_session()
+#     for user in users_with_expired_sessions:
+#         await user.end_session()
         

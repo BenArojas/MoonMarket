@@ -22,7 +22,6 @@ import {
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/api/axios'
 import { FlagIcon } from '@heroicons/react/24/solid';
-import { useUser } from '@/contexts/UserContext';
 import { StockData } from "@/hooks/useStocksDailyData";
 
 
@@ -58,7 +57,7 @@ export async function loader({ params, request }: { params: { stockTicker: strin
 }
 
 function StockItem() {
-  const userData = useUser();
+  const userData = {};
   const watchlist = userData.watchlist
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));

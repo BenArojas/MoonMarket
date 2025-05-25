@@ -1,18 +1,17 @@
 import api from "@/api/axios";
 import { Dayjs } from "dayjs";
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 type Deposit = {
   amount: number;
-  date: string
-}
+  date: string;
+};
 export interface RegisterUser {
   email: string;
-  username: string
-  password: string
-  deposits: Deposit[]
+  username: string;
+  password: string;
+  deposits: Deposit[];
 }
 
 export async function RegisterUser(user: RegisterUser) {
@@ -36,7 +35,9 @@ export async function getUserInsights() {
 
 export async function getStockSentiment(ticker: string) {
   try {
-    const response = await api.get(`/user/ai/sentiment/${ticker.toUpperCase()}`);
+    const response = await api.get(
+      `/user/ai/sentiment/${ticker.toUpperCase()}`
+    );
     return response;
   } catch (error) {
     console.error("Error fetching sentiment:", error);
@@ -63,25 +64,49 @@ interface ActionShares {
   ticker: string;
   quantity: number;
   date: Dayjs;
-  commission: number
+  commission: number;
 }
-export async function addUserPurchase({ price, ticker, quantity, date, commission }: ActionShares) {
+export async function addUserPurchase({
+  price,
+  ticker,
+  quantity,
+  date,
+  commission,
+}: ActionShares) {
   const response = await api.post(
     `/transaction/buy_stock`,
     null, // Set the request body to null if your API doesn't expect a request body
     {
-      params: { price, ticker, quantity, transaction_date: date.toISOString(), commission }, // Send the required fields as query parameters
+      params: {
+        price,
+        ticker,
+        quantity,
+        transaction_date: date.toISOString(),
+        commission,
+      }, // Send the required fields as query parameters
     }
   );
   return response.data;
 }
 
-export async function addUserSale({ ticker, quantity, price, date, commission }: ActionShares) {
+export async function addUserSale({
+  ticker,
+  quantity,
+  price,
+  date,
+  commission,
+}: ActionShares) {
   const response = await api.post(
     `/transaction/sell_stock`,
     null, // Set the request body to null if your API doesn't expect a request body
     {
-      params: { ticker, quantity, price, transaction_date: date.toISOString(), commission }, // Send the required fields as query parameters
+      params: {
+        ticker,
+        quantity,
+        price,
+        transaction_date: date.toISOString(),
+        commission,
+      }, // Send the required fields as query parameters
     }
   );
   return response.data;
@@ -91,7 +116,7 @@ export interface PortfolioStock {
   name: string;
   ticker: string;
   price: string;
-  earnings?: string
+  earnings?: string;
 }
 
 export async function addStockToPortfolio(
@@ -102,39 +127,35 @@ export async function addStockToPortfolio(
   date: Date
 ) {
   const ticker = portfolioStock.ticker;
-  const stock = await api.post(
-    `/stock/add_stock`,
-    portfolioStock,
-  );
+  const stock = await api.post(`/stock/add_stock`, portfolioStock);
 
-  const user = await api.post(
-    `/transaction/buy_stock`,
-    null,
-    {
-      params: {
-        price,
-        ticker,
-        quantity,
-        commission,
-        transaction_date: date.toISOString()
-      },
-    }
-  );
-  return user
+  const user = await api.post(`/transaction/buy_stock`, null, {
+    params: {
+      price,
+      ticker,
+      quantity,
+      commission,
+      transaction_date: date.toISOString(),
+    },
+  });
+  return user;
 }
 
 export async function updateUsername(newUsername: string) {
-  const response = await api.patch(`/user/update-username`, null,
-    {
-      params:
-        { new_username: newUsername }
-    });
+  const response = await api.patch(`/user/update-username`, null, {
+    params: { new_username: newUsername },
+  });
   toast.success("Username updated successfully");
   return response;
-
 }
 
-export async function changePassword({ oldPassword, newPassword }: { oldPassword: string; newPassword: string }) {
+export async function changePassword({
+  oldPassword,
+  newPassword,
+}: {
+  oldPassword: string;
+  newPassword: string;
+}) {
   const passwordPayload = {
     password: oldPassword,
     new_password: newPassword,
@@ -146,16 +167,21 @@ export async function changePassword({ oldPassword, newPassword }: { oldPassword
 
 export type ChangeTierPayload = {
   account_type: string;
-  billing_cycle?: string
-}
+  billing_cycle?: string;
+};
 interface ChangeAccountTierProps {
   userId: string;
-  payload: ChangeTierPayload
+  payload: ChangeTierPayload;
 }
-export async function changeAccountTier({ userId, payload }: ChangeAccountTierProps) {
-  const response = await api.post(`/user/toggle-tier/${userId}`, payload)
-  return response.data
+export async function changeAccountTier({
+  userId,
+  payload,
+}: ChangeAccountTierProps) {
+  const response = await api.post(`/user/toggle-tier/${userId}`, payload);
+  return response.data;
 }
+
+
 
 export async function addDeposit(money: number) {
   const currentDate = new Date().toISOString();
@@ -163,28 +189,17 @@ export async function addDeposit(money: number) {
     amount: money,
     date: currentDate,
   };
-  const response = await api.post(
-    `/user/add_deposit`,
-    depositPayload,
-  );
+  const response = await api.post(`/user/add_deposit`, depositPayload);
   toast.success("Deposit added successfully");
   return response.data;
 }
 
 export async function searchUser(username: string) {
-  const response = await api.get(
-    `/user/user_friend/${username}`
-  );
+  const response = await api.get(`/user/user_friend/${username}`);
   return response.data;
 }
 
-type ApiKeyData = {
-  tax_rate: number;
-  api_provider: string
-  apiKey?: string;
-}
-
-export async function addApiKey(data: ApiKeyData) {
+export async function completeSetUp(data: { accountId: string }) {
   const response = await api.post(`/user/complete-setup`, data);
   return response.data;
 }

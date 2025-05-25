@@ -1,39 +1,24 @@
-// ProtectedRoute.jsx
-import React from 'react';
-import { Outlet, Navigate, useLocation, Location } from 'react-router-dom';
-import { useQuery } from "@tanstack/react-query";
-import { fetchAuthStatus } from '@/api/auth';
-import useAutoLogout from '@/hooks/useAutoLogout';
-import { UserProvider } from '@/contexts/UserContext';
-import type { UserData } from '@/contexts/UserContext';
+// ProtectedRoute.tsx
+import React from "react";
+import { Navigate, Outlet } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Loader2 } from "lucide-react";
 
 export const ProtectedRoute: React.FC = () => {
-  const location: Location = useLocation();
-  const { 
-    data: userData, 
-    isLoading, 
-    isError 
-  } = useQuery<UserData | null>({
-    queryKey: ['authStatus'],
-    queryFn: fetchAuthStatus,
-    retry: false,
-    refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  useAutoLogout();
+  const { isAuth, isLoading, isError } = useAuth();
+  console.log(isAuth)
 
   if (isLoading) {
-    return null; // Or a loading spinner
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
-  if (isError) {
-    return <Navigate to="/login" replace state={{ from: location }} />;
+  if (isError || isAuth === false) {
+    return <Navigate to="/" replace state={{ from: window.location.pathname }} />;
   }
 
-  return (
-    <UserProvider userData={userData ?? null}>
-      <Outlet />
-    </UserProvider>
-  );
+  return <Outlet />;
 };  

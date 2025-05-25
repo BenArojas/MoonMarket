@@ -23,6 +23,7 @@ interface ProfileTabsProps{
   yearly_expenses: YearlyExpense[]
   current_tier: string
   userId:string
+
 }
 const ProfileTabs = ({ username, current_balance, friendRequests, friendList, friendRequestsCount, sentFriendRequestsData, profit, deposits, yearly_expenses, current_tier, userId }: ProfileTabsProps) => {
   const theme = useTheme();
@@ -56,6 +57,7 @@ const ProfileTabs = ({ username, current_balance, friendRequests, friendList, fr
     },
   });
 
+
   const sendFriendMutation = useMutation({
     mutationFn: sendFriendRequest,
     onSuccess: async () => {
@@ -75,6 +77,8 @@ const ProfileTabs = ({ username, current_balance, friendRequests, friendList, fr
   const handleTierChange = (payload: ChangeTierPayload) => {
     changeSubscriptionTierMutation.mutate({ userId, payload });
   };
+
+
 
   const handleSendFriendRequest = (username: string) => {
     sendFriendMutation.mutate(username);

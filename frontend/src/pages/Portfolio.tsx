@@ -8,7 +8,7 @@ import GraphMenu, { GraphType } from "@/components/GraphMenu";
 import { HistoricalDataCard } from '@/components/HistoricalDataCard';
 import NewUserNoHoldings from "@/components/NewUserNoHoldings";
 import SnapshotChart from "@/components/SnapShotChart";
-import { UserData, useUser } from '@/contexts/UserContext';
+import { UserData } from '@/contexts/UserContext';
 import useGraphData from "@/hooks/useGraphData";
 import { PercentageChange } from "@/contexts/PercentageChangeContext";
 import GraphSkeleton from "@/Skeletons/GraphSkeleton";
@@ -40,7 +40,7 @@ export async function loader({ request }: PortfolioLoader) {
 
 
 function Portfolio() {
-  const userData = useUser();
+  const userData = {};
   const { historicalData } = useLoaderData();
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('xl'));

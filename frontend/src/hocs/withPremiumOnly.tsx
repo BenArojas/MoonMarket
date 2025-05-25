@@ -1,6 +1,5 @@
 // src/hocs/withPremiumOnly.jsx
 import React from 'react';
-import { useUser } from '@/contexts/UserContext';
 import { Tooltip, IconButton } from '@mui/material';
 import { EyeOff } from "lucide-react";
 
@@ -12,7 +11,9 @@ export function withPremiumOnly<P extends WithPremiumOnlyProps>(
   WrappedComponent: React.ComponentType<P>
 ): React.FC<P> {
   return function PremiumOnlyComponent(props: P) {
-    const user = useUser();
+    const user = {
+      account_type : 'premium'
+    }
 
     if (user?.account_type !== 'premium') {
       return (

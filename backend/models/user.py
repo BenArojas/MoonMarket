@@ -8,7 +8,7 @@ from fastapi import Request
 from secrets import token_urlsafe
 from models.schemas import CachedUser, Deposit, Holding, YearlyExpenses
 from enum import Enum
-
+from routes.ibkr import proxy_ibkr_request
 if TYPE_CHECKING:
     from .friendRequest import FriendRequest
     from cache.manager import CacheManager
@@ -18,29 +18,6 @@ class AccountType(Enum):
     FREE = "free"
     PREMIUM = "premium"
 
-class ApiProvider(str, Enum): 
-    IBKR = "ibkr"
-    FMP = "fmp" # Let's be specific, as "other" is vague if you add more later
-    
-class AccountSetupRequest(BaseModel):
-    api_provider: ApiProvider # 'fmp' or 'ibkr'
-    tax_rate: float
-    api_key: Optional[str] = None # Optional: only provided if api_provider is 'fmp'
-
-    @validator('api_key', always=True)
-    def check_api_key_for_fmp(cls, v, values):
-        # 'values' is a dict of other fields in the model
-        provider = values.get('api_provider')
-        if provider == ApiProvider.FMP and not v:
-            raise ValueError('API key is required for FMP provider')
-        if provider == ApiProvider.FMP and v and len(v) != 32: # Assuming FMP key is 32 chars
-             raise ValueError('FMP API key must be 32 characters')
-        return v
-
-
-class ApiKeyRequest(BaseModel):
-    api_key: str
-    tax_rate: float
 
 
 class UserAuth(BaseModel):
@@ -53,7 +30,6 @@ class UserAuth(BaseModel):
 class UserRegister(UserAuth):
     """User register."""
 
-    deposits: List[Deposit] = Field(..., min_items=1)
     username: str
 
 
@@ -71,23 +47,23 @@ class WatchListPortfolioStock(BaseModel):
     ticker: str
     quantity: int
 
-
+class AccountSetupRequest(BaseModel):
+    account_id: str  # Only IBKR account ID is required now
+    
 class UserUpdate(BaseModel):
     """Updatable user fields."""
 
     email: Annotated[str, Indexed(EmailStr, unique=True)]
-    holdings: List[Holding] = []
-    transactions: List[PydanticObjectId] = []
-    deposits: List[Deposit] | None = []
-    current_balance: float | None = 0
-    profit: float | None = 0
-    last_refresh: datetime | None = None
-    username: Optional[str] = None
+    password: Optional[str] = None
+    username: Optional[str]
     enabled: bool
-    yearly_expenses: List[YearlyExpenses] = []
     account_type: AccountType
     watchlist: List[str] = []  # List of stock tickers
     watchlist_portfolio: List[WatchListPortfolioStock] = []  # Simulated portfolio of watchlist stocks with quantities
+    ibkr_is_connected: bool
+    ibkr_last_verified: Optional[datetime]
+    account_id: str
+
 
 
 class UserOut(UserUpdate):
@@ -98,39 +74,21 @@ class UserOut(UserUpdate):
 
 class User(Document):
     """User DB representation."""
-
     email: Annotated[str, Indexed(EmailStr, unique=True)]
     password: str
     username: Annotated[str, Indexed(str, unique=True)]
-    
-     # Account Setup & Provider
-    api_provider: Optional[ApiProvider] = None # NEW: To store if user chose IBKR or FMP
-    enabled: bool = False # This flag indicates if basic setup (API/Provider + Tax) is done
-    tax_rate: float = 0.0
-
-    # IBKR Specific OAuth Tokens (Store Encrypted!) - Placeholder for now
-    # ibkr_access_token: Optional[str] = None 
-    # ibkr_refresh_token: Optional[str] = None
-    # ibkr_token_expiry: Optional[datetime] = None
-    
-    ibkr_is_connected: bool = False # Flag to quickly check IBKR connection status
-    ibkr_last_verified: Optional[datetime] = None
-    
-    holdings: List[Holding]  = Field(default_factory=list)
-    transactions: List[PydanticObjectId]  = Field(default_factory=list)
-    deposits: List[Deposit]  = Field(default_factory=list)
-    current_balance: float = 0
-    profit: float = 0
-    last_refresh: Optional[datetime] = None
-    friends: List[PydanticObjectId] = Field(default_factory=list)
-    friend_requests_sent: List[Link["FriendRequest"]]  = Field(default_factory=list)
-    friend_requests_received: List[Link["FriendRequest"]]  = Field(default_factory=list)
+    enabled: bool = False
+    # friends: List[PydanticObjectId] = Field(default_factory=list)
+    # friend_requests_sent: List[Link["FriendRequest"]]  = Field(default_factory=list)
+    # friend_requests_received: List[Link["FriendRequest"]]  = Field(default_factory=list)
+    last_activity: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     session: Optional[str] = None
-    last_activity: Optional[datetime] = None
-    yearly_expenses: List[YearlyExpenses]  = Field(default_factory=list)
     watchlist: List[str] = Field(default_factory=list)
-    watchlist_portfolio: List[WatchListPortfolioStock] = Field(default_factory=list)  # Simulated portfolio of watchlist stocks with quantities
+    watchlist_portfolio: List[WatchListPortfolioStock] = Field(default_factory=list)
     account_type: AccountType = AccountType.FREE
+    ibkr_is_connected: bool = False
+    ibkr_last_verified: Optional[datetime] = None
+    account_id: str  # Add this field
 
     @classmethod
     async def by_session(cls, session: str, request: Request) -> Optional["User"]:
@@ -146,11 +104,15 @@ class User(Document):
             return cls(**cached_user_data)
 
         # If not in cache, look in database
-        user = await cls.find_one({"session": session})
-        if user:
+        dbUser = await cls.find_one({"session": session})
+        accountId = dbUser.account_id if dbUser else None
+        if accountId:
+            endpoint= f"portfolio/{accountId}/positions/0"
+            userData = proxy_ibkr_request(endpoint)
+        if userData:
             # Cache the user for future requests
-            await cache_manager.cache_user(user)
-            return user
+            await cache_manager.cache_user(userData)
+            return userData
             
         return None
 
@@ -213,64 +175,64 @@ class User(Document):
             await cache_manager.cache_user(fresh_user)
 
     # Friend-related methods
-    async def add_friend(self, id: PydanticObjectId):
-        self.friends.append(id)
-        await self.save()
+    # async def add_friend(self, id: PydanticObjectId):
+    #     self.friends.append(id)
+    #     await self.save()
 
-    async def remove_friend(self, friend: "User"):
-        if friend.id in self.friends:
-            self.friends.remove(friend.id)
-            await self.save()
+    # async def remove_friend(self, friend: "User"):
+    #     if friend.id in self.friends:
+    #         self.friends.remove(friend.id)
+    #         await self.save()
 
-    async def send_friend_request(self, to_user: "User", request):
-        from .friendRequest import FriendRequest
-        from cache.manager import CacheManager
+    # async def send_friend_request(self, to_user: "User", request):
+    #     from .friendRequest import FriendRequest
+    #     from cache.manager import CacheManager
 
-        friend_request = FriendRequest(from_user=self, to_user=to_user)
-        await friend_request.create()
-        self.friend_requests_sent.append(friend_request)
-        to_user.friend_requests_received.append(friend_request)
-        await self.save()
-        await to_user.save()
+    #     friend_request = FriendRequest(from_user=self, to_user=to_user)
+    #     await friend_request.create()
+    #     self.friend_requests_sent.append(friend_request)
+    #     to_user.friend_requests_received.append(friend_request)
+    #     await self.save()
+    #     await to_user.save()
         
-        # Update cache
-        cache_manager = CacheManager(request)
-        await cache_manager.cache_user(self)
-        await cache_manager.cache_user(to_user)
+    #     # Update cache
+    #     cache_manager = CacheManager(request)
+    #     await cache_manager.cache_user(self)
+    #     await cache_manager.cache_user(to_user)
 
-    async def accept_friend_request(
-        self, request: "FriendRequest", from_user: "User", http_request: Request
-    ):
-        from cache.manager import CacheManager
+    # async def accept_friend_request(
+    #     self, request: "FriendRequest", from_user: "User", http_request: Request
+    # ):
+    #     from cache.manager import CacheManager
         
-        if request.status == "pending":
-            request.status = "accepted"
-            if from_user.id in self.friends or self.id in from_user.friends:
-                await request.save()
-                return {"message": "Already friends"}
-            else:
-                await self.add_friend(from_user.id)
-                await from_user.add_friend(self.id)
-            await request.save()
+    #     if request.status == "pending":
+    #         request.status = "accepted"
+    #         if from_user.id in self.friends or self.id in from_user.friends:
+    #             await request.save()
+    #             return {"message": "Already friends"}
+    #         else:
+    #             await self.add_friend(from_user.id)
+    #             await from_user.add_friend(self.id)
+    #         await request.save()
             
-            # Update cache
-            cache_manager = CacheManager(http_request)
-            await cache_manager.cache_user(self)
-            await cache_manager.cache_user(from_user)
+    #         # Update cache
+    #         cache_manager = CacheManager(http_request)
+    #         await cache_manager.cache_user(self)
+    #         await cache_manager.cache_user(from_user)
 
-    async def reject_friend_request(
-        self, request: "FriendRequest", from_user: "User", http_request: Request
-    ):
-        from cache.manager import CacheManager
+    # async def reject_friend_request(
+    #     self, request: "FriendRequest", from_user: "User", http_request: Request
+    # ):
+    #     from cache.manager import CacheManager
         
-        if request.status == "pending":
-            request.status = "rejected"
-            await request.save()
+    #     if request.status == "pending":
+    #         request.status = "rejected"
+    #         await request.save()
             
-            # Update cache
-            cache_manager = CacheManager(http_request)
-            await cache_manager.cache_user(self)
-            await cache_manager.cache_user(from_user)
+    #         # Update cache
+    #         cache_manager = CacheManager(http_request)
+    #         await cache_manager.cache_user(self)
+    #         await cache_manager.cache_user(from_user)
 
     # Existing utility methods
     @property
