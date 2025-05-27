@@ -28,23 +28,19 @@ export const PublicRoute: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center justify-center h-screen">
-      <p className="mb-4 text-lg">Please log in to your IBKR account</p>
       <Button
-        onClick={() => window.open("https://localhost:5055", "_blank")}
-        className="w-64 bg-blue-600 hover:bg-blue-700 text-white"
+        className="w-64 bg-blue-600 hover:bg-blue-700 text-white mb-4"
+        onClick={() => window.open('https://localhost:5000', '_blank')}
       >
         <Rocket className="mr-2 h-4 w-4" />
-        Open IBKR Gateway Login
+        Login to IBKR
       </Button>
       <Button
-        onClick={async () => {
-          // Wait a few seconds for login to complete
-          await new Promise((res) => setTimeout(res, 2000));
-          // Refetch auth status
-          queryClient.invalidateQueries({ queryKey: ["authStatus"] });
-        }}
+        variant="outline"
+        className="w-64"
+        onClick={() => queryClient.invalidateQueries({ queryKey: ["authStatus"] })}
       >
-        I logged in – Continue
+        Check Login Status
       </Button>
     </div>
   );

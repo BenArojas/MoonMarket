@@ -21,9 +21,7 @@ import { ErrorBoundary } from "react-error-boundary";
 import {  
   useLoaderData
 } from "react-router-dom";
-
-
-
+import { StockData, useStockData } from "@/contexts/StocksDataContext";
 
 
 type PortfolioLoader = {
@@ -38,6 +36,10 @@ export async function loader({ request }: PortfolioLoader) {
   };
 }
 
+function isEmpty(obj: object): boolean {
+  return Object.keys(obj).length === 0;
+}
+
 
 function Portfolio() {
   const userData = {};
@@ -49,6 +51,10 @@ function Portfolio() {
   const [openInsights, setOpenInsights] = useState(false);
   const [aiData, setAiData] = useState({ portfolio_insights: "", sentiments: {}, citations: [] });
   const [loadingAI, setLoadingAI] = useState(false);
+
+  const { stocks, getAllStocks, getTotalValue } = useStockData();
+  const totalValue = getTotalValue()
+
 
   const fetchInsights = async () => {
     setLoadingAI(true);
@@ -68,11 +74,6 @@ function Portfolio() {
     }
   };
 
-  const { data: dailyTimeFrame, isPending: dailyTimeFrameLoading } = useQuery({
-    queryKey: ["dailyTimeFrame"],
-    queryFn: () => getPortfolioSnapshots(),
-  });
-
   return (
     <Box
       className="custom-scrollbar"
@@ -91,7 +92,7 @@ function Portfolio() {
     >
 
       <ErrorBoundary FallbackComponent={ErrorFallback}>
-        <PortfolioContent userData={userData} isMediumScreen={isMediumScreen} isMobileScreen={isMobileScreen} isSmallScreen={isSmallScreen} />
+        <PortfolioContent totalValue={totalValue} stocks={stocks} isMediumScreen={isMediumScreen} isMobileScreen={isMobileScreen} isSmallScreen={isSmallScreen} />
       </ErrorBoundary>
 
       {openInsights && (
@@ -106,7 +107,7 @@ function Portfolio() {
       }}>
         <Stack spacing={isSmallScreen ? 4 : 3} direction={isSmallScreen ? "column-reverse" : "column"} sx={{ height: "100%" }}>
           <ErrorBoundary FallbackComponent={ErrorFallback}>
-            {dailyTimeFrameLoading ? (
+            {/* {dailyTimeFrameLoading ? (
               <GraphSkeleton height={380} />
             ) : (
               <StackedCardsWrapper
@@ -115,7 +116,7 @@ function Portfolio() {
                 fetchInsights={fetchInsights}
                 loadingAI={loadingAI}
               />
-            )}
+            )} */}
           </ErrorBoundary>
           <HistoricalDataCard historicalData={historicalData} />
         </Stack>
@@ -125,38 +126,22 @@ function Portfolio() {
 }
 
 interface PortfolioContentProps {
-  userData: UserData
+  stocks: { [symbol: string]: StockData }
   isSmallScreen: boolean
   isMobileScreen: boolean
   isMediumScreen: boolean
+  totalValue: number
 }
-function PortfolioContent({ userData, isSmallScreen, isMobileScreen, isMediumScreen }: PortfolioContentProps) {
+function PortfolioContent({ stocks, isSmallScreen, isMobileScreen, isMediumScreen }: PortfolioContentProps) {
   const [selectedGraph, setSelectedGraph] = useState<GraphType>("Treemap");
   const [isDailyView, setIsDailyView] = useState(false);
-  const { visualizationData, isDataProcessed, value, moneySpent } = useGraphData(
-    userData,
+  const { visualizationData, isDataProcessed } = useGraphData(
+    stocks,
     selectedGraph,
     isDailyView
   );
 
-  const queryClient = useQueryClient();
-  const postSnapshotMutation = useMutation({
-    mutationFn: postSnapshot,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["dailyTimeFrame"] });
-    },
-    onError: (error) => {
-      console.error("Error posting a snapshot", error);
-    },
-  });
-
-  useEffect(() => {
-    if (visualizationData != null) {
-      postSnapshotMutation.mutate({ value: value, cumulativeSpent: moneySpent });
-    }
-  }, [value]);
-
-  if (userData.holdings.length === 0) {
+  if (isEmpty(stocks)) {
     return (<div className="container"><NewUserNoHoldings /></div>)
   }
 
@@ -189,39 +174,39 @@ function PortfolioContent({ userData, isSmallScreen, isMobileScreen, isMediumScr
   );
 }
 
-interface StackedCardsWrapperProps {
-  userData: UserData
-  dailyTimeFrame: SnapshotData[]
-  loadingAI: boolean
-  fetchInsights: () => void
-}
-const StackedCardsWrapper = ({ dailyTimeFrame, userData, fetchInsights, loadingAI }: StackedCardsWrapperProps) => {
-  const { percentageChange, setPercentageChange } =
-    useContext(PercentageChange);
-  const { stockTickers, value, moneySpent } = useGraphData(userData, "Treemap");
-  const formattedDate = lastUpdateDate(userData.last_refresh);
-  const incrementalChange = value - moneySpent;
+// interface StackedCardsWrapperProps {
+//   userData: UserData
+//   dailyTimeFrame: SnapshotData[]
+//   loadingAI: boolean
+//   fetchInsights: () => void
+// }
+// const StackedCardsWrapper = ({ dailyTimeFrame, userData, fetchInsights, loadingAI }: StackedCardsWrapperProps) => {
+//   const { percentageChange, setPercentageChange } =
+//     useContext(PercentageChange);
+//   const { stockTickers, value, moneySpent } = useGraphData(userData, "Treemap");
+//   const formattedDate = lastUpdateDate(userData.last_refresh);
+//   const incrementalChange = value - moneySpent;
 
-  useEffect(() => {
-    if (moneySpent !== 0 && setPercentageChange) {
-      const newPercentageChange = (incrementalChange / moneySpent) * 100;
-      setPercentageChange(newPercentageChange);
-    }
-  }, [incrementalChange, moneySpent]);
+//   useEffect(() => {
+//     if (moneySpent !== 0 && setPercentageChange) {
+//       const newPercentageChange = (incrementalChange / moneySpent) * 100;
+//       setPercentageChange(newPercentageChange);
+//     }
+//   }, [incrementalChange, moneySpent]);
 
-  return (
-    <SnapshotChart
-      formattedDate={formattedDate}
-      stockTickers={stockTickers}
-      incrementalChange={incrementalChange}
-      percentageChange={percentageChange}
-      value={value}
-      dailyTimeFrameData={dailyTimeFrame}
-      fetchInsights={fetchInsights}
-      loadingAI={loadingAI}
-    />
+//   return (
+//     <SnapshotChart
+//       formattedDate={formattedDate}
+//       stockTickers={stockTickers}
+//       incrementalChange={incrementalChange}
+//       percentageChange={percentageChange}
+//       value={value}
+//       dailyTimeFrameData={dailyTimeFrame}
+//       fetchInsights={fetchInsights}
+//       loadingAI={loadingAI}
+//     />
 
-  );
-};
+//   );
+// };
 
 export default Portfolio;

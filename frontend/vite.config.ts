@@ -9,10 +9,6 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  server: {
-    host: process.env.VITE_HOST || "localhost",
-    port: parseInt(process.env.PORT || "5173", 10),
-  },
   publicDir: "public",
   build: {
     target: "esnext",

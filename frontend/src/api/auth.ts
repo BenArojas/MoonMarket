@@ -1,11 +1,17 @@
-import api, {authCheckApi} from "@/api/axios";
+import api, { authCheckApi } from "@/api/axios";
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 
 export const fetchAuthStatus = async () => {
-    try {
-      const response = await authCheckApi.get("/auth/protected-route");
-      return response.data.isAuthenticated;
-    } catch (error) {
-      throw new Error("Unauthorized");
-    }
-  };
+  const response = await authCheckApi.get("/auth/status");
+  if (response.data.authenticated === 'False') {
+    toast.error(response.data.message);
+  }
+  return response.data.authenticated;
+};
+
+export const logout = async () => {
+  const response = await authCheckApi.post("/auth/logout");
+  return response.data.message;
+};

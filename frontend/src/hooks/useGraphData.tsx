@@ -1,55 +1,41 @@
-import { useMemo } from "react";
+import { StockData } from "@/contexts/StocksDataContext";
 import {
-  processTreemapData,
-  processDonutData,
   processCircularData,
+  processDonutData,
   processLeaderboardsData,
-  getPortfolioStats,
   processSankeyData,
+  processTreemapData
 } from "@/utils/dataProcessing";
-import useHoldingsData from "@/hooks/useHoldingsData";
-import { UserData } from "@/contexts/UserContext";
+import { useMemo } from "react";
 
-
-
-
-
-function useGraphData(userData: UserData, selectedGraph: string, isDailyView: boolean = false) {
-  const stockList = userData.holdings;
-  const { holdingsData, holdingsDataLoading, error } = useHoldingsData(stockList);
-
-
-  const portfolioStats = (stockList.length > 0 && holdingsData.length > 0)
-    ? getPortfolioStats(stockList, holdingsData)
-    : { tickers: [], sum: 0, totalSpent: 0 };
+function useGraphData(stocks: { [symbol: string]: StockData }, selectedGraph: string, isDailyView: boolean = false) {
+  
+    const tickers = Object.keys(stocks);
+   
 
   const visualizationData = useMemo(() => {
-    if (stockList.length === 0 || holdingsData.length !== stockList.length) return null;
+    if (!stocks || Object.keys(stocks).length === 0) return null;
 
     switch (selectedGraph) {
       case "Treemap":
-        return processTreemapData(stockList, holdingsData);
+        return processTreemapData(stocks);
       case "DonutChart":
-        return processDonutData(stockList, holdingsData);
+        return processDonutData(stocks);
       case "Circular":
-        return processCircularData(stockList, holdingsData);
+        return processCircularData(stocks);
       case "Leaderboards":
-        return processLeaderboardsData(stockList, holdingsData);
+        return processLeaderboardsData(stocks);
       case "Sankey":
-        return processSankeyData(stockList, holdingsData);
+        return processSankeyData(stocks);
       default:
-        return processTreemapData(stockList, holdingsData);
+        return processTreemapData(stocks);
     }
-  }, [selectedGraph, stockList, holdingsData, isDailyView]);
+  }, [selectedGraph, stocks, isDailyView]);
 
   return {
-    stockTickers: portfolioStats.tickers,
+    stockTickers: tickers,
     visualizationData,
-    value: portfolioStats.sum,
-    moneySpent: portfolioStats.totalSpent,
-    isDataProcessed: stockList.length > 0 && holdingsData.length > 0,
-    holdingsDataLoading,
-    error,
+    isDataProcessed: Object.keys(stocks).length > 0,
   };
 }
 

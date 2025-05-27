@@ -4,10 +4,9 @@ import Navbar from '@/components/Navbar';
 
 interface GreetingsProps {
     username: string;
-    friendRequestsCount: number
 }
 
-function Greetings({ username, friendRequestsCount }: GreetingsProps) {
+function Greetings({ username}: GreetingsProps) {
 
     const theme = useTheme();
     const isMobileScreen = useMediaQuery(theme.breakpoints.down('sm'));
@@ -54,7 +53,7 @@ function Greetings({ username, friendRequestsCount }: GreetingsProps) {
                         width: '100%'
                     }}
                 >
-                    <Navbar friendRequestsCount={friendRequestsCount} />
+                    <Navbar />
                 </Box>
             </Box>
             <Divider />

@@ -1,13 +1,10 @@
-import { getFriendRequestLength } from "@/api/friend";
-import AccountSetUp from "@/components/AccountSetUp";
 import Greetings from "@/components/Greetings";
 import Sidebar from "@/components/Sidebar";
+import { PercentageChange } from "@/contexts/PercentageChangeContext";
 import "@/styles/global.css";
 import { Box, useMediaQuery, useTheme } from "@mui/material";
-import { useQuery } from "@tanstack/react-query";
-import {  useState, useEffect } from "react"; // Add useEffect
+import { useState } from "react"; // Add useEffect
 import { Outlet } from "react-router-dom";
-import { PercentageChange } from "@/contexts/PercentageChangeContext";
 
 
 const Layout: React.FC = () => {
@@ -16,13 +13,6 @@ const Layout: React.FC = () => {
   const isMobileScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
   const username =  'Guest';
-
-
-  const { data: friendRequestsLength } = useQuery({
-    queryKey: ['friendRequestsLength'],
-    queryFn: getFriendRequestLength,
-  });
-
 
 
   return (
@@ -42,8 +32,8 @@ const Layout: React.FC = () => {
             flexDirection: "column",
           }}
         >
-          <Greetings username={username} friendRequestsCount={friendRequestsLength} />
-            <Outlet context={friendRequestsLength} />
+          <Greetings username={username}  />
+            <Outlet />
         </Box>
       </Box>
     </PercentageChange.Provider>

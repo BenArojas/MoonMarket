@@ -15,6 +15,7 @@ import { useThemeHook } from "@/contexts/ThemeContext";
 import { useTheme, useMediaQuery } from "@mui/material";
 import useLogout from "@/hooks/useLogOut";
 import { FC } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 function capitalizeFirstLetter(string: string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
@@ -23,7 +24,6 @@ function capitalizeFirstLetter(string: string) {
 interface NavItem {
   icon: React.ElementType;
   text?: string;
-  badge?: number;
   onClick?: () => void;
   disabled?: boolean;
 }
@@ -36,7 +36,7 @@ interface NavItemProps {
 
 const NavItem: FC<NavItemProps> = ({ item, isMainNav = false, isActive = false }) => {
   const theme = useTheme();
-  const { icon: Icon, text, badge, onClick, disabled } = item;
+  const { icon: Icon, text, onClick, disabled } = item;
 
   if (!text) {
     return (
@@ -73,13 +73,7 @@ const NavItem: FC<NavItemProps> = ({ item, isMainNav = false, isActive = false }
         }),
       }}
     >
-      {badge ? (
-        <Badge badgeContent={badge} color="primary">
-          <Icon color={isActive ? theme.palette.primary.main : "currentColor"} />
-        </Badge>
-      ) : (
-        <Icon color={isActive ? theme.palette.primary.main : "currentColor"} />
-      )}
+      <Icon color={isActive ? theme.palette.primary.main : "currentColor"} />
       {isMainNav ? (
         <Box
           className="nav-text"
@@ -101,20 +95,24 @@ const NavItem: FC<NavItemProps> = ({ item, isMainNav = false, isActive = false }
   );
 };
 
-interface NavbarProps {
-  friendRequestsCount: number;
-}
 
-const Navbar: FC<NavbarProps> = ({ friendRequestsCount }) => {
+
+const Navbar = () => {
   const theme = useTheme();
   const { toggleTheme, mode } = useThemeHook();
   const { pathname } = useLocation();
-  const handleLogout = useLogout();
   const isMobileScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const isSpacePage = pathname === "/space";
 
+  const {logout } = useAuth();
+  
+  const handleLogout = async () => {
+    await logout();
+    // User will be logged out and all cached data will be cleared
+  };
+
   const mainNavItems: NavItem[] = [
-    { icon: Orbit, text: "space" },
+    // { icon: Orbit, text: "space" },
     { icon: ArrowLeftRight, text: "transactions" },
     { icon: BriefcaseBusiness, text: "home" },
     { icon: ListPlus, text: "watchlist" },
@@ -127,7 +125,7 @@ const Navbar: FC<NavbarProps> = ({ friendRequestsCount }) => {
       onClick: isSpacePage ? undefined : toggleTheme,
       disabled: isSpacePage,
     },
-    { icon: User, text: "profile", badge: friendRequestsCount },
+    { icon: User, text: "profile"},
     { icon: LogOut, text: "logout", onClick: handleLogout },
   ];
 

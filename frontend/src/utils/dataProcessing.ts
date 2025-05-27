@@ -1,5 +1,6 @@
 import { ChartDataPoint } from '@/components/CurrentStockChart';
 import {  SankeyInputData, SankeyInputLink, SankeyInputNode } from '@/components/SankeyChart';
+import { StockData } from '@/contexts/StocksDataContext';
 import { HoldingData } from '@/contexts/UserContext';
 import { Transaction } from '@/hooks/useTransactionSummary';
 
@@ -12,32 +13,6 @@ export type StockInfo = {
   _id: string
 }
 
-export function getPortfolioStats(stocksList: HoldingData[], stocksInfo: StockInfo[]) {
-  let tickers: string[] = [];
-  let sum: number = 0;
-  let totalSpent: number = 0;
-
-  // Define the type of stocksInfoMap as a Record with string keys and StockInfo values
-  const stocksInfoMap: Record<string, StockInfo> = stocksInfo.reduce(
-    (acc: Record<string, StockInfo>, stock) => {
-      acc[stock.ticker] = stock;
-      return acc;
-    },
-    {} as Record<string, StockInfo>
-  );
-
-  for (const holding of stocksList) {
-    const stockInfo = stocksInfoMap[holding.ticker];
-    if (stockInfo) {
-      const value = holding.quantity * stockInfo.price;
-      sum += value;
-      totalSpent += holding.avg_bought_price * holding.quantity;
-      tickers.push(holding.ticker);
-    }
-  }
-
-  return { tickers, sum, totalSpent };
-}
 
 export type TreemapData = {
   name: string;
@@ -45,9 +20,9 @@ export type TreemapData = {
   children: { name: string; value: number; children: any[] }[];
 }
 // Treemap Data Processing
-export function processTreemapData(stocksList: HoldingData[], stocksInfo: StockInfo[]): TreemapData {
+export function processTreemapData(stocks: { [symbol: string]: StockData }): TreemapData {
   
-  type StockData = {
+  type ProcessedStockData = {
     name: string;
     id: string;
     ticker: string;
@@ -59,51 +34,38 @@ export function processTreemapData(stocksList: HoldingData[], stocksInfo: StockI
     percentageOfPortfolio?: string;
   }
 
-  const positiveStocks: StockData[] = [];
-  const negativeStocks: StockData[] = [];
+  const positiveStocks: ProcessedStockData[] = [];
+  const negativeStocks: ProcessedStockData[] = [];
   let sum: number = 0;
 
-  // Create a map of stocksInfo by ticker for O(1) lookup
-  const stocksInfoMap: Record<string, StockInfo> = stocksInfo.reduce(
-    (acc: Record<string, StockInfo>, stock) => {
-      acc[stock.ticker] = stock;
-      return acc;
-    },
-    {} as Record<string, StockInfo>
-  );
-
-  // Process each holding and match with corresponding stock info
-  stocksList.forEach((holding: HoldingData) => {
-    const stockInfo = stocksInfoMap[holding.ticker];
-    if (!stockInfo) return; // Skip if no matching stock info found
-
-    const stock_avg_price: number = holding.avg_bought_price;
-    const value: number = holding.quantity * stockInfo.price;
+  // Process each stock from the stocks object
+  Object.entries(stocks).forEach(([ticker, stockData]) => {
+    const value: number = stockData.value;
     sum += value;
 
-    const stockData: StockData = {
-      name: stockInfo.name,
-      id: stockInfo._id,
-      ticker: holding.ticker,
+    const processedStock: ProcessedStockData = {
+      name: ticker, // Using ticker as name since we don't have separate name field
+      id: ticker, // Using ticker as id
+      ticker: ticker,
       value,
-      avgSharePrice: stock_avg_price.toFixed(2),
-      quantity: holding.quantity,
-      last_price: stockInfo.price.toFixed(2),
+      avgSharePrice: stockData.avgBoughtPrice.toFixed(2),
+      quantity: stockData.quantity,
+      last_price: stockData.lastPrice.toFixed(2),
       priceChangePercentage: (
-        ((stockInfo.price - stock_avg_price) / stock_avg_price) * 100
+        ((stockData.lastPrice - stockData.avgBoughtPrice) / stockData.avgBoughtPrice) * 100
       ).toFixed(2),
     };
 
-    if (stockInfo.price > stock_avg_price) {
-      positiveStocks.push(stockData);
+    if (stockData.lastPrice > stockData.avgBoughtPrice) {
+      positiveStocks.push(processedStock);
     } else {
-      negativeStocks.push(stockData);
+      negativeStocks.push(processedStock);
     }
   });
 
   // Calculate percentage of portfolio
-  const calculatePortfolioPercentage = (stocks: StockData[]): void => {
-    stocks.forEach((stock: StockData) => {
+  const calculatePortfolioPercentage = (stocksArray: ProcessedStockData[]): void => {
+    stocksArray.forEach((stock: ProcessedStockData) => {
       stock.percentageOfPortfolio = ((stock.value / sum) * 100).toFixed(2);
     });
   };
@@ -115,7 +77,7 @@ export function processTreemapData(stocksList: HoldingData[], stocksInfo: StockI
   const newStocksTree: {
     name: string;
     value: number;
-    children: { name: string; value: number; children: StockData[] }[];
+    children: { name: string; value: number; children: ProcessedStockData[] }[];
   } = {
     name: "Stocks",
     value: 0,
@@ -149,69 +111,54 @@ export type DonutData = {
   percentageOfPortfolio: number;
   othersStocks?: any[];
 }
-export function processDonutData(stocksList: HoldingData[], stocksInfo: StockInfo[]): DonutData[] {
-  type StockData  = {
+
+export function processDonutData(stocks: { [symbol: string]: StockData }): DonutData[] {
+  type ProcessedStockData = {
     name: string;
     value: number;
     quantity: number;
     percentageOfPortfolio: number;
   }
 
-  const stocksInfoMap: Record<string, StockInfo> = stocksInfo.reduce(
-    (acc: Record<string, StockInfo>, stock) => {
-      acc[stock.ticker] = stock;
-      return acc;
-    },
-    {} as Record<string, StockInfo>
-  );
-
-  const stocks: StockData[] = [];
+  const stocksArray: ProcessedStockData[] = [];
   let totalPortfolioValue: number = 0;
 
-  // First calculate total portfolio value
-  stocksList.forEach((holding: HoldingData) => {
-    const stockInfo = stocksInfoMap[holding.ticker];
-    if (stockInfo) {
-      const value: number = holding.quantity * stockInfo.price;
-      totalPortfolioValue += value;
-    }
+  // Calculate total portfolio value
+  Object.entries(stocks).forEach(([ticker, stockData]) => {
+    totalPortfolioValue += stockData.value;
   });
 
-  // Calculate percentage for each stock
-  stocksList.forEach((holding: HoldingData) => {
-    const stockInfo = stocksInfoMap[holding.ticker];
-    if (stockInfo) {
-      const value: number = holding.quantity * stockInfo.price;
-      const percentageOfPortfolio: number = Math.round(
-        (value / totalPortfolioValue) * 100
-      );
+  // Process each stock and calculate percentage
+  Object.entries(stocks).forEach(([ticker, stockData]) => {
+    const percentageOfPortfolio: number = Math.round(
+      (stockData.value / totalPortfolioValue) * 100
+    );
 
-      stocks.push({
-        name: holding.ticker,
-        value,
-        quantity: holding.quantity,
-        percentageOfPortfolio,
-      });
-    }
+    stocksArray.push({
+      name: ticker,
+      value: stockData.value,
+      quantity: stockData.quantity,
+      percentageOfPortfolio,
+    });
   });
 
   // Sort stocks by value in descending order
-  stocks.sort((a: StockData, b: StockData) => b.value - a.value);
+  stocksArray.sort((a: ProcessedStockData, b: ProcessedStockData) => b.value - a.value);
 
   // Handle "Others" category for more than 8 stocks
-  const othersStocks: StockData[] = stocks.length > 8 ? stocks.slice(8) : [];
+  const othersStocks: ProcessedStockData[] = stocksArray.length > 8 ? stocksArray.slice(8) : [];
   if (othersStocks.length > 0) {
     const othersValue: number = othersStocks.reduce(
-      (acc: number, curr: StockData) => acc + curr.value,
+      (acc: number, curr: ProcessedStockData) => acc + curr.value,
       0
     );
     const othersPercentage: number = othersStocks.reduce(
-      (acc: number, curr: StockData) => acc + curr.percentageOfPortfolio,
+      (acc: number, curr: ProcessedStockData) => acc + curr.percentageOfPortfolio,
       0
     );
 
-    stocks.length = 8; // Trim to first 8
-    stocks.push({
+    stocksArray.length = 8; // Trim to first 8
+    stocksArray.push({
       name: "Others",
       value: othersValue,
       percentageOfPortfolio: othersPercentage,
@@ -220,27 +167,16 @@ export function processDonutData(stocksList: HoldingData[], stocksInfo: StockInf
   }
 
   // Attach othersStocks to the result
-  Object.defineProperty(stocks, "othersStocks", {
+  Object.defineProperty(stocksArray, "othersStocks", {
     value: othersStocks,
     writable: true,
     enumerable: false,
   });
 
-  return stocks;
+  return stocksArray;
 }
-
 // Sankey Data Processing
-// --- Data Processing Function ---
-// This function now correctly returns the INPUT data structure
-export function processSankeyData(stocksList: HoldingData[], stocksInfo: StockInfo[]): SankeyInputData {
-  const stocksInfoMap: Record<string, StockInfo> = stocksInfo.reduce(
-    (acc: Record<string, StockInfo>, stock) => {
-      acc[stock.ticker] = stock;
-      return acc;
-    },
-    {} // No need for explicit type assertion here
-  );
-
+export function processSankeyData(stocks: { [symbol: string]: StockData }): SankeyInputData {
   // Nodes conforming to SankeyInputNode
   const nodes: SankeyInputNode[] = [
     // Initialize value to 0, it will be summed up later
@@ -253,15 +189,13 @@ export function processSankeyData(stocksList: HoldingData[], stocksInfo: StockIn
   let positiveValue: number = 0;
   let negativeValue: number = 0;
 
-  stocksList.forEach((holding: HoldingData) => {
-    const stockInfo = stocksInfoMap[holding.ticker];
-    // Skip if we don't have matching price/name info for the holding
-    if (!stockInfo || !holding.avg_bought_price || holding.avg_bought_price <= 0) return;
+  Object.entries(stocks).forEach(([ticker, stockData]) => {
+    // Skip if we don't have proper price data
+    if (!stockData.avgBoughtPrice || stockData.avgBoughtPrice <= 0) return;
 
-    const stock_avg_price: number = holding.avg_bought_price;
-    const current_price: number = stockInfo.price;
-    const value: number = holding.quantity * current_price; // Current market value
-    const ticker: string = holding.ticker;
+    const stock_avg_price: number = stockData.avgBoughtPrice;
+    const current_price: number = stockData.lastPrice;
+    const value: number = stockData.value; // Current market value
     const percentageChange: string = (
       ((current_price - stock_avg_price) / stock_avg_price) * 100
     ).toFixed(2);
@@ -269,7 +203,7 @@ export function processSankeyData(stocksList: HoldingData[], stocksInfo: StockIn
     // Create the node data for the stock
     const nodeData: SankeyInputNode = {
       id: ticker,
-      name: stockInfo.name, // Add the company name
+      name: ticker, // Using ticker as name since we don't have separate company name
       value, // Set the value for the node itself (d3 might recalculate based on links)
       percentageChange,
     };
@@ -293,20 +227,17 @@ export function processSankeyData(stocksList: HoldingData[], stocksInfo: StockIn
   if (positiveNode) positiveNode.value = positiveValue;
   if (negativeNode) negativeNode.value = negativeValue;
 
-
   // Filter out nodes with zero value AFTER summing (optional, but good practice)
   const finalNodes = nodes.filter(node => node.value !== undefined && node.value > 0);
   // Filter links to only include those connecting remaining nodes
   const finalNodeIds = new Set(finalNodes.map(n => n.id));
   const finalLinks = links.filter(link => finalNodeIds.has(link.source) && finalNodeIds.has(link.target));
 
-
   // Return the data structure conforming to SankeyInputData
   return { nodes: finalNodes, links: finalLinks };
 }
 
-
-export type StockChild  = {
+export type StockChild = {
   type: string;
   ticker: string;
   name: string;
@@ -325,16 +256,9 @@ export type CircularData = {
   value: number;
   children: StockChild[];
 }
-// Circular Data Processing
-export function processCircularData(stocksList: HoldingData[], stocksInfo: StockInfo[]): CircularData {
-  const stocksInfoMap: Record<string, StockInfo> = stocksInfo.reduce(
-    (acc: Record<string, StockInfo>, stock) => {
-      acc[stock.ticker] = stock;
-      return acc;
-    },
-    {} as Record<string, StockInfo>
-  );
 
+// Circular Data Processing
+export function processCircularData(stocks: { [symbol: string]: StockData }): CircularData {
   const children: {
     type: string;
     ticker: string;
@@ -350,38 +274,30 @@ export function processCircularData(stocksList: HoldingData[], stocksInfo: Stock
   let totalPortfolioValue: number = 0;
 
   // Calculate total portfolio value first
-  stocksList.forEach((holding: HoldingData) => {
-    const stockInfo = stocksInfoMap[holding.ticker];
-    if (stockInfo) {
-      const value: number = holding.quantity * stockInfo.price;
-      totalPortfolioValue += value;
-    }
+  Object.values(stocks).forEach((stockData) => {
+    totalPortfolioValue += stockData.value;
   });
 
   // Process each stock
-  stocksList.forEach((holding: HoldingData) => {
-    const stockInfo = stocksInfoMap[holding.ticker];
-    if (!stockInfo) return;
-
-    const value: number = holding.quantity * stockInfo.price;
-    const ticker: string = holding.ticker;
+  Object.entries(stocks).forEach(([ticker, stockData]) => {
+    const value: number = stockData.value;
     sum += value;
-    const stock_avg_price: string = holding.avg_bought_price.toFixed(2);
+    const stock_avg_price: string = stockData.avgBoughtPrice.toFixed(2);
     const percentageOfPortfolio: string = (
       (value / totalPortfolioValue) * 100
     ).toFixed(2);
 
-    const stockType: string = stockInfo.price > holding.avg_bought_price ? "positive" : "negative";
+    const stockType: string = stockData.lastPrice > stockData.avgBoughtPrice ? "positive" : "negative";
 
     children.push({
       type: "leaf",
       ticker,
-      name: stockInfo.name,
+      name: ticker, // Using ticker as name since we don't have separate company name
       value,
       stockType,
-      quantity: holding.quantity,
+      quantity: stockData.quantity,
       avgSharePrice: stock_avg_price,
-      last_price: stockInfo.price,
+      last_price: stockData.lastPrice,
       percentageOfPortfolio,
     });
   });
@@ -395,7 +311,7 @@ export function processCircularData(stocksList: HoldingData[], stocksInfo: Stock
 }
 
 // Leaderboards Data Processing
-export function processLeaderboardsData(stocksList: HoldingData[], stocksInfo: StockInfo[]): {
+export function processLeaderboardsData(stocks: { [symbol: string]: StockData }): {
   ticker: string;
   name: string;
   value: string;
@@ -407,57 +323,41 @@ export function processLeaderboardsData(stocksList: HoldingData[], stocksInfo: S
   percentageOfPortfolio: string;
   gainLoss: string;
 }[] {
-  const stocksInfoMap: Record<string, StockInfo> = stocksInfo.reduce(
-    (acc: Record<string, StockInfo>, stock) => {
-      acc[stock.ticker] = stock;
-      return acc;
-    },
-    {} as Record<string, StockInfo>
-  );
-
   let totalPortfolioValue: number = 0;
 
   // Calculate total portfolio value first
-  stocksList.forEach((holding: HoldingData) => {
-    const stockInfo = stocksInfoMap[holding.ticker];
-    if (stockInfo) {
-      const value: number = holding.quantity * stockInfo.price;
-      totalPortfolioValue += value;
-    }
+  Object.values(stocks).forEach((stockData) => {
+    totalPortfolioValue += stockData.value;
   });
 
   // Process each stock
-  const LeaderboardsData = stocksList
-    .map((holding: HoldingData) => {
-      const stockInfo = stocksInfoMap[holding.ticker];
-      if (!stockInfo) return null;
-
-      const value: string = (holding.quantity * stockInfo.price).toFixed(2);
-      const priceChange: number = stockInfo.price - holding.avg_bought_price;
+  const LeaderboardsData = Object.entries(stocks)
+    .map(([ticker, stockData]) => {
+      const value: string = stockData.value.toFixed(2);
+      const priceChange: number = stockData.lastPrice - stockData.avgBoughtPrice;
       const priceChangePercentage: string = (
-        ((stockInfo.price - holding.avg_bought_price) / holding.avg_bought_price) * 100
+        ((stockData.lastPrice - stockData.avgBoughtPrice) / stockData.avgBoughtPrice) * 100
       ).toFixed(2);
       const percentageOfPortfolio: string = (
-        (parseFloat(value) / totalPortfolioValue) * 100
+        (stockData.value / totalPortfolioValue) * 100
       ).toFixed(2);
       const gainLoss: string = (
-        parseFloat(value) - (holding.avg_bought_price * holding.quantity)
+        stockData.value - (stockData.avgBoughtPrice * stockData.quantity)
       ).toFixed(2);
 
       return {
-        ticker: holding.ticker,
-        name: stockInfo.name,
+        ticker: ticker,
+        name: ticker, // Using ticker as name since we don't have separate company name
         value,
         priceChange,
         priceChangePercentage,
-        sharePrice: stockInfo.price,
-        earnings: stockInfo.earnings,
-        quantity: holding.quantity,
+        sharePrice: stockData.lastPrice,
+        earnings: "N/A", // Not available in your current data structure
+        quantity: stockData.quantity,
         percentageOfPortfolio,
         gainLoss,
       };
     })
-    .filter((item): item is NonNullable<typeof item> => item !== null) // Remove null entries
     .sort((a, b) => parseFloat(b.priceChangePercentage) - parseFloat(a.priceChangePercentage));
 
   return LeaderboardsData;
