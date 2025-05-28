@@ -4,7 +4,6 @@ import { PublicRoute } from "@/pages/PublicRoute";
 import Layout from "@/pages/Layout";
 import NotFoundPage from "@/pages/NotFoundPage";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { StockDataProvider } from "./contexts/StocksDataContext";
 
 interface LazyRouteComponent {
   Component: React.ComponentType;
@@ -101,9 +100,7 @@ const router = createBrowserRouter([
 const Routes = () => {
   return (
     <AuthProvider>
-       <StockDataProvider>
       <RouterProvider router={router} />
-       </StockDataProvider>
     </AuthProvider>
   );
 };

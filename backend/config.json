@@ -1,5 +1,6 @@
 {
     "ibkr_api_url": "https://localhost:5000/v1/api",
+    "ibkr_ws_url": "wss://localhost:5000/v1/ws",
     "websocket_port": 8765,
     "http_port": 8000
 }

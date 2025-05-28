@@ -1,8 +1,7 @@
 import { ChartDataPoint } from '@/components/CurrentStockChart';
 import {  SankeyInputData, SankeyInputLink, SankeyInputNode } from '@/components/SankeyChart';
-import { StockData } from '@/contexts/StocksDataContext';
-import { HoldingData } from '@/contexts/UserContext';
 import { Transaction } from '@/hooks/useTransactionSummary';
+import { StockData } from '@/stores/stockStore';
 
 export type StockInfo = {
   earnings: string;

@@ -1,47 +1,52 @@
-import asyncio
-import json
 import logging
-from fastapi import APIRouter, HTTPException, Depends
-import requests
+import re
+from fastapi import APIRouter, Depends, HTTPException
+import httpx
+from app import AppState, get_app_state
 from ibkr_auth import check_authentication
-from main import state
 
-config = state.config
-
+# We'll import state differently to avoid circular imports
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Stocks"])
 
 
+async def subscribe_to_new_holding(symbol, conid, state:AppState):
+    """Subscribe to market data for a new holding."""
+    if state.ibkr_ws and conid not in state.subscribed_conids:
+        try:
+            market_data_subscription = f'smd+{conid}+{{"fields":["31","84","86"]}}'
+            state.ibkr_ws.send(market_data_subscription)
+            state.subscribed_conids.add(conid)
+            logger.info(f"Subscribed to market data for new holding {symbol} (conid: {conid})")
+        except Exception as e:
+            logger.error(f"Error subscribing to new holding {symbol}: {e}")
 
-async def fetch_holdings():
-    """Fetch user holdings from IBKR API."""
-    if not check_authentication():
-        logger.warning("Not authenticated, skipping holdings fetch.")
-        return
+async def fetch_holdings(state:AppState):
+    """Fetch user holdings from IBKR API and subscribe to WebSocket updates."""
     try:
         # Get account ID
-        response = state.session.get(f"{config['ibkr_api_url']}/portfolio/accounts", timeout=5)
+        response = await state.client.get(f"{state.config['ibkr_api_url']}/portfolio/accounts", timeout=5)
         response.raise_for_status()
-        accounts = response.json()
+        accounts =  response.json()
 
         if not accounts:
             logger.error("No accounts found in the response from IBKR.")
             return
 
-        account_id = accounts[0]["accountId"]
-        logger.info(f"Using Account ID: {account_id}")
+        state.account_id = accounts[0]["accountId"]
+        logger.info(f"Using Account ID: {state.account_id}")
 
         # Fetch positions
-        response = state.session.get(f"{config['ibkr_api_url']}/portfolio/{account_id}/positions", timeout=5)
+        response = await state.client.get(f"{state.config['ibkr_api_url']}/portfolio/{state.account_id}/positions", timeout=5)
         response.raise_for_status()
-        positions = response.json()
+        positions =  response.json()
 
+        old_holdings = set(state.holdings.keys())
         state.holdings.clear()
+        
         for position in positions:
-            # --- FIX #1: Get the ticker from 'contractDesc' ---
             symbol = position.get("contractDesc") 
             conid = position.get("conid")
-            # --- FIX #2: Use the actual 'avgCost' for the bought price ---
             avg_bought_price = position.get("avgCost") 
             quantity = position.get("position")
 
@@ -52,111 +57,210 @@ async def fetch_holdings():
                     "quantity": float(quantity)
                 }
         
-        # This log should now show your tickers!
-        logger.info(f"Successfully processed and stored holdings for: {list(state.holdings.keys())}")
+        new_holdings = set(state.holdings.keys())
+        logger.info(f"Successfully processed and stored holdings for: {list(new_holdings)}")
+        
+        # Subscribe to WebSocket updates for new holdings
+        new_symbols = new_holdings - old_holdings
+        if new_symbols and hasattr(state, 'subscribe_to_new_holding'):
+            for symbol in new_symbols:
+                await subscribe_to_new_holding(symbol, state.holdings[symbol]["conid"], state)
 
-    except requests.RequestException as e:
+    except httpx.RequestError as e:
         logger.error(f"Error fetching holdings: {e}")
     except Exception as e:
         logger.error(f"An unexpected error occurred in fetch_holdings: {e}")
 
-async def fetch_market_data():
-    """Poll market data for holdings and stream to clients."""
-    while True:
-        await asyncio.sleep(5) # Delay first
-        if not state.holdings or not state.clients:
-            continue
-        try:
-            conids = ",".join(holding["conid"] for holding in state.holdings.values())
-            response = state.session.get(
-                f"{config['ibkr_api_url']}/iserver/marketdata/snapshot",
-                params={"conids": conids, "fields": "31"},  # last price
-                timeout=10
-            )
-            if response.status_code == 200:
-                data = response.json()
-                
-                # --- START OF MODIFIED BLOCK ---
-                
-                # We create one large message list to send, which is more efficient
-                messages_to_send = []
+@router.get("/holdings")
+async def get_holdings(state: AppState = Depends(get_app_state)):
+    """Get current holdings."""
+    return {"holdings": state.holdings}
 
-                for item in data:
-                    price_str = item.get("31") # Get the price string
-                    if not price_str:
-                        continue # Skip if there's no price field
+@router.get("/account-summary")
+async def get_account_summary(state: AppState = Depends(get_app_state)):
+    """Get account summary data."""
+    return {"account_summary": state.account_summary}
 
-                    cleaned_price = 0.0
-                    try:
-                        # First, try to convert directly
-                        cleaned_price = float(price_str)
-                    except (ValueError, TypeError):
-                        # If it fails, clean the string and try again
-                        match = re.search(r'[\d.]+', str(price_str))
-                        if match:
-                            cleaned_price = float(match.group(0))
-                        else:
-                            logger.warning(f"Could not parse price from malformed string: {price_str}")
-                            continue # Skip this item if we can't parse it
-
-                    symbol = next((s for s, h in state.holdings.items() if h["conid"] == str(item.get("conid"))), None)
-                    if symbol:
-                        holding = state.holdings[symbol]
-                        # Calculate current values
-                        current_value = cleaned_price * holding["quantity"]
-                        unrealized_pnl = (cleaned_price - holding["avg_bought_price"]) * holding["quantity"]
-                        message = {
-                            "type": "market_data",
-                            "symbol": symbol,
-                            "last_price": cleaned_price,
-                            "avg_bought_price": state.holdings[symbol]["avg_bought_price"],
-                            "quantity": state.holdings[symbol]["quantity"],
-                            "value": current_value,
-                            "unrealized_pnl": unrealized_pnl,
-                        }
-                        messages_to_send.append(json.dumps(message))
-
-                if messages_to_send and state.clients:
-                    # Create tasks to send all messages concurrently to all clients
-                    tasks = [client.send(msg) for msg in messages_to_send for client in state.clients]
-                    await asyncio.gather(*tasks)
-                    logger.info(f"Sent {len(messages_to_send)} market data updates to {len(state.clients)} client(s).")
-
-                # --- END OF MODIFIED BLOCK ---
-
-            else:
-                logger.error(f"Market data fetch failed: {response.status_code} - {response.text}")
-        except requests.RequestException as e:
-            logger.error(f"Error fetching market data: {e}")
-        except Exception as e:
-            logger.error(f"An unexpected error occurred in fetch_market_data: {e}")
+@router.post("/refresh-data")
+async def refresh_data(state: AppState = Depends(get_app_state)):
+    """Manually refresh holdings and account data."""
+    await fetch_holdings(state)
+    # Import here to avoid circular imports
+    from main import fetch_account_summary
+    await fetch_account_summary()
+    return {"message": "Data refresh triggered"}
 
 @router.get("/stock/{symbol}")
-async def get_stock_data(symbol: str):
+async def get_stock_data(symbol: str, state: AppState = Depends(get_app_state)):
     """Fetch stock data for a given ticker symbol."""
     try:
         # Search for conid using ticker
-        response = state.session.post(
-            f"{config['ibkr_api_url']}/iserver/secdef/search",
+        response = await state.client.post(
+            f"{state.config['ibkr_api_url']}/iserver/secdef/search",
             json={"symbol": symbol},
             timeout=5
         )
-        response.raise_for_status() # Raise an exception for bad status codes
-        data = response.json()
+        response.raise_for_status()
+        data = await response.json()
+        
         if not data or "conid" not in data[0]:
             return {"error": f"No conid found for symbol {symbol}"}
+        
         conid = data[0]["conid"]
+        company_name = data[0].get("description", symbol)
 
-        # Fetch market data
-        md_response = state.session.get(
-            f"{config['ibkr_api_url']}/iserver/marketdata/snapshot",
-            params={"conids": conid, "fields": "31"},  # last price
+        # Fetch current market data
+        md_response = await state.client.get(
+            f"{state.config['ibkr_api_url']}/iserver/marketdata/snapshot",
+            params={"conids": conid, "fields": "31,84,86"},  # last price, bid, ask
             timeout=5
         )
         md_response.raise_for_status()
-        md_data = md_response.json()
-        return {"symbol": symbol, "last_price": float(md_data[0].get("31", 0)) if md_data else 0}
+        md_data = await md_response.json()
+        
+        if md_data and len(md_data) > 0:
+            stock_data = md_data[0]
+            return {
+                "symbol": symbol,
+                "company_name": company_name,
+                "conid": conid,
+                "last_price": float(stock_data.get("31", 0)) if stock_data.get("31") else 0,
+                "bid": float(stock_data.get("84", 0)) if stock_data.get("84") else 0,
+                "ask": float(stock_data.get("86", 0)) if stock_data.get("86") else 0,
+            }
+        else:
+            return {
+                "symbol": symbol,
+                "company_name": company_name,
+                "conid": conid,
+                "last_price": 0,
+                "bid": 0,
+                "ask": 0,
+            }
 
-    except requests.RequestException as e:
+    except httpx.RequestError as e:
         logger.error(f"Error fetching stock data for {symbol}: {e}")
-        return {"error": str(e)}
+        raise HTTPException(status_code=500, detail=f"Error fetching stock data: {str(e)}")
+
+@router.get("/stock/{symbol}/history")
+async def get_stock_history(symbol: str, period: str = "1d", bar_size: str = "5mins",  state: AppState = Depends(get_app_state)):
+    """
+    Fetch historical data for a stock.
+    
+    Args:
+        symbol: Stock ticker symbol
+        period: Time period (1d, 1w, 1m, 3m, 6m, 1y, 2y, 5y)
+        bar_size: Bar size (1min, 5mins, 15mins, 30mins, 1h, 2h, 3h, 4h, 8h, 1d, 1w, 1m)
+    """
+    try:
+        # First get the conid for the symbol
+        search_response = await state.client.post(
+            f"{state.config['ibkr_api_url']}/iserver/secdef/search",
+            json={"symbol": symbol},
+            timeout=5
+        )
+        search_response.raise_for_status()
+        search_data = await search_response.json()
+        
+        if not search_data or "conid" not in search_data[0]:
+            raise HTTPException(status_code=404, detail=f"Symbol {symbol} not found")
+        
+        conid = search_data[0]["conid"]
+        
+        # Fetch historical data
+        history_response = await state.client.get(
+            f"{state.config['ibkr_api_url']}/iserver/marketdata/history",
+            params={
+                "conid": conid,
+                "period": period,
+                "bar": bar_size,
+                "outsideRth": "false"
+            },
+            timeout=10
+        )
+        history_response.raise_for_status()
+        history_data = await history_response.json()
+        
+        # Process the historical data
+        if "data" in history_data:
+            processed_data = []
+            for bar in history_data["data"]:
+                processed_data.append({
+                    "timestamp": bar.get("t"),  # Unix timestamp
+                    "open": bar.get("o"),
+                    "high": bar.get("h"),
+                    "low": bar.get("l"),
+                    "close": bar.get("c"),
+                    "volume": bar.get("v", 0)
+                })
+            
+            return {
+                "symbol": symbol,
+                "conid": conid,
+                "period": period,
+                "bar_size": bar_size,
+                "data": processed_data
+            }
+        else:
+            return {
+                "symbol": symbol,
+                "conid": conid,
+                "period": period,
+                "bar_size": bar_size,
+                "data": []
+            }
+
+    except httpx.RequestError as e:
+        logger.error(f"Error fetching historical data for {symbol}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error fetching historical data: {str(e)}")
+
+@router.post("/search")
+async def search_stocks(query: dict,  state: AppState = Depends(get_app_state)):
+    """
+    Search for stocks by symbol or company name.
+    
+    Body: {"symbol": "AAPL"} or {"name": "Apple"}
+    """
+    try:
+        search_params = {}
+        if "symbol" in query:
+            search_params["symbol"] = query["symbol"]
+        elif "name" in query:
+            search_params["name"] = query["name"]
+        else:
+            raise HTTPException(status_code=400, detail="Must provide either 'symbol' or 'name' in request body")
+        
+        response = await state.client.post(
+            f"{state.config['ibkr_api_url']}/iserver/secdef/search",
+            json=search_params,
+            timeout=5
+        )
+        response.raise_for_status()
+        data = await response.json()
+        
+        # Process and return search results
+        results = []
+        for item in data[:10]:  # Limit to top 10 results
+            results.append({
+                "symbol": item.get("symbol", ""),
+                "company_name": item.get("description", ""),
+                "conid": item.get("conid"),
+                "exchange": item.get("exchange", ""),
+                "currency": item.get("currency", "USD"),
+                "instrument_type": item.get("instrument_type", "STK")
+            })
+        
+        return {"results": results}
+
+    except httpx.RequestError as e:
+        logger.error(f"Error searching stocks: {e}")
+        raise HTTPException(status_code=500, detail=f"Error searching stocks: {str(e)}")
+
+# Legacy function - keeping for compatibility but it's no longer used for live data
+async def fetch_market_data():
+    """
+    Legacy market data polling function.
+    This is now replaced by WebSocket subscriptions, but kept for fallback.
+    """
+    logger.info("fetch_market_data called - but live data now comes via WebSocket")
+    pass

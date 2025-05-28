@@ -1,4 +1,4 @@
-import { StockData } from "@/contexts/StocksDataContext";
+import { StockData } from "@/stores/stockStore";
 import {
   processCircularData,
   processDonutData,

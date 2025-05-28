@@ -1,4 +1,3 @@
-import { getPortfolioSnapshots, postSnapshot } from "@/api/portfolioSnapshot";
 import { getHistoricalData } from "@/api/stock";
 import { getUserInsights } from "@/api/user";
 import AiDialog from "@/components/AiDialog";
@@ -7,21 +6,15 @@ import { ErrorFallback } from "@/components/ErrorFallBack";
 import GraphMenu, { GraphType } from "@/components/GraphMenu";
 import { HistoricalDataCard } from '@/components/HistoricalDataCard';
 import NewUserNoHoldings from "@/components/NewUserNoHoldings";
-import SnapshotChart from "@/components/SnapShotChart";
-import { UserData } from '@/contexts/UserContext';
 import useGraphData from "@/hooks/useGraphData";
-import { PercentageChange } from "@/contexts/PercentageChangeContext";
-import GraphSkeleton from "@/Skeletons/GraphSkeleton";
+import { StockData, useStockStore } from "@/stores/stockStore";
 import "@/styles/App.css";
-import { lastUpdateDate, SnapshotData } from "@/utils/dataProcessing";
 import { Box, Stack, useMediaQuery, useTheme } from "@mui/material";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useContext, useEffect, useState } from "react";
+import { useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
-import {  
+import {
   useLoaderData
 } from "react-router-dom";
-import { StockData, useStockData } from "@/contexts/StocksDataContext";
 
 
 type PortfolioLoader = {
@@ -52,8 +45,16 @@ function Portfolio() {
   const [aiData, setAiData] = useState({ portfolio_insights: "", sentiments: {}, citations: [] });
   const [loadingAI, setLoadingAI] = useState(false);
 
-  const { stocks, getAllStocks, getTotalValue } = useStockData();
-  const totalValue = getTotalValue()
+  const stocks = useStockStore(state => state.stocks);
+  const status = useStockStore(state => state.connectionStatus);
+  // This selector computes a derived value. It's automatically memoized.
+  const totalValue = useStockStore(state => 
+    Object.values(state.stocks).reduce((total, stock) => total + stock.value, 0)
+  );
+
+  if (status === 'connecting') {
+    return <div>Connecting to live data...</div>;
+  }
 
 
   const fetchInsights = async () => {
