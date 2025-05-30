@@ -10,7 +10,7 @@ export interface SankeyInputNode {
   color?: string;
   value?: number;
   name?: string;
-  percentageChange?: string;
+  percentageChange?: number;
 }
 
 // Represents the structure of links BEFORE d3-sankey processing
@@ -33,7 +33,7 @@ export interface ProcessedSankeyNode extends SankeyNode<SankeyInputNode, {}> {
   id: string; // Ensure id remains string
   color?: string;
   name?: string;
-  percentageChange?: string;
+  percentageChange?: number;
   // value is already defined in SankeyNode as number | undefined
 
   // Override source/target links to use the final ProcessedSankeyLink type
@@ -84,7 +84,6 @@ const NODE_PADDING = 29;
 
 // --- Sankey Component ---
  const Sankey = ({ width, height, data }: SankeyProps) => {
-  console.log("Input data:", data);
   const theme = useTheme();
 
   // Create color scales
@@ -116,8 +115,7 @@ const NODE_PADDING = 29;
       links: ProcessedSankeyLink[];
   }; // Cast to the processed types
 
-  console.log("Processed nodes:", nodes);
-  console.log("Processed links:", links);
+
 
   const formatValue = (value: number | undefined): string => {
       if (value === undefined) return ''; // Handle undefined value gracefully
@@ -127,7 +125,7 @@ const NODE_PADDING = 29;
   // --- Render Nodes ---
   const allNodes = nodes.map((node) => { // node is ProcessedSankeyNode
     const isPosNeg = node.id === "Positive" || node.id === "Negative";
-    const percentageNum = node.percentageChange ? parseFloat(node.percentageChange) : undefined;
+    const percentageNum = node.percentageChange ? node.percentageChange : undefined;
 
     // Determine node color
     let nodeColor: string | undefined;
@@ -187,7 +185,7 @@ const NODE_PADDING = 29;
             fill={percentageNum !== undefined && percentageNum >= 0 ? teal[700] : red[700]} // Color based on sign
           >
             {/* Ensure a sign is always shown for percentage */}
-            {percentageNum !== undefined && percentageNum > 0 ? "+" : ""}{node.percentageChange}%
+            {percentageNum !== undefined && percentageNum > 0 ? "+" : ""}{node.percentageChange.toFixed(2)}%
           </text>
         )}
       </g>
@@ -215,7 +213,7 @@ const NODE_PADDING = 29;
     const gradientId = `gradient-${i}`;
 
     // Get source color: Check explicit color first, then calculate from percentage
-    const sourcePercentage = link.source.percentageChange ? parseFloat(link.source.percentageChange) : undefined;
+    const sourcePercentage = link.source.percentageChange ? link.source.percentageChange : undefined;
     const sourceColor = link.source.id === "Positive" ? teal[500] :
                       link.source.id === "Negative" ? red[500] :
                       (sourcePercentage !== undefined && !isNaN(sourcePercentage)
@@ -223,7 +221,7 @@ const NODE_PADDING = 29;
                         : theme.palette.grey[500]); // Default
 
     // Get target color: Check explicit color first, then calculate from percentage
-    const targetPercentage = link.target.percentageChange ? parseFloat(link.target.percentageChange) : undefined;
+    const targetPercentage = link.target.percentageChange ?link.target.percentageChange : undefined;
     const targetColor = link.target.id === "Positive" ? teal[500] :
                       link.target.id === "Negative" ? red[500] :
                       (targetPercentage !== undefined && !isNaN(targetPercentage)

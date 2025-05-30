@@ -26,11 +26,11 @@ export function processTreemapData(stocks: { [symbol: string]: StockData }): Tre
     id: string;
     ticker: string;
     value: number;
-    avgSharePrice: string;
+    avgSharePrice: number;
     quantity: number;
-    last_price: string;
-    priceChangePercentage: string;
-    percentageOfPortfolio?: string;
+    last_price: number;
+    priceChangePercentage: number;
+    percentageOfPortfolio?: number;
   }
 
   const positiveStocks: ProcessedStockData[] = [];
@@ -47,15 +47,15 @@ export function processTreemapData(stocks: { [symbol: string]: StockData }): Tre
       id: ticker, // Using ticker as id
       ticker: ticker,
       value,
-      avgSharePrice: stockData.avgBoughtPrice.toFixed(2),
+      avgSharePrice: stockData.avg_bought_price,
       quantity: stockData.quantity,
-      last_price: stockData.lastPrice.toFixed(2),
+      last_price: stockData.last_price,
       priceChangePercentage: (
-        ((stockData.lastPrice - stockData.avgBoughtPrice) / stockData.avgBoughtPrice) * 100
-      ).toFixed(2),
+        ((stockData.last_price - stockData.avg_bought_price) / stockData.avg_bought_price) * 100
+      ),
     };
 
-    if (stockData.lastPrice > stockData.avgBoughtPrice) {
+    if (stockData.last_price > stockData.avg_bought_price) {
       positiveStocks.push(processedStock);
     } else {
       negativeStocks.push(processedStock);
@@ -65,7 +65,7 @@ export function processTreemapData(stocks: { [symbol: string]: StockData }): Tre
   // Calculate percentage of portfolio
   const calculatePortfolioPercentage = (stocksArray: ProcessedStockData[]): void => {
     stocksArray.forEach((stock: ProcessedStockData) => {
-      stock.percentageOfPortfolio = ((stock.value / sum) * 100).toFixed(2);
+      stock.percentageOfPortfolio = ((stock.value / sum) * 100);
     });
   };
 
@@ -190,14 +190,14 @@ export function processSankeyData(stocks: { [symbol: string]: StockData }): Sank
 
   Object.entries(stocks).forEach(([ticker, stockData]) => {
     // Skip if we don't have proper price data
-    if (!stockData.avgBoughtPrice || stockData.avgBoughtPrice <= 0) return;
+    if (!stockData.avg_bought_price || stockData.avg_bought_price <= 0) return;
 
-    const stock_avg_price: number = stockData.avgBoughtPrice;
-    const current_price: number = stockData.lastPrice;
+    const stock_avg_price: number = stockData.avg_bought_price;
+    const current_price: number = stockData.last_price;
     const value: number = stockData.value; // Current market value
-    const percentageChange: string = (
+    const percentageChange = (
       ((current_price - stock_avg_price) / stock_avg_price) * 100
-    ).toFixed(2);
+    );
 
     // Create the node data for the stock
     const nodeData: SankeyInputNode = {
@@ -243,9 +243,9 @@ export type StockChild = {
   value: number;
   stockType: string;
   quantity: number;
-  avgSharePrice: string;
+  avgSharePrice: number;
   last_price: number;
-  percentageOfPortfolio: string;
+  percentageOfPortfolio: number;
 }
 
 // Define the type for the returned object
@@ -265,9 +265,9 @@ export function processCircularData(stocks: { [symbol: string]: StockData }): Ci
     value: number;
     stockType: string;
     quantity: number;
-    avgSharePrice: string;
+    avgSharePrice: number;
     last_price: number;
-    percentageOfPortfolio: string;
+    percentageOfPortfolio: number;
   }[] = [];
   let sum: number = 0;
   let totalPortfolioValue: number = 0;
@@ -281,12 +281,12 @@ export function processCircularData(stocks: { [symbol: string]: StockData }): Ci
   Object.entries(stocks).forEach(([ticker, stockData]) => {
     const value: number = stockData.value;
     sum += value;
-    const stock_avg_price: string = stockData.avgBoughtPrice.toFixed(2);
-    const percentageOfPortfolio: string = (
+    const stock_avg_price = stockData.avg_bought_price;
+    const percentageOfPortfolio = (
       (value / totalPortfolioValue) * 100
-    ).toFixed(2);
+    );
 
-    const stockType: string = stockData.lastPrice > stockData.avgBoughtPrice ? "positive" : "negative";
+    const stockType: string = stockData.last_price > stockData.avg_bought_price ? "positive" : "negative";
 
     children.push({
       type: "leaf",
@@ -296,7 +296,7 @@ export function processCircularData(stocks: { [symbol: string]: StockData }): Ci
       stockType,
       quantity: stockData.quantity,
       avgSharePrice: stock_avg_price,
-      last_price: stockData.lastPrice,
+      last_price: stockData.last_price,
       percentageOfPortfolio,
     });
   });
@@ -313,14 +313,14 @@ export function processCircularData(stocks: { [symbol: string]: StockData }): Ci
 export function processLeaderboardsData(stocks: { [symbol: string]: StockData }): {
   ticker: string;
   name: string;
-  value: string;
+  value: number;
   priceChange: number;
-  priceChangePercentage: string;
+  priceChangePercentage: number;
   sharePrice: number;
   earnings: string;
   quantity: number;
-  percentageOfPortfolio: string;
-  gainLoss: string;
+  percentageOfPortfolio: number;
+  gainLoss: number;
 }[] {
   let totalPortfolioValue: number = 0;
 
@@ -332,17 +332,17 @@ export function processLeaderboardsData(stocks: { [symbol: string]: StockData })
   // Process each stock
   const LeaderboardsData = Object.entries(stocks)
     .map(([ticker, stockData]) => {
-      const value: string = stockData.value.toFixed(2);
-      const priceChange: number = stockData.lastPrice - stockData.avgBoughtPrice;
-      const priceChangePercentage: string = (
-        ((stockData.lastPrice - stockData.avgBoughtPrice) / stockData.avgBoughtPrice) * 100
-      ).toFixed(2);
-      const percentageOfPortfolio: string = (
+      const value = stockData.value;
+      const priceChange: number = stockData.last_price - stockData.avg_bought_price;
+      const priceChangePercentage = (
+        ((stockData.last_price - stockData.avg_bought_price) / stockData.avg_bought_price) * 100
+      );
+      const percentageOfPortfolio = (
         (stockData.value / totalPortfolioValue) * 100
-      ).toFixed(2);
-      const gainLoss: string = (
-        stockData.value - (stockData.avgBoughtPrice * stockData.quantity)
-      ).toFixed(2);
+      );
+      const gainLoss = (
+        stockData.value - (stockData.avg_bought_price * stockData.quantity)
+      );
 
       return {
         ticker: ticker,
@@ -350,14 +350,14 @@ export function processLeaderboardsData(stocks: { [symbol: string]: StockData })
         value,
         priceChange,
         priceChangePercentage,
-        sharePrice: stockData.lastPrice,
+        sharePrice: stockData.last_price,
         earnings: "N/A", // Not available in your current data structure
         quantity: stockData.quantity,
         percentageOfPortfolio,
         gainLoss,
       };
     })
-    .sort((a, b) => parseFloat(b.priceChangePercentage) - parseFloat(a.priceChangePercentage));
+    .sort((a, b) => b.priceChangePercentage - a.priceChangePercentage);
 
   return LeaderboardsData;
 }
@@ -508,8 +508,8 @@ export const calculateTransactionSummary = (
   return {
     totalTrades,
     closedTrades,
-    moneySpent: Number(moneySpent.toFixed(2)),
-    totalProfit: Number(totalProfit.toFixed(2)),
+    moneySpent: Number(moneySpent),
+    totalProfit: Number(totalProfit),
     winRate: Number(winRate.toFixed(1)),
   };
 };

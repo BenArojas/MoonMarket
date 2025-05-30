@@ -6,10 +6,10 @@ interface CustomTooltipProps {
   children: ReactElement;
   name: string;
   quantity: number;
-  percentageOfPortfolio: string;
+  percentageOfPortfolio: number;
   value: number;
   last_price: number;
-  avgSharePrice: string;
+  avgSharePrice: number;
 }
 
 
@@ -45,13 +45,13 @@ function CustomTooltip({
           >
             <li className="tooltip-data-row">
               <Typography variant="body2">last price </Typography>
-              <Typography variant="subtitle2">{last_price}$</Typography>
+              <Typography variant="subtitle2">{last_price.toFixed(2)}$</Typography>
             </li>
             <li className="tooltip-data-row">
               <Typography variant="body2">
                 Average bought price
               </Typography>
-              <Typography variant="subtitle2">{avgSharePrice}$</Typography>
+              <Typography variant="subtitle2">{avgSharePrice.toFixed(2)}$</Typography>
             </li>
             <li className="tooltip-data-row">
               <Typography variant="body2">
@@ -63,7 +63,7 @@ function CustomTooltip({
               <Typography variant="body2">
                 In your portfolio
               </Typography>
-              <Typography variant="subtitle2">{percentageOfPortfolio}%</Typography>
+              <Typography variant="subtitle2">{percentageOfPortfolio.toFixed(2)}%</Typography>
             </li>
           </ul>
         </Box>

@@ -4,8 +4,8 @@ import { create } from 'zustand';
 // --- 1. Define the state and action types ---
 export interface StockData {
   symbol: string;
-  lastPrice: number;
-  avgBoughtPrice: number;
+  last_price: number;
+  avg_bought_price: number;
   quantity: number;
   value: number;
   unrealizedPnl: number;
@@ -51,8 +51,8 @@ export const useStockStore = create<StockState>((set, get) => ({
         ...state.stocks,
         [data.symbol]: {
           symbol: data.symbol,
-          lastPrice: data.last_price,
-          avgBoughtPrice: data.avg_bought_price,
+          last_price: data.last_price,
+          avg_bought_price: data.avg_bought_price,
           quantity: data.quantity,
           value: data.value,
           unrealizedPnl: data.unrealized_pnl,
@@ -109,6 +109,7 @@ function connectWebSocket(get: () => StockState) {
         break;
       case 'account_summary':
         get().setAccountSummary(message.data);
+        
         break;
       case 'error':
         get().setError(message.message);

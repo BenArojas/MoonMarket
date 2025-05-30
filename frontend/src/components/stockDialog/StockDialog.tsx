@@ -52,7 +52,7 @@ export default function AlertDialogSlide({ dialogOpen, setDialogOpen, stock }: A
       subtitle: "Earnings",
     },
     {
-      text: stock.percentageOfPortfolio,
+      text: stock.percentageOfPortfolio.toFixed(2),
       subtitle: "% of Portfolio",
     },
     { text: stock.value, subtitle: "Value" },
@@ -103,7 +103,7 @@ export default function AlertDialogSlide({ dialogOpen, setDialogOpen, stock }: A
                   fontSize: "2rem",
                 }}
               >
-                {stock.sharePrice}$
+                {stock.sharePrice.toFixed(2)}$
               </Typography>
               <Typography variant="body2" color={"darkgray"}>
                 Share price

@@ -12,8 +12,8 @@ import { Link } from "react-router-dom";
 interface StockData {
   ticker: string;
   quantity: number;
-  percentageOfPortfolio: string;
-  avgSharePrice: string;
+  percentageOfPortfolio: number;
+  avgSharePrice: number;
   value: number;
   last_price: number;
   name: string;
@@ -173,7 +173,7 @@ export const Treemap = ({ width, height, data, isDailyView }: TreemapProps) => {
             fill={theme.palette.text.primary}
             className="font-bold"
           >
-            {priceChangePercentage}%
+            {priceChangePercentage.toFixed(2)}%
           </text>
         </g>
       </Link>

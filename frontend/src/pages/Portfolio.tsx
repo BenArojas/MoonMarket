@@ -25,7 +25,7 @@ export async function loader({ request }: PortfolioLoader) {
   const selectedTicker = searchParams.get("selected") || "BTCUSD";
 
   return {
-    historicalData: getHistoricalData(selectedTicker),
+    historicalData: {},
   };
 }
 
@@ -36,7 +36,7 @@ function isEmpty(obj: object): boolean {
 
 function Portfolio() {
   const userData = {};
-  const { historicalData } = useLoaderData();
+  // const { historicalData } = useLoaderData();
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('xl'));
   const isMobileScreen = useMediaQuery(theme.breakpoints.down('sm'));
@@ -46,7 +46,13 @@ function Portfolio() {
   const [loadingAI, setLoadingAI] = useState(false);
 
   const stocks = useStockStore(state => state.stocks);
+  const accountSummary = useStockStore(state => state.accountSummary);
   const status = useStockStore(state => state.connectionStatus);
+  console.log({
+    status,
+    stocks, 
+    accountSummary
+  })
   // This selector computes a derived value. It's automatically memoized.
   const totalValue = useStockStore(state => 
     Object.values(state.stocks).reduce((total, stock) => total + stock.value, 0)
@@ -119,7 +125,7 @@ function Portfolio() {
               />
             )} */}
           </ErrorBoundary>
-          <HistoricalDataCard historicalData={historicalData} />
+          {/* <HistoricalDataCard historicalData={historicalData} /> */}
         </Stack>
       </Box>
     </Box>
@@ -142,9 +148,9 @@ function PortfolioContent({ stocks, isSmallScreen, isMobileScreen, isMediumScree
     isDailyView
   );
 
-  if (isEmpty(stocks)) {
-    return (<div className="container"><NewUserNoHoldings /></div>)
-  }
+  // if (isEmpty(stocks)) {
+  //   return (<div className="container"><NewUserNoHoldings /></div>)
+  // }
 
   return (
     <Box
