@@ -68,3 +68,7 @@ class AuthStatus(BaseModel):
     websocket_ready: Optional[bool] = None # True if IBKR WS connection is active
     message: Optional[str] = None
     error: Optional[str] = None
+
+class ChartDataPoint(BaseModel):
+    time: int  # UNIX timestamp in seconds
+    value: float

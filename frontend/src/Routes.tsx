@@ -27,10 +27,9 @@ const router = createBrowserRouter([
           {
             path: "/home",
             async lazy(): Promise<LazyRouteComponent> {
-              const { default: Portfolio, loader } = await import("@/pages/Portfolio");
+              const { default: Portfolio } = await import("@/pages/Portfolio");
               return {
                 Component: Portfolio,
-                loader,
                 ErrorBoundary: (await import("@/components/ErrorFallBack")).default,
               };
             },

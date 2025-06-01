@@ -379,39 +379,6 @@ export function lastUpdateDate(last_refresh: string | null): string {
   return formattedDate;
 }
 
-type LinkedUser = {
-  collection: string;
-  id: string
-}
-export type SnapshotData = {
-  cumulativeSpent: number;
-  timestamp: string;
-  value: number;
-  _id: string;
-  userId: LinkedUser
-}
-export function transformSnapshotData(historicalData: SnapshotData[]): ChartDataPoint[] {
-  return historicalData
-    .map(item => ({
-      time: (new Date(item.timestamp).getTime() / 1000) as UTCTimestamp, // Produces a number (UTCTimestamp)
-      value: item.value,
-    }))
-    .sort((a, b) => (a.time as number) - (b.time as number)); // Sort as **Updated**: TypeScript needs type assertion since Time is a union type
-}
-
-export function calculatePerformanceData(data: SnapshotData[]): ChartDataPoint[] {
-  return data.map(item => {
-    const moneySpent = item.cumulativeSpent || 0;
-    if (moneySpent === 0) return null;
-
-    return {
-      time: (new Date(item.timestamp).getTime() / 1000) as UTCTimestamp,
-      value: Number(((item.value - moneySpent) / moneySpent) * 100),
-    };
-  }).filter(item => item !== null)
-    .sort((a, b) => a.time - b.time);
-}
-
 
 type Position =  {
   transactions: Transaction[];

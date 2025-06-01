@@ -31,7 +31,7 @@ export default function LeaderBoardsTable({ data }: LeaderBoardsTableProps) {
     const sign = isPositive ? "+" : "";
     return (
       <span style={{ color }}>
-        {`${sign}${change.toFixed(2)}(${sign}${percentage}%)`}
+        {`${sign}${change.toFixed(2)}(${sign}${percentage.toFixed(2)}%)`}
       </span>
     );
   };
@@ -45,7 +45,7 @@ export default function LeaderBoardsTable({ data }: LeaderBoardsTableProps) {
   };
 
   const formatValue = (value: string, gainLoss: string) => {
-    const gainLossNumber = parseFloat(gainLoss); // Convert gainLoss to a number
+    const gainLossNumber = parseFloat(gainLoss).toFixed(2); // Convert gainLoss to a number
     const isPositive = gainLossNumber >= 0;
     const color = isPositive ? "green" : "red";
     const sign = isPositive ? "+" : "";
@@ -89,13 +89,10 @@ export default function LeaderBoardsTable({ data }: LeaderBoardsTableProps) {
                     }}
                   >
                     {row.ticker}
-                  </span>{" "}
-                  <span style={{ color:theme.palette.text.secondary, fontSize: "0.9em" }}>
-                    {row.name}
                   </span>
               </TableCell>
               <TableCell align="right">{formatPriceChange(row.priceChange, row.priceChangePercentage)}</TableCell>
-              <TableCell align="right">{row.sharePrice}$</TableCell>
+              <TableCell align="right">{row.sharePrice.toFixed(2)}$</TableCell>
               <TableCell align="right">{formatValue(row.value, row.gainLoss)}</TableCell>
             </TableRow>
           ))}

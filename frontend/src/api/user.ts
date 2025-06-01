@@ -1,4 +1,5 @@
 import api from "@/api/axios";
+import { ChartDataPoint } from "@/components/CurrentStockChart";
 import { Dayjs } from "dayjs";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -212,3 +213,20 @@ export async function getUsersList() {
     throw error;
   }
 }
+
+
+// Define the function that fetches the data
+// This function will be called by useQuery
+export const fetchPerformanceData = async (period: string): Promise<ChartDataPoint[]> => {
+  const response = await api.get<ChartDataPoint[]>(`/account/performance-history`, {
+    params: { period },
+  });
+  return response.data;
+};
+
+export const fetchHistoricalStockData = async (ticker:string, period: string, bar: string): Promise<ChartDataPoint[]> => {
+  const response = await api.get<ChartDataPoint[]>(`/stocks/history`, {
+    params: { ticker, period, bar }
+  });
+  return response.data; 
+};

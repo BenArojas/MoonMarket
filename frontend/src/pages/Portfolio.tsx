@@ -1,42 +1,19 @@
-import { getHistoricalData } from "@/api/stock";
 import { getUserInsights } from "@/api/user";
 import AiDialog from "@/components/AiDialog";
 import DataGraph from "@/components/DataGraph";
 import { ErrorFallback } from "@/components/ErrorFallBack";
 import GraphMenu, { GraphType } from "@/components/GraphMenu";
 import { HistoricalDataCard } from '@/components/HistoricalDataCard';
-import NewUserNoHoldings from "@/components/NewUserNoHoldings";
+import SnapshotChart from "@/components/SnapShotChart";
 import useGraphData from "@/hooks/useGraphData";
-import { StockData, useStockStore } from "@/stores/stockStore";
+import { AccountSummaryData, StockData, useStockStore } from "@/stores/stockStore";
 import "@/styles/App.css";
 import { Box, Stack, useMediaQuery, useTheme } from "@mui/material";
 import { useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
-import {
-  useLoaderData
-} from "react-router-dom";
-
-
-type PortfolioLoader = {
-  request: Request
-}
-export async function loader({ request }: PortfolioLoader) {
-  const { searchParams } = new URL(request.url);
-  const selectedTicker = searchParams.get("selected") || "BTCUSD";
-
-  return {
-    historicalData: {},
-  };
-}
-
-function isEmpty(obj: object): boolean {
-  return Object.keys(obj).length === 0;
-}
 
 
 function Portfolio() {
-  const userData = {};
-  // const { historicalData } = useLoaderData();
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('xl'));
   const isMobileScreen = useMediaQuery(theme.breakpoints.down('sm'));
@@ -44,17 +21,18 @@ function Portfolio() {
   const [openInsights, setOpenInsights] = useState(false);
   const [aiData, setAiData] = useState({ portfolio_insights: "", sentiments: {}, citations: [] });
   const [loadingAI, setLoadingAI] = useState(false);
+  
 
   const stocks = useStockStore(state => state.stocks);
   const accountSummary = useStockStore(state => state.accountSummary);
   const status = useStockStore(state => state.connectionStatus);
   console.log({
     status,
-    stocks, 
+    stocks,
     accountSummary
   })
   // This selector computes a derived value. It's automatically memoized.
-  const totalValue = useStockStore(state => 
+  const totalValue = useStockStore(state =>
     Object.values(state.stocks).reduce((total, stock) => total + stock.value, 0)
   );
 
@@ -114,18 +92,13 @@ function Portfolio() {
       }}>
         <Stack spacing={isSmallScreen ? 4 : 3} direction={isSmallScreen ? "column-reverse" : "column"} sx={{ height: "100%" }}>
           <ErrorBoundary FallbackComponent={ErrorFallback}>
-            {/* {dailyTimeFrameLoading ? (
-              <GraphSkeleton height={380} />
-            ) : (
-              <StackedCardsWrapper
-                dailyTimeFrame={dailyTimeFrame}
-                userData={userData}
-                fetchInsights={fetchInsights}
-                loadingAI={loadingAI}
-              />
-            )} */}
+            <StackedCardsWrapper
+              fetchInsights={fetchInsights}
+              loadingAI={loadingAI}
+              accountSummary={accountSummary}
+            />
           </ErrorBoundary>
-          {/* <HistoricalDataCard historicalData={historicalData} /> */}
+          <HistoricalDataCard />
         </Stack>
       </Box>
     </Box>
@@ -147,10 +120,6 @@ function PortfolioContent({ stocks, isSmallScreen, isMobileScreen, isMediumScree
     selectedGraph,
     isDailyView
   );
-
-  // if (isEmpty(stocks)) {
-  //   return (<div className="container"><NewUserNoHoldings /></div>)
-  // }
 
   return (
     <Box
@@ -181,39 +150,22 @@ function PortfolioContent({ stocks, isSmallScreen, isMobileScreen, isMediumScree
   );
 }
 
-// interface StackedCardsWrapperProps {
-//   userData: UserData
-//   dailyTimeFrame: SnapshotData[]
-//   loadingAI: boolean
-//   fetchInsights: () => void
-// }
-// const StackedCardsWrapper = ({ dailyTimeFrame, userData, fetchInsights, loadingAI }: StackedCardsWrapperProps) => {
-//   const { percentageChange, setPercentageChange } =
-//     useContext(PercentageChange);
-//   const { stockTickers, value, moneySpent } = useGraphData(userData, "Treemap");
-//   const formattedDate = lastUpdateDate(userData.last_refresh);
-//   const incrementalChange = value - moneySpent;
+interface StackedCardsWrapperProps {
+  loadingAI: boolean
+  fetchInsights: () => void
+  accountSummary: AccountSummaryData
+}
+const StackedCardsWrapper = ({ fetchInsights, loadingAI, accountSummary }: StackedCardsWrapperProps) => {
+  const value = accountSummary.net_liquidation
 
-//   useEffect(() => {
-//     if (moneySpent !== 0 && setPercentageChange) {
-//       const newPercentageChange = (incrementalChange / moneySpent) * 100;
-//       setPercentageChange(newPercentageChange);
-//     }
-//   }, [incrementalChange, moneySpent]);
+  return (
+    <SnapshotChart
+      value={value}
+      fetchInsights={fetchInsights}
+      loadingAI={loadingAI}
+    />
 
-//   return (
-//     <SnapshotChart
-//       formattedDate={formattedDate}
-//       stockTickers={stockTickers}
-//       incrementalChange={incrementalChange}
-//       percentageChange={percentageChange}
-//       value={value}
-//       dailyTimeFrameData={dailyTimeFrame}
-//       fetchInsights={fetchInsights}
-//       loadingAI={loadingAI}
-//     />
-
-//   );
-// };
+  );
+};
 
 export default Portfolio;

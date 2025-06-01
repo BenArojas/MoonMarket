@@ -1,52 +1,62 @@
 import { updateStockPrices } from "@/api/stock";
-import { AreaChart } from "@/components/CurrentStockChart";
+import { fetchPerformanceData } from "@/api/user";
+import { AreaChart, ChartDataPoint } from "@/components/CurrentStockChart";
 import PerformanceChart from "@/components/PerformanceGraph";
 import PortfolioStats from "@/components/PortfolioStats";
-import { calculatePerformanceData, SnapshotData, transformSnapshotData } from "@/utils/dataProcessing";
 import { Box, Card, useMediaQuery, useTheme } from "@mui/material";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useState } from "react";
 
 interface SnapshotChartProps {
-  formattedDate: string
-  incrementalChange: number
   value: number
-  percentageChange: number
-  stockTickers: string[]
-  dailyTimeFrameData: SnapshotData[]
   loadingAI: boolean
   fetchInsights: () => void
 }
 const SnapshotChart = React.memo(
   ({
-    incrementalChange,
     value,
-    percentageChange,
-    formattedDate,
-    stockTickers,
-    dailyTimeFrameData,
     fetchInsights,
     loadingAI
   }: SnapshotChartProps) => {
 
     const [isFlipped, setIsFlipped] = useState(false);
-    const areaChartData = transformSnapshotData(dailyTimeFrameData);
-    const performanceChartData = calculatePerformanceData(dailyTimeFrameData)
-    const trend = percentageChange > 0 ? "positive" : "negative";
+    // const trend = percentageChange > 0 ? "positive" : "negative";
     const theme = useTheme();
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('xl'));
-    const queryClient = useQueryClient();
 
 
-    const updateStockPricesMutation = useMutation({
-      mutationFn: (tickers: string[]) => updateStockPrices(tickers),
-      onSuccess: async () => {
-        await queryClient.invalidateQueries({ queryKey: ['holdingsData'] });
-      },
-      onError: () => {
-        console.log("failed to update stock prices")
-      }
+    const [selectedPeriod, setSelectedPeriod] = useState<string>("1Y"); // Default period
+    // useQuery hook to fetch data
+    const {
+      data: chartData,
+      isLoading,
+      isError,
+      error
+    } = useQuery<ChartDataPoint[], Error>({
+      queryKey: ['accountPerformanceHistory', selectedPeriod],
+      queryFn: () => fetchPerformanceData(selectedPeriod),
     });
+
+    const handlePeriodChange = (newPeriod: string) => {
+      setSelectedPeriod(newPeriod);
+    };
+
+    if (isLoading) return <p>Loading chart data...</p>;
+
+    // Handle error state
+    if (isError && error) { // Check if error object exists
+      // Axios errors often have a `response` property for server-side errors
+      const errorMessage = (error as any)?.response?.data?.detail || error.message || "Failed to fetch chart data";
+      return <p>Error loading chart data: {errorMessage}</p>;
+    }
+
+    // Handle case where data might be undefined (e.g., initial state before first fetch or after an error without data)
+    // or if the API returns an empty array.
+    if (!chartData || chartData.length === 0) {
+      // If not loading and not an error, but no data, it means an empty response or the query hasn't run.
+      // We can be more specific if needed based on other flags from useQuery like `isSuccess`.
+      return <p>No performance data available for the selected period.</p>;
+    }
 
 
     return (
@@ -73,20 +83,17 @@ const SnapshotChart = React.memo(
               }}
             >
               <PortfolioStats
-                trend={trend}
-                formattedDate={formattedDate}
-                incrementalChange={incrementalChange}
-                percentageChange={percentageChange}
-                stockTickers={stockTickers}
-                value={value}
-                updateStockPricesMutation={updateStockPricesMutation}
+                // trend={trend}
+                value= {value}
                 fetchInsights={fetchInsights}
                 loadingAI={loadingAI}
+                handlePeriodChange={handlePeriodChange}
+                selectedPeriod={selectedPeriod}
               />
               <AreaChart
-                data={areaChartData}
+                data={chartData}
                 enableAdvancedFeatures={true}
-                trend={trend}
+                trend={"positive"}
                 height={250}
               />
             </Card>
@@ -112,35 +119,17 @@ const SnapshotChart = React.memo(
                   : '0 25px 30px -15px rgba(0, 0, 0, 0.4)'
               }}
             >
-              {dailyTimeFrameData.length === 0 ? (
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    height: "100%",
-                    width: "100%",
-                  }}
-                >
-                  Ai driven Data will be shown as activity will increase
-                </Box>
-              ) : (
-                <>
-                  <PortfolioStats
-                    trend={trend}
-                    formattedDate={formattedDate}
-                    incrementalChange={incrementalChange}
-                    percentageChange={percentageChange}
-                    stockTickers={stockTickers}
-                    value={value}
-                    updateStockPricesMutation={updateStockPricesMutation}
-                    fetchInsights={fetchInsights}
-                    loadingAI={loadingAI}
-                  />
-
-                  <PerformanceChart data={performanceChartData} />
-                </>
-              )}
+              <>
+                <PortfolioStats
+                  //  trend={trend}
+                  value={value}
+                  fetchInsights={fetchInsights}
+                  loadingAI={loadingAI}
+                  handlePeriodChange={handlePeriodChange}
+                  selectedPeriod={selectedPeriod}
+                />
+                <PerformanceChart data={chartData} />
+              </>
             </Card>
           </div>
         </div>

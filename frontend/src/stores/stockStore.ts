@@ -10,11 +10,15 @@ export interface StockData {
   value: number;
   unrealizedPnl: number;
 }
-
+export type AccountSummaryData = {
+  net_liquidation: number;
+  total_cash_value: number
+  buying_power: number
+}
 interface StockState {
   // State
   stocks: { [symbol: string]: StockData };
-  accountSummary: { [key: string]: any };
+  accountSummary: AccountSummaryData
   connectionStatus: 'disconnected' | 'connecting' | 'connected' | 'error';
   error?: string;
 
@@ -25,7 +29,7 @@ interface StockState {
   updateStock: (data: any) => void;
   setAccountSummary: (data: any) => void;
   clearAllData: () => void;
-  
+
   // Connection management actions
   connect: () => void;
   disconnect: () => void;
@@ -35,7 +39,11 @@ interface StockState {
 export const useStockStore = create<StockState>((set, get) => ({
   // Default State
   stocks: {},
-  accountSummary: {},
+  accountSummary: {
+    net_liquidation: 0,
+    total_cash_value: 0,
+    buying_power: 0
+  },
   connectionStatus: 'disconnected',
   error: undefined,
 
@@ -44,7 +52,7 @@ export const useStockStore = create<StockState>((set, get) => ({
   setError: (errorMsg) => set({ error: errorMsg, connectionStatus: 'error' }),
   clearError: () => set({ error: undefined }),
   setAccountSummary: (data) => set({ accountSummary: data }),
-  
+
   updateStock: (data) => {
     set(state => ({
       stocks: {
@@ -60,13 +68,19 @@ export const useStockStore = create<StockState>((set, get) => ({
       }
     }))
   },
-  
-  clearAllData: () => set({ stocks: {}, accountSummary: {} }),
-  
+
+  clearAllData: () => set({
+    stocks: {}, accountSummary: {
+      net_liquidation: 0,
+      total_cash_value: 0,
+      buying_power: 0
+    }
+  }),
+
   // You can define actions that call other actions using get()
   connect: () => {
     // Call the external connection logic, defined below
-    connectWebSocket(get); 
+    connectWebSocket(get);
   },
   disconnect: () => {
     disconnectWebSocket();
@@ -89,7 +103,7 @@ function connectWebSocket(get: () => StockState) {
   if (ws && ws.readyState !== WebSocket.CLOSED) {
     return;
   }
-  
+
   get().setConnectionStatus('connecting');
   get().clearError();
 
@@ -109,7 +123,7 @@ function connectWebSocket(get: () => StockState) {
         break;
       case 'account_summary':
         get().setAccountSummary(message.data);
-        
+
         break;
       case 'error':
         get().setError(message.message);
@@ -122,28 +136,28 @@ function connectWebSocket(get: () => StockState) {
   ws.onclose = () => {
     console.log('WebSocket disconnected');
     get().setConnectionStatus('disconnected');
-    
+
     // Auto-reconnect
     if (reconnectAttempts < maxReconnectAttempts) {
-        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
-        reconnectAttempts++;
-        console.log(`Attempting to reconnect in ${delay}ms...`);
-        reconnectTimeout = setTimeout(() => get().connect(), delay);
+      const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+      reconnectAttempts++;
+      console.log(`Attempting to reconnect in ${delay}ms...`);
+      reconnectTimeout = setTimeout(() => get().connect(), delay);
     } else {
-        get().setError('Max reconnection attempts reached.');
+      get().setError('Max reconnection attempts reached.');
     }
   };
-  
+
   ws.onerror = () => {
     get().setError('WebSocket connection error.');
   };
 }
 
 function disconnectWebSocket() {
-    if (reconnectTimeout) clearTimeout(reconnectTimeout);
-    if (ws) {
-        ws.onclose = null; // prevent reconnect logic on manual close
-        ws.close();
-        ws = null;
-    }
+  if (reconnectTimeout) clearTimeout(reconnectTimeout);
+  if (ws) {
+    ws.onclose = null; // prevent reconnect logic on manual close
+    ws.close();
+    ws = null;
+  }
 }

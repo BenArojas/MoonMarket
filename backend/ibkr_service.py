@@ -1,5 +1,6 @@
 # ibkr_service.py
 import asyncio
+from datetime import datetime, timezone
 import httpx
 import json
 import logging
@@ -84,6 +85,35 @@ class IBKRService:
         logger.error("Could not retrieve account ID.")
         return None
 
+    async def get_conid_for_symbol(self, symbol: str, sec_type: str = "STK") -> Optional[str]:
+        response = await self._make_request(
+            "GET", 
+            "/iserver/secdef/search", 
+            params={
+                "symbol": symbol,
+                "secType": sec_type
+            }
+        )
+        if not response:
+            return None
+        
+        results = response.json()
+        if results and len(results) > 0:
+            return results[0].get("conid")
+        return None
+    
+    async def fetch_historical_data(self, conid: str, period: str, bar: str) -> dict:
+        params = {
+            "conid": conid,
+            "period": period,
+            "bar": bar,
+            "outsideRth": "true"
+        }
+        response = await self._make_request("GET", "/iserver/marketdata/history", params=params)
+        return response.json()
+
+
+
     async def fetch_portfolio_positions_from_api(self) -> List[PositionData]:
         account_id = self.app_state.ibkr_account_id or await self.get_account_id_from_api()
         if not account_id: return []
@@ -137,6 +167,93 @@ class IBKRService:
         self.app_state.update_account_summary(summary)
         logger.info("Fetched and updated account summary.")
         return summary
+    
+    async def fetch_account_performance_history(self, period: str = "1Y") -> list[dict]:
+        """
+        Fetches historical account NAV data from /pa/performance for the primary account
+        and transforms it into the format required by the frontend chart.
+
+        :param period: The period for which to fetch data (e.g., "1D", "1M", "1Y").
+        :return: A list of dictionaries, e.g., [{'time': 1609459200, 'value': 100500.75}, ...]
+        """
+        if not self.app_state.ibkr_authenticated:
+            logger.error("IBKR not authenticated or base_url missing for performance history call.")
+            return []
+        
+        account_id = self.app_state.ibkr_account_id or await self.get_account_id_from_api()
+
+        # Use the primary account ID fetched and stored in app_state
+        payload = {
+            "acctIds": [account_id], 
+            "period": period
+        }
+        headers = {"Content-Type": "application/json"}
+
+        try:
+            response = await self._make_request(
+            "POST", 
+            "/pa/performance",
+            json=payload,  
+            headers=headers
+            )
+            if not response: return []
+            performance_data = response.json()
+            
+            # Navigate the IBKR response structure to get NAVs and dates
+            # Expected path based on documentation: response['nav']['data'][0] for NAVs, response['nav']['dates'] for dates
+            nav_section = performance_data.get("nav", {})
+            account_nav_details_list = nav_section.get("data", [])
+            
+            if not account_nav_details_list:
+                logger.warning(f"No 'data' array found in 'nav' section for /pa/performance. Account: {self.app_state.ibkr_account_id}, Period: {period}")
+                return []
+            
+            # Assuming the first entry in 'data' corresponds to our requested accountId
+            account_nav_data = account_nav_details_list[0]
+            
+            nav_values = account_nav_data.get("navs", [])
+            date_strings = nav_section.get("dates", []) # Dates are directly under 'nav'
+
+            if not nav_values or not date_strings:
+                logger.warning(f"Missing 'navs' or 'dates' in /pa/performance response. NAVs: {len(nav_values)}, Dates: {len(date_strings)}")
+                return []
+
+            if len(nav_values) != len(date_strings):
+                logger.error(f"Data mismatch: {len(nav_values)} NAV values but {len(date_strings)} dates.")
+                return []
+
+            chart_data_points = []
+            for i in range(len(date_strings)):
+                date_str = date_strings[i]  # Format: "YYYYMMDD"
+                nav_val = nav_values[i]
+                
+                try:
+                    # Convert "YYYYMMDD" to a datetime object
+                    dt_obj_naive = datetime.strptime(date_str, "%Y%m%d")
+                    # Assume the date represents the start of the day in UTC for consistency.
+                    # Lightweight Charts expects UNIX timestamps in seconds.
+                    dt_obj_utc = dt_obj_naive.replace(tzinfo=timezone.utc)
+                    timestamp_seconds = int(dt_obj_utc.timestamp())
+                    
+                    chart_data_points.append({"time": timestamp_seconds, "value": float(nav_val)})
+                except ValueError as e:
+                    logger.error(f"Error parsing date '{date_str}' or NAV '{nav_val}': {e}")
+                    continue 
+                except TypeError as e: # Handles cases where nav_val might not be directly float-convertible (e.g. None)
+                    logger.error(f"Error converting NAV '{nav_val}' to float for date '{date_str}': {e}")
+                    continue
+
+
+            logger.info(f"Successfully fetched and transformed {len(chart_data_points)} NAV data points for account {self.app_state.ibkr_account_id}, period {period}.")
+            return chart_data_points
+
+        except httpx.HTTPStatusError as e:
+            logger.error(f"HTTP error calling /pa/performance: {e.response.status_code} - {e.response.text}")
+        except httpx.RequestError as e: # Covers network errors, timeouts etc.
+            logger.error(f"Request error calling /pa/performance: {e}")
+        except Exception as e:
+            logger.error(f"Unexpected error fetching or processing account performance for {self.app_state.ibkr_account_id}, period {period}: {e}", exc_info=True)
+        return []
 
     async def _ws_send_heartbeat_task(self):
         try:
