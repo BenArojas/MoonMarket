@@ -1,50 +1,8 @@
 import { useQueries, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
-import { getStockData } from "@/api/stock";
+import { useEffect, useMemo } from "react";
+import { getStockData, StockData } from "@/api/stock";
+import { TreemapData } from "@/utils/dataProcessing";
 
-// Define interfaces for the stocksData structure
-interface Stock {
-  name: string;
-  ticker: string;
-  value: number;
-}
-
-interface StockGroup {
-  name: string;
-  value: number;
-  children: Stock[];
-}
-
-interface StocksData {
-  name: string;
-  value: number;
-  children: StockGroup[];
-}
-
-export interface StockData {
-  avgVolume: number;
-  change: number;
-  changesPercentage: number;
-  dayHigh: number;
-  dayLow: number;
-  earningsAnnouncement: string;
-  eps: number;
-  exchange: string;
-  marketCap: number;
-  name: string;
-  open: number;
-  pe: number;
-  previousClose: number;
-  price: number;
-  priceAvg50: number;
-  priceAvg200: number;
-  sharesOutstanding: number;
-  symbol: string;
-  timestamp: number;
-  volume: number;
-  yearHigh: number;
-  yearLow: number;
-}
 
 // Define return type
 export interface StocksDailyDataResult {
@@ -54,13 +12,17 @@ export interface StocksDailyDataResult {
 }
 
 export function useStocksDailyData(
-  stocksData: StocksData | undefined,
+  stocksData: TreemapData | undefined, // Allow undefined to match component usage
   isDailyView: boolean
 ): StocksDailyDataResult {
   const queryClient = useQueryClient();
-  const tickers: string[] = stocksData?.children?.flatMap(group =>
-    group.children.map(stock => stock.ticker)
-  ) || [];
+  
+  // Memoize the tickers array to prevent unnecessary re-renders and Fast Refresh issues
+  const tickers = useMemo(() => {
+    return stocksData?.children?.flatMap(group =>
+      group.children.map(stock => stock.ticker)
+    ) || [];
+  }, [stocksData]);
 
   const queries = useQueries({
     queries: tickers.map((ticker) => ({
@@ -81,7 +43,7 @@ export function useStocksDailyData(
         queryClient.cancelQueries({ queryKey: ['dailyStockData', ticker] });
       });
     }
-  }, [isDailyView, queryClient, tickers]);
+  }, [isDailyView, tickers, queryClient]); // Include all dependencies
 
   if (!isDailyView) {
     return { data: null, isLoading: false, isError: false };
@@ -91,7 +53,7 @@ export function useStocksDailyData(
   const isError = queries.some(query => query.isError);
   const data = queries.reduce((acc: Record<string, number>, query, index) => {
     if (query.data) {
-      acc[tickers[index]] = query.data.changesPercentage;
+      acc[tickers[index]] = query.data.change_percent;
     }
     return acc;
   }, {});

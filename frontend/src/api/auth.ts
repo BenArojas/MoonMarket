@@ -5,7 +5,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 export const fetchAuthStatus = async () => {
   const response = await authCheckApi.get("/auth/status");
-  if (response.data.authenticated === 'False') {
+  if (response.data.authenticated === false) {
     toast.error(response.data.message);
   }
   return response.data.authenticated;

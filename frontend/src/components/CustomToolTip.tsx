@@ -1,6 +1,7 @@
 import { Tooltip, Typography, Divider, Box } from "@mui/material";
 import { ReactElement } from "react";
-import '@/styles/tooltip.css'
+import "@/styles/tooltip.css";
+import { formatNumber } from "@/utils/dataProcessing";
 
 interface CustomTooltipProps {
   children: ReactElement;
@@ -11,7 +12,6 @@ interface CustomTooltipProps {
   last_price: number;
   avgSharePrice: number;
 }
-
 
 function CustomTooltip({
   children,
@@ -45,25 +45,29 @@ function CustomTooltip({
           >
             <li className="tooltip-data-row">
               <Typography variant="body2">last price </Typography>
-              <Typography variant="subtitle2">{last_price.toFixed(2)}$</Typography>
+              <Typography variant="subtitle2">
+                {formatNumber(last_price, { suffix: "$" })}
+              </Typography>
+            </li>
+            <li className="tooltip-data-row">
+              <Typography variant="body2">Average bought price</Typography>
+              <Typography variant="subtitle2">
+                {formatNumber(avgSharePrice, { suffix: '$' })}
+              </Typography>
             </li>
             <li className="tooltip-data-row">
               <Typography variant="body2">
-                Average bought price
+                Value: ({formatNumber(quantity)} shares)
               </Typography>
-              <Typography variant="subtitle2">{avgSharePrice.toFixed(2)}$</Typography>
+              <Typography variant="subtitle2">
+                {formatNumber(value, { suffix: '$' })}
+              </Typography>
             </li>
             <li className="tooltip-data-row">
-              <Typography variant="body2">
-                Value: ({quantity} shares)
+              <Typography variant="body2">In your portfolio</Typography>
+              <Typography variant="subtitle2">
+                {formatNumber(percentageOfPortfolio, { suffix: '%', maximumFractionDigits: 2 })}
               </Typography>
-              <Typography variant="subtitle2">{value?.toLocaleString("en-US")}$</Typography>
-            </li>
-            <li className="tooltip-data-row">
-              <Typography variant="body2">
-                In your portfolio
-              </Typography>
-              <Typography variant="subtitle2">{percentageOfPortfolio.toFixed(2)}%</Typography>
             </li>
           </ul>
         </Box>

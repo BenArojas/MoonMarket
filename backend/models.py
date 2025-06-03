@@ -59,6 +59,10 @@ class FrontendAccountSummaryUpdate(FrontendMessageBase):
     type: str = "account_summary"
     data: Dict[str, Any] # Matches your frontend's expectation
 
+class WatchlistMessage(FrontendMessageBase):
+    type: str = "watchlists"
+    data: Dict[str, Any] 
+
 class AuthStatus(BaseModel):
     authenticated: bool
     session_active: Optional[bool] = None
@@ -72,3 +76,12 @@ class AuthStatus(BaseModel):
 class ChartDataPoint(BaseModel):
     time: int  # UNIX timestamp in seconds
     value: float
+
+    
+class ChartDataBars(BaseModel):
+    time: int  # UNIX timestamp in seconds
+    open: float
+    volume: float
+    high: float
+    low: float
+    close: float

@@ -1,6 +1,6 @@
 # app_state.py
 import asyncio
-from typing import Dict, Optional, Set
+from typing import Any, Dict, List, Optional, Set
 from websockets.server import ServerProtocol
  # For frontend client typing
 from models import PositionData, AccountSummaryData
@@ -13,6 +13,7 @@ class AppState:
         self.account_summary: Optional[AccountSummaryData] = None
         self.ibkr_authenticated: bool = False
         self.ibkr_websocket_connected: bool = False
+        self.watchlists: Optional[List[Dict[str, Any]]] = None
 
         # For managing frontend WebSocket clients
         self.frontend_clients: Set[ServerProtocol] = set()

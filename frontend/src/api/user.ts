@@ -4,26 +4,8 @@ import { Dayjs } from "dayjs";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-type Deposit = {
-  amount: number;
-  date: string;
-};
-export interface RegisterUser {
-  email: string;
-  username: string;
-  password: string;
-  deposits: Deposit[];
-}
 
-export async function RegisterUser(user: RegisterUser) {
-  const newUser = await api.post(`/register`, user);
-  return newUser;
-}
 
-export async function getUserData() {
-  const user = await api.get(`/user/`);
-  return user.data;
-}
 export async function getUserInsights() {
   try {
     const response = await api.get("/user/ai/insights");
@@ -45,174 +27,9 @@ export async function getStockSentiment(ticker: string) {
     throw error; // Re-throw to handle in fetchInsights
   }
 }
-export async function getUserName() {
-  const userName = await api.get(`/user/name`);
-  return userName.data;
-}
-
-export async function getUserHoldings() {
-  const holdings = await api.get(`/user/holdings`);
-  return holdings.data;
-}
-
-export async function getUserStocks() {
-  const stocks = await api.get(`/user/stocks`);
-  return stocks.data;
-}
-
-interface ActionShares {
-  price: number;
-  ticker: string;
-  quantity: number;
-  date: Dayjs;
-  commission: number;
-}
-export async function addUserPurchase({
-  price,
-  ticker,
-  quantity,
-  date,
-  commission,
-}: ActionShares) {
-  const response = await api.post(
-    `/transaction/buy_stock`,
-    null, // Set the request body to null if your API doesn't expect a request body
-    {
-      params: {
-        price,
-        ticker,
-        quantity,
-        transaction_date: date.toISOString(),
-        commission,
-      }, // Send the required fields as query parameters
-    }
-  );
-  return response.data;
-}
-
-export async function addUserSale({
-  ticker,
-  quantity,
-  price,
-  date,
-  commission,
-}: ActionShares) {
-  const response = await api.post(
-    `/transaction/sell_stock`,
-    null, // Set the request body to null if your API doesn't expect a request body
-    {
-      params: {
-        ticker,
-        quantity,
-        price,
-        transaction_date: date.toISOString(),
-        commission,
-      }, // Send the required fields as query parameters
-    }
-  );
-  return response.data;
-}
-
-export interface PortfolioStock {
-  name: string;
-  ticker: string;
-  price: string;
-  earnings?: string;
-}
-
-export async function addStockToPortfolio(
-  portfolioStock: PortfolioStock,
-  price: number,
-  quantity: number,
-  commission: number,
-  date: Date
-) {
-  const ticker = portfolioStock.ticker;
-  const stock = await api.post(`/stock/add_stock`, portfolioStock);
-
-  const user = await api.post(`/transaction/buy_stock`, null, {
-    params: {
-      price,
-      ticker,
-      quantity,
-      commission,
-      transaction_date: date.toISOString(),
-    },
-  });
-  return user;
-}
-
-export async function updateUsername(newUsername: string) {
-  const response = await api.patch(`/user/update-username`, null, {
-    params: { new_username: newUsername },
-  });
-  toast.success("Username updated successfully");
-  return response;
-}
-
-export async function changePassword({
-  oldPassword,
-  newPassword,
-}: {
-  oldPassword: string;
-  newPassword: string;
-}) {
-  const passwordPayload = {
-    password: oldPassword,
-    new_password: newPassword,
-  };
-  const response = await api.patch(`/user/change_password`, passwordPayload);
-  toast.success("Password changed successfully");
-  return response;
-}
-
-export type ChangeTierPayload = {
-  account_type: string;
-  billing_cycle?: string;
-};
-interface ChangeAccountTierProps {
-  userId: string;
-  payload: ChangeTierPayload;
-}
-export async function changeAccountTier({
-  userId,
-  payload,
-}: ChangeAccountTierProps) {
-  const response = await api.post(`/user/toggle-tier/${userId}`, payload);
-  return response.data;
-}
 
 
 
-export async function addDeposit(money: number) {
-  const currentDate = new Date().toISOString();
-  const depositPayload = {
-    amount: money,
-    date: currentDate,
-  };
-  const response = await api.post(`/user/add_deposit`, depositPayload);
-  toast.success("Deposit added successfully");
-  return response.data;
-}
-
-export async function searchUser(username: string) {
-  const response = await api.get(`/user/user_friend/${username}`);
-  return response.data;
-}
-
-export async function completeSetUp(data: { accountId: string }) {
-  const response = await api.post(`/user/complete-setup`, data);
-  return response.data;
-}
-
-export async function getUsersList() {
-  try {
-    const response = await api.get(`/user/users_list`);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
-}
 
 
 // Define the function that fetches the data
@@ -224,9 +41,57 @@ export const fetchPerformanceData = async (period: string): Promise<ChartDataPoi
   return response.data;
 };
 
-export const fetchHistoricalStockData = async (ticker:string, period: string, bar: string): Promise<ChartDataPoint[]> => {
-  const response = await api.get<ChartDataPoint[]>(`/stocks/history`, {
-    params: { ticker, period, bar }
-  });
-  return response.data; 
+
+
+export type ChartDataBars = {
+  time: number;
+  open: number
+  high: number
+  low: number
+  close: number
+  volume: number 
+}
+
+export const fetchHistoricalStockDataBars = async (
+  ticker: string,
+  period: string
+): Promise<ChartDataBars[]> => {
+  try {
+    const response = await api.get('/stocks/history', {
+      params: {
+        ticker,
+        period,
+      },
+    });
+    return response.data as ChartDataBars[];
+  } catch (error) {
+    console.error("Error fetching historical stock data:", error);
+    // Re-throw the error so react-query can catch it and set the error state
+    throw error;
+  }
+};
+/**
+ * Fetches historical stock data from the backend API.
+ * @param ticker The stock ticker symbol (e.g., "BTC", "AAPL").
+ * @param period The period for which to fetch data (e.g., "7D", "1M").
+ * @returns A promise that resolves to an array of ChartDataPoint.
+ * @throws Will throw an error if the API request fails.
+ */
+export const fetchHistoricalStockData = async (
+  ticker: string,
+  period: string
+): Promise<ChartDataPoint[]> => {
+  try {
+    const response = await api.get('/stocks/history', {
+      params: {
+        ticker,
+        period,
+      },
+    });
+    return response.data as ChartDataPoint[];
+  } catch (error) {
+    console.error("Error fetching historical stock data:", error);
+    // Re-throw the error so react-query can catch it and set the error state
+    throw error;
+  }
 };

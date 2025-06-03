@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
+
 export const PublicRoute: React.FC = () => {
   const { isAuth, isLoading, isError } = useAuth();
   const location = useLocation();
@@ -25,6 +26,8 @@ export const PublicRoute: React.FC = () => {
     const from = location.state?.from?.pathname || "/home";
     return <Navigate to={from} replace />;
   }
+
+  
 
   return (
     <div className="flex flex-col items-center justify-center h-screen">

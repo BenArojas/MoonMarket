@@ -3,36 +3,54 @@ import {  SankeyInputData, SankeyInputLink, SankeyInputNode } from '@/components
 import { Transaction } from '@/hooks/useTransactionSummary';
 import { StockData } from '@/stores/stockStore';
 
-export type StockInfo = {
-  earnings: string;
-  last_updated: string;
-  name: string;
-  price: number;
-  ticker: string
-  _id: string
+
+export function formatNumber(
+  value: number | null | undefined,
+  options?: {
+    minimumFractionDigits?: number;
+    maximumFractionDigits?: number;
+    fallback?: string;
+    suffix?: string;
+  }
+): string {
+  if (typeof value !== 'number' || isNaN(value)) {
+    return options?.fallback ?? '--';
+  }
+
+  return (
+    value.toLocaleString('en-US', {
+      minimumFractionDigits: options?.minimumFractionDigits ?? 2,
+      maximumFractionDigits: options?.maximumFractionDigits ?? 2,
+    }) + (options?.suffix ?? '')
+  );
 }
 
 
+// Updated types to match your data processing function
+export type ProcessedStockData = {
+  name: string;
+  ticker: string;
+  value: number;
+  avgSharePrice: number;
+  quantity: number;
+  last_price: number;
+  priceChangePercentage: number;
+  percentageOfPortfolio?: number;
+}
+
+// Updated TreemapData type to be more specific
 export type TreemapData = {
   name: string;
   value: number;
-  children: { name: string; value: number; children: any[] }[];
+  children: { 
+    name: string; 
+    value: number; 
+    children: ProcessedStockData[] 
+  }[];
 }
 // Treemap Data Processing
 export function processTreemapData(stocks: { [symbol: string]: StockData }): TreemapData {
   
-  type ProcessedStockData = {
-    name: string;
-    id: string;
-    ticker: string;
-    value: number;
-    avgSharePrice: number;
-    quantity: number;
-    last_price: number;
-    priceChangePercentage: number;
-    percentageOfPortfolio?: number;
-  }
-
   const positiveStocks: ProcessedStockData[] = [];
   const negativeStocks: ProcessedStockData[] = [];
   let sum: number = 0;
@@ -44,7 +62,6 @@ export function processTreemapData(stocks: { [symbol: string]: StockData }): Tre
 
     const processedStock: ProcessedStockData = {
       name: ticker, // Using ticker as name since we don't have separate name field
-      id: ticker, // Using ticker as id
       ticker: ticker,
       value,
       avgSharePrice: stockData.avg_bought_price,

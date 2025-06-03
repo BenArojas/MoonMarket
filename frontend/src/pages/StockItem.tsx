@@ -1,5 +1,5 @@
-import { getIntradayData, getStockData } from "@/api/stock";
-import BuyStockForm from "@/components/BuyStockForm";
+import { getStockData, StockData } from "@/api/stock";
+import { ChartDataBars, fetchHistoricalStockDataBars } from "@/api/user";
 import CandleStickChart from "@/components/CandleSticksChart";
 import SearchBar from "@/components/SearchBar.tsx";
 import StockInfoCard from "@/components/StockInfoCard";
@@ -8,6 +8,7 @@ import {
   CircularProgress,
   MenuItem,
   Select,
+  SelectChangeEvent,
   Typography,
   useMediaQuery,
   useTheme,
@@ -19,26 +20,22 @@ import {
   useNavigate,
   useSearchParams,
 } from "react-router-dom";
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '@/api/axios'
-import { FlagIcon } from '@heroicons/react/24/solid';
-import { StockData } from "@/hooks/useStocksDailyData";
 
 
 
-const defaultTime = "1week";
+const defaultTime = "7D";
 
-interface IntradayDataPoint {
-  close: number;
+type TransformedChartData = {
   date: string;
+  open: number;
   high: number;
   low: number;
-  open: number;
+  close: number;
   volume: number;
 }
 
 interface LoaderData {
-  intradayData: Promise<IntradayDataPoint[]>;
+  historicalData: Promise<ChartDataBars[]>;
   stock: Promise<StockData | null>;
 }
 
@@ -48,39 +45,56 @@ export async function loader({ params, request }: { params: { stockTicker: strin
   const searchTerm = searchParams.get("time") || defaultTime;
 
   const stock = getStockData(ticker);
-  const intradayData = getIntradayData(ticker, searchTerm);
+  const intradayData = fetchHistoricalStockDataBars(ticker, searchTerm);
 
   return {
-    intradayData: intradayData,
+    historicalData: intradayData,
     stock: stock,
   }
 }
 
 function StockItem() {
   const userData = {};
-  const watchlist = userData.watchlist
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  const { stock, intradayData } = useLoaderData() as LoaderData;
-  const [searchParams] = useSearchParams();
-  const [chartData, setChartData] = useState<IntradayDataPoint[] | null>(null);
+  const { stock: stockPromise, historicalData: historicalDataPromise } = useLoaderData() as LoaderData;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [chartData, setChartData] = useState<TransformedChartData[] | null>(null);
   const navigate = useNavigate();
 
-
-  let range = searchParams.get("time") || defaultTime;
+  const currentRange = searchParams.get("time") || defaultTime;
 
   useEffect(() => {
-    if (intradayData) {
-      intradayData.then((data) => setChartData(data));
+    if (historicalDataPromise) {
+      historicalDataPromise.then((newDataPoints: ChartDataBars[] | null) => { // Fixed type here
+        if (newDataPoints) {
+          const transformedForChart: TransformedChartData[] = newDataPoints.map(point => ({
+            date: new Date(point.time * 1000).toISOString(), // Now correctly accessing point.time
+            open: point.open,
+            high: point.high,
+            low: point.low,
+            close: point.close,
+            volume: point.volume,
+          }));
+          setChartData(transformedForChart);
+        } else {
+          setChartData(null);
+        }
+      }).catch(error => {
+        console.error("Error processing historical data:", error);
+        setChartData(null);
+      });
     }
-  }, [intradayData]);
+  }, [historicalDataPromise]);
 
-  const handleRangeChange = async (newRange: string) => {
-    searchParams.set("time", newRange);
-    navigate({
-      search: searchParams.toString(),
-    });
+  const handleRangeChange = (newRange: string) => {
+    const newSearchParams = new URLSearchParams(searchParams);
+    newSearchParams.set("time", newRange);
+    setSearchParams(newSearchParams); // Updates URL and triggers re-fetch by loader
+    // navigate is not strictly needed here if searchParams update reloads data,
+    // but if you want to ensure a full navigation cycle:
+    // navigate({ search: newSearchParams.toString() });
   };
 
   return (
@@ -95,7 +109,7 @@ function StockItem() {
       }}
     >
       <Suspense fallback={<LoadingFallback />}>
-        <Await resolve={stock}>
+        <Await resolve={stockPromise}>
           {(resolvedStock: StockData | null) =>
             resolvedStock === null ? (
               <NoStockFound />
@@ -104,21 +118,22 @@ function StockItem() {
                 <StockHeader
                   stock={resolvedStock}
                   onRangeChange={handleRangeChange}
-                  currentRange={range}
+                  currentRange={currentRange}
                   isMobile={isMobile}
-                  watchlist={watchlist}
                 />
                 <Suspense fallback={<ChartLoadingFallback />}>
-                  {chartData ? (
-                    <CandleStickChart
-                      data={chartData}
-                      isMobile={isMobile}
-                    />
-                  ) : (
-                    <ChartLoadingFallback />
-                  )}
+                  {/* Await for historicalDataPromise to resolve before rendering chart or its loader */}
+                  <Await resolve={historicalDataPromise}>
+                    {() => chartData ? ( // Check chartData which is set after transformation
+                      <CandleStickChart
+                        data={chartData} // chartData is now HistoricalDataForChart[]
+                        isMobile={isMobile}
+                      />
+                    ) : (
+                      <ChartLoadingFallback /> // Show loading if chartData is not ready
+                    )}
+                  </Await>
                 </Suspense>
-                <BuyStockForm isMobile={isMobile} stock={resolvedStock} />
               </>
             )
           }
@@ -176,32 +191,23 @@ function NoStockFound() {
 }
 
 interface StockHeaderProps {
-  stock: StockData;
+  stock: StockData; // Use the StockData interface from api/stock.ts
   onRangeChange: (newRange: string) => void;
   currentRange: string;
   isMobile: boolean;
-  watchlist: string[];
 }
 
-function StockHeader({ stock, onRangeChange, currentRange, isMobile, watchlist }: StockHeaderProps) {
+function StockHeader({ stock, onRangeChange, currentRange, isMobile }: StockHeaderProps) {
+  // const queryClient = useQueryClient(); // Uncomment if using mutations
 
-  const queryClient = useQueryClient();
-
-
-  const addToWatchlistMutation = useMutation({
-    mutationFn: (ticker: string) => api.post('/watchlist/toggle', { ticker }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['authStatus'] });
-    }
-  });
-
+  // Time ranges should align with backend's PERIOD_BAR_MAPPING keys
   const timeRanges = [
-    { value: "1week", label: "1 Week" },
-    { value: "1month", label: "1 Month" },
-    { value: "3months", label: "3 Months" },
-    { value: "6months", label: "6 Months" },
-    { value: "1year", label: "1 Year" },
-    { value: "3years", label: "3 Years" },
+    { value: "1D", label: "1 Day" },
+    { value: "7D", label: "1 Week" },
+    { value: "1M", label: "1 Month" },
+    { value: "3M", label: "3 Months" },
+    { value: "6M", label: "6 Months" },
+    { value: "1Y", label: "1 Year" },
   ];
 
   return (
@@ -212,10 +218,8 @@ function StockHeader({ stock, onRangeChange, currentRange, isMobile, watchlist }
         justifyContent: isMobile ? "flex-start" : "space-between",
         alignItems: isMobile ? "flex-start" : "center",
         gap: isMobile ? 2 : 5,
-        // width: isMobile ? 300: "auto",
       }}
     >
-      {/* First Row for Mobile / Main Row for Normal View */}
       <Box
         sx={{
           display: "flex",
@@ -224,47 +228,37 @@ function StockHeader({ stock, onRangeChange, currentRange, isMobile, watchlist }
           alignItems: isMobile ? "flex-start" : "center",
         }}
       >
-        <Typography variant="h4">{stock.symbol}</Typography>
-        <Box sx={{
-          display: "flex",
-          flexDirection: "row",
-          gap: 4
-        }}>
-          <StockInfoCard label="Last Price" value={stock.price} />
-          <StockInfoCard label="Previous close" value={stock.previousClose} />
-          <StockInfoCard label="Change (24h)" value={`${stock.changesPercentage}%`} />
+        <Typography variant="h4">{stock.ticker}</Typography>
+        <Box sx={{ display: "flex", flexDirection: "row", gap: 4, flexWrap: "wrap" }}>
+          <StockInfoCard label="Last Price" value={stock.last_price} />
+          <StockInfoCard label="Previous close" value={stock.previous_close} />
+          {/* Ensure changesPercentage is a number from backend */}
+          <StockInfoCard label="Change (24h)" value={`${stock.change_percent.toFixed(2)}%`} /> 
+          {!isMobile && (
+            <>
+              <StockInfoCard label="High (24h)" value={stock.dayHigh} />
+              <StockInfoCard label="Low (24h)" value={stock.dayLow} />
+            </>
+          )}
         </Box>
-        {!isMobile && (
-          <>
-            <StockInfoCard label="High (24h)" value={stock.dayHigh} />
-            <StockInfoCard label="Low (24h)" value={stock.dayLow} />
-          </>
-        )}
       </Box>
 
-      {/* Second Row for Mobile / Inline with First Row for Normal View */}
       <Box
         sx={{
           display: "flex",
-          flexDirection: isMobile ? "row" : "row",
+          flexDirection: "row",
           gap: 2,
           alignItems: "center",
           flexWrap: isMobile ? "wrap" : "nowrap",
+          marginTop: isMobile ? 2 : 0, // Add some margin for mobile if elements wrap
         }}
       >
-        <button
-          onClick={() => addToWatchlistMutation.mutate(stock.symbol)}
-          className={`${watchlist?.includes(stock.symbol) ? 'text-yellow-500' : 'text-blue-500'
-            } `}
-          title="Add to Watchlist"
-          disabled={addToWatchlistMutation.isPending}
-        >
-          <FlagIcon className="h-6 w-6" />
-        </button>
+        {/* Watchlist button (if you re-enable it) */}
         <Select
           value={currentRange}
-          onChange={(e) => onRangeChange(e.target.value)}
+          onChange={(e: SelectChangeEvent<string>) => onRangeChange(e.target.value)} // Typed event
           size="small"
+          sx={{ minWidth: 120 }} // Ensure select has some minimum width
         >
           {timeRanges.map((range) => (
             <MenuItem key={range.value} value={range.value}>
@@ -272,14 +266,9 @@ function StockHeader({ stock, onRangeChange, currentRange, isMobile, watchlist }
             </MenuItem>
           ))}
         </Select>
-        <Box sx={{
-          width: isMobile ? 200 : "100%",
-        }}>
-
+        <Box sx={{ width: isMobile ? (isMobile ? "100%" : 200) : 200, marginTop: isMobile ? 1 : 0 }}> {/* Adjust width for mobile */}
           <SearchBar />
-
         </Box>
-
       </Box>
     </Box>
   );

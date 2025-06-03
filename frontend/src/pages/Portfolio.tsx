@@ -26,11 +26,8 @@ function Portfolio() {
   const stocks = useStockStore(state => state.stocks);
   const accountSummary = useStockStore(state => state.accountSummary);
   const status = useStockStore(state => state.connectionStatus);
-  console.log({
-    status,
-    stocks,
-    accountSummary
-  })
+  const watchlist = useStockStore(state => state.watchlists);
+
   // This selector computes a derived value. It's automatically memoized.
   const totalValue = useStockStore(state =>
     Object.values(state.stocks).reduce((total, stock) => total + stock.value, 0)

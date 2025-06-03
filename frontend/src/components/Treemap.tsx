@@ -1,90 +1,85 @@
 import CustomTooltip from "@/components/CustomToolTip";
-import { useStocksDailyData } from '@/hooks/useStocksDailyData';
+import { useStocksDailyData } from "@/hooks/useStocksDailyData";
 import TreeMapSkeleton from "@/Skeletons/TreeMapSkeleton";
 import "@/styles/Treemap.css";
-import { TreemapData } from "@/utils/dataProcessing";
+import { formatNumber, ProcessedStockData, TreemapData } from "@/utils/dataProcessing";
 import { useMediaQuery, useTheme } from "@mui/material";
 import * as d3 from "d3";
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 
-// Interface for stock data within the treemap
-interface StockData {
-  ticker: string;
-  quantity: number;
-  percentageOfPortfolio: number;
-  avgSharePrice: number;
-  value: number;
-  last_price: number;
-  name: string;
-  priceChangePercentage: number;
-}
+// Updated Treemap component interfaces
+// interface StockData extends ProcessedStockData {
+//   // This interface now extends ProcessedStockData to maintain consistency
+// }
 
-// Interface for group data within the treemap
-interface GroupData {
-  name: string;
-  value: number;
-  children: StockData[];
-}
+// interface GroupData {
+//   name: string;
+//   value: number;
+//   children: StockData[];
+// }
 
-// Extending the existing TreemapData interface to be more specific
-interface ExtendedTreemapData extends TreemapData {
-  children: GroupData[];
-}
-
-// Props for the Treemap component
+// Updated TreemapProps to use the corrected TreemapData type
 interface TreemapProps {
   width: number;
   height: number;
   isDailyView: boolean;
-  data: ExtendedTreemapData;
+  data: TreemapData; // No need for ExtendedTreemapData anymore
 }
 
-
-
+// Updated Treemap component with corrected types
 export const Treemap = ({ width, height, data, isDailyView }: TreemapProps) => {
-  const { data: dailyData, isLoading: isDailyDataLoading } = useStocksDailyData(data, isDailyView);
+  const { data: dailyData, isLoading: isDailyDataLoading } = useStocksDailyData(
+    data,
+    isDailyView
+  );
 
   const processedData = useMemo(() => {
     // If we're not in daily view or don't have daily data, return original data unchanged
     if (!isDailyView || !dailyData) return data;
 
     // Create a complete copy of the original data structure
-    const newData = JSON.parse(JSON.stringify(data)) as ExtendedTreemapData;
+    const newData = JSON.parse(JSON.stringify(data)) as TreemapData;
 
     // First pass: Update the priceChangePercentage values
-    newData.children.forEach((group: GroupData) => {
-      group.children.forEach((stock: StockData) => {
+    newData.children.forEach((group) => {
+      group.children.forEach((stock) => {
         // Replace the original priceChangePercentage with daily percentage
         const dailyPercentage = dailyData[stock.ticker];
-        stock.priceChangePercentage = dailyPercentage;
+        if (dailyPercentage !== undefined) {
+          stock.priceChangePercentage = dailyPercentage;
+        }
       });
     });
 
     // Get all stocks from both positive and negative groups
-    const allStocks = newData.children.flatMap((group: GroupData) => group.children);
+    const allStocks = newData.children.flatMap((group) => group.children);
 
     // Split stocks into new positive and negative groups based on daily performance
-    const positiveStocks = allStocks.filter((stock: StockData) => stock.priceChangePercentage > 0);
-    const negativeStocks = allStocks.filter((stock: StockData) => stock.priceChangePercentage <= 0);
+    const positiveStocks = allStocks.filter(
+      (stock) => stock.priceChangePercentage > 0
+    );
+    const negativeStocks = allStocks.filter(
+      (stock) => stock.priceChangePercentage <= 0
+    );
 
     // Reconstruct the children array with the same structure
     newData.children = [
       { name: "Positive", value: 0, children: positiveStocks },
-      { name: "Negative", value: 0, children: negativeStocks }
+      { name: "Negative", value: 0, children: negativeStocks },
     ];
 
     return newData;
   }, [data, dailyData, isDailyView]);
 
   const theme = useTheme();
-  const isMobileScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMobileScreen = useMediaQuery(theme.breakpoints.down("sm"));
 
   const hierarchy = useMemo(() => {
-    return d3.hierarchy(processedData)
-      .sum((d: any) => d.value || 0)  // Use || 0 to ensure a numeric value
+    return d3
+      .hierarchy(processedData)
+      .sum((d: any) => d.value || 0)
       .sort((a: d3.HierarchyNode<any>, b: d3.HierarchyNode<any>) => {
-        // Access the values safely with defaults
         const valueA = a.value ?? 0;
         const valueB = b.value ?? 0;
         return valueB - valueA;
@@ -129,8 +124,8 @@ export const Treemap = ({ width, height, data, isDailyView }: TreemapProps) => {
       value,
       last_price,
       name,
-      priceChangePercentage
-    } = leaf.data as StockData;
+      priceChangePercentage,
+    } = leaf.data as ProcessedStockData;
 
     const fillColor = getColor(priceChangePercentage);
 
@@ -173,7 +168,7 @@ export const Treemap = ({ width, height, data, isDailyView }: TreemapProps) => {
             fill={theme.palette.text.primary}
             className="font-bold"
           >
-            {priceChangePercentage.toFixed(2)}%
+            {formatNumber(priceChangePercentage, { suffix: '%', maximumFractionDigits: 2 })}
           </text>
         </g>
       </Link>
@@ -184,7 +179,7 @@ export const Treemap = ({ width, height, data, isDailyView }: TreemapProps) => {
     ) : (
       <CustomTooltip
         key={i}
-        percentageOfPortfolio={percentageOfPortfolio}
+        percentageOfPortfolio={percentageOfPortfolio || 0}
         quantity={quantity}
         last_price={last_price}
         avgSharePrice={avgSharePrice}
@@ -199,12 +194,14 @@ export const Treemap = ({ width, height, data, isDailyView }: TreemapProps) => {
   return (
     <div>
       {isDailyDataLoading ? (
-        <div style={{
-          width: width,
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}>
+        <div
+          style={{
+            width: width,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
           <TreeMapSkeleton />
         </div>
       ) : (

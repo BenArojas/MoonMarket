@@ -1,6 +1,7 @@
 # ibkr_service.py
 import asyncio
 from datetime import datetime, timezone
+import re
 import httpx
 import json
 import logging
@@ -8,9 +9,10 @@ import ssl
 import websockets
 from websockets.client import ClientProtocol
 from typing import Optional, Callable, Awaitable, List, Dict, Any
+from utils import safe_float_conversion, safe_string
 from config import AppConfig
 from app_state import AppState
-from models import AuthStatus, FrontendAccountSummaryUpdate, FrontendMarketDataUpdate, PositionData, AccountSummaryData
+from models import AuthStatus, FrontendAccountSummaryUpdate, FrontendMarketDataUpdate, PositionData, AccountSummaryData, WatchlistMessage
 
 logger = logging.getLogger(__name__)
 
@@ -34,11 +36,10 @@ class IBKRService:
             response = await self.http_client.request(method, url, **kwargs)
             response.raise_for_status() # Raise an exception for bad status codes
             return response
-        except httpx.HTTPStatusError as e:
-            logger.error(f"HTTP error for {method} {endpoint}: {e.response.status_code} - {e.response.text}")
-        except httpx.RequestError as e:
-            logger.error(f"Request error for {method} {endpoint}: {e}")
-        return None
+        except Exception as e:
+            # Log the error but re-raise it instead of returning None
+            logger.error(f"Request error for {method} {endpoint}: {str(e)}")
+            raise  # Re-raise the exception instead of returning None
 
     async def sso_validate(self) -> bool:
         response = await self._make_request("GET", "/sso/validate")
@@ -102,6 +103,118 @@ class IBKRService:
             return results[0].get("conid")
         return None
     
+    def calculate_daily_change_percentage(self, snapshot_data: dict) -> Optional[dict]:
+        """
+        Extract and calculate price change data from snapshot response
+        Using correct IBKR field codes
+        """
+        if not snapshot_data or len(snapshot_data) == 0:
+            return None
+            
+        data = snapshot_data[0]  # Snapshot returns a list with one item
+        
+        # Extract data using correct field codes
+        last_price = safe_float_conversion(data.get("31", "0"))      # Last Price
+        prev_close = safe_float_conversion(data.get("7741", "0"))   # Prior Close (Yesterday's closing price)
+        change_amount = safe_float_conversion(data.get("82", "0"))  # Change
+        change_percent = safe_float_conversion(data.get("83", "0")) # Change %
+        dayHigh = safe_float_conversion(data.get("70", "0"))
+        dayLow = safe_float_conversion(data.get("71", "0"))
+        
+        # Calculate manually as backup/verification
+        calculated_change_percent = 0.0
+        if prev_close != 0:
+            calculated_change_percent = ((last_price - prev_close) / prev_close) * 100
+        
+        # Log for debugging
+        logger.info(f"Raw field values - 31: {data.get('31')}, 7741: {data.get('7741')}, 82: {data.get('82')}, 83: {data.get('83')}, 70: {data.get('70')}, 71: {data.get('71')}")
+        
+        result = {
+            "last_price": last_price,
+            "previous_close": prev_close,
+            "change_amount": change_amount,
+            "change_percent": change_percent,  # From API
+            "calculated_change_percent": calculated_change_percent,
+            "dayLow": dayLow,
+            "dayHigh": dayHigh
+            
+        }
+        
+        return result
+    
+    # Alternative version with additional useful fields
+    async def fetch_extended_stock_data(self, conid: str) -> dict:
+        """
+        Fetch extended stock data with additional useful fields
+        """
+        # Extended field set:
+        # 31 = Last Price
+        # 7741 = Prior Close
+        # 82 = Change
+        # 83 = Change %
+        # 70 = High (Current day high price)
+        # 71 = Low (Current day low price)
+        # 7295 = Open (Today's opening price)
+        # 87 = Volume
+        # 55 = Symbol
+        # 7051 = Company name
+        fields = "31,7741,82,83,70,71,7295,87,55,7051"
+        
+        params = {
+            "conids": conid,
+            "fields": fields
+        }
+        
+        try:
+            response = await self._make_request("GET", "/iserver/marketdata/snapshot", params=params)
+            if response is None:
+                raise Exception(f"Failed to fetch extended stock data: API request returned None")
+            return response.json()
+        except Exception as e:
+            logger.error(f"Failed to fetch extended stock data for conid {conid}: {str(e)}")
+            raise
+    
+    def parse_extended_stock_data(self, snapshot_data: dict) -> Optional[dict]:
+        """
+        Parse extended stock data with additional fields
+        """
+        if not snapshot_data or len(snapshot_data) == 0:
+            return None
+            
+        data = snapshot_data[0]
+        
+        # Parse all fields
+        last_price = safe_float_conversion(data.get("31", "0"))
+        prev_close = safe_float_conversion(data.get("7741", "0"))
+        change_amount = safe_float_conversion(data.get("82", "0"))
+        change_percent = safe_float_conversion(data.get("83", "0"))
+        high = safe_float_conversion(data.get("70", "0"))
+        low = safe_float_conversion(data.get("71", "0"))
+        open_price = safe_float_conversion(data.get("7295", "0"))
+        volume = safe_string(data.get("87", ""))  # Volume is formatted (K/M), keep as string
+        symbol = safe_string(data.get("55", ""))
+        company_name = safe_string(data.get("7051", ""))
+        
+        # Calculate change percentage as verification
+        calculated_change_percent = 0.0
+        if prev_close != 0:
+            calculated_change_percent = ((last_price - prev_close) / prev_close) * 100
+        
+        return {
+            "last_price": last_price,
+            "previous_close": prev_close,
+            "change_amount": change_amount,
+            "change_percent": change_percent,
+            "calculated_change_percent": calculated_change_percent,
+            "high": high,
+            "low": low,
+            "open": open_price,
+            "volume": volume,
+            "symbol": symbol,
+            "company_name": company_name,
+            "raw_data": data  # Include raw data for debugging
+        }
+    
     async def fetch_historical_data(self, conid: str, period: str, bar: str) -> dict:
         params = {
             "conid": conid,
@@ -109,10 +222,54 @@ class IBKRService:
             "bar": bar,
             "outsideRth": "true"
         }
-        response = await self._make_request("GET", "/iserver/marketdata/history", params=params)
-        return response.json()
-
-
+        try:
+            response = await self._make_request("GET", "/iserver/marketdata/history", params=params)
+            if response is None:
+                raise Exception(f"Failed to fetch historical data: API request returned None")
+            return response.json()
+        except Exception as e:
+            logger.error(f"Failed to fetch historical data for conid {conid}: {str(e)}")
+            raise  # Re-raise to let the calling code handle it
+        
+    async def fetch_stock_data(self, conid: str) -> dict:
+        """
+        Fetch stock data using correct IBKR field codes
+        Based on official IBKR API documentation
+        """
+        accounts = await self._make_request("GET", "/iserver/accounts")
+        # logging.info(f"pre-flight request + {accounts.json()}")
+        await asyncio.sleep(3)
+        # Correct field codes based on IBKR documentation:
+        # 31 = Last Price
+        # 7741 = Prior Close (Yesterday's closing price)
+        # 82 = Change (The difference between the last price and the close on the previous trading day)
+        # 83 = Change % (The difference between the last price and the close on the previous trading day in percentage)
+        fields = "31,7741,82,83,70,71"
+        
+        params = {
+            "conids": conid,
+            "fields": fields
+        }
+        
+        try:
+            response = await self._make_request("GET", "/iserver/marketdata/snapshot", params=params)
+            if response is None:
+                raise Exception(f"Failed to fetch stock data: API request returned None")
+            return response.json()
+        except Exception as e:
+            logger.error(f"Failed to fetch stock data for conid {conid}: {str(e)}")
+            raise
+        
+    async def check_market_data_subscriptions(self):
+        """Check available market data subscriptions"""
+        try:
+            response = await self._make_request("GET", "/iserver/marketdata/subscriptions")
+            logging.info(f"Market data subscriptions: {response.json()}")
+            return response.json()
+        except Exception as e:
+            logging.error(f"Subscription check failed: {e}")
+            return None
+        
 
     async def fetch_portfolio_positions_from_api(self) -> List[PositionData]:
         account_id = self.app_state.ibkr_account_id or await self.get_account_id_from_api()
@@ -141,6 +298,25 @@ class IBKRService:
                 updated_positions.append(position)
             logger.info(f"Fetched and updated {len(updated_positions)} positions.")
         return updated_positions
+
+    async def fetch_watchlists_from_api(self):
+        
+        account_id = self.app_state.ibkr_account_id or await self.get_account_id_from_api()
+        if not account_id: return None
+        params ={
+            "SC": "USER_WATCHLIST"
+        }
+        response = await self._make_request("GET", "/iserver/watchlists", params = params)
+        if not response: return None
+        watchlists_data = response.json()
+        # Extract just ID and name from user_lists
+        watchlists = {}
+        if 'data' in watchlists_data and 'user_lists' in watchlists_data['data']:
+            for watchlist in watchlists_data['data']['user_lists']:
+                watchlists[watchlist['id']] = watchlist['name']
+        
+        return watchlists
+        
 
     async def fetch_account_summary_from_api(self) -> Optional[AccountSummaryData]:
         account_id = self.app_state.ibkr_account_id or await self.get_account_id_from_api()
@@ -351,6 +527,10 @@ class IBKRService:
                     # Initial data fetch and subscriptions
                     await self.get_account_id_from_api() # Ensure account ID is loaded
                     initial_positions = await self.fetch_portfolio_positions_from_api()
+                    watchlists = await self.fetch_watchlists_from_api()
+                    if watchlists and self._broadcast_callback:
+                        self.app_state.watchlists = watchlists
+                        await self._broadcast_callback(json.dumps(WatchlistMessage(data=watchlists).model_dump()))
                     for pos in initial_positions: # Broadcast initial state
                         if self._broadcast_callback:
                             await self._broadcast_callback(json.dumps(FrontendMarketDataUpdate.from_position_data(pos).model_dump()))

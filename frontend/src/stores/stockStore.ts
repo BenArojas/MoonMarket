@@ -19,6 +19,7 @@ interface StockState {
   // State
   stocks: { [symbol: string]: StockData };
   accountSummary: AccountSummaryData
+  watchlists: { [key: string]: string }
   connectionStatus: 'disconnected' | 'connecting' | 'connected' | 'error';
   error?: string;
 
@@ -28,6 +29,7 @@ interface StockState {
   clearError: () => void;
   updateStock: (data: any) => void;
   setAccountSummary: (data: any) => void;
+  setWatchlists: (data: any) =>void
   clearAllData: () => void;
 
   // Connection management actions
@@ -39,6 +41,7 @@ interface StockState {
 export const useStockStore = create<StockState>((set, get) => ({
   // Default State
   stocks: {},
+  watchlists: {},
   accountSummary: {
     net_liquidation: 0,
     total_cash_value: 0,
@@ -52,6 +55,7 @@ export const useStockStore = create<StockState>((set, get) => ({
   setError: (errorMsg) => set({ error: errorMsg, connectionStatus: 'error' }),
   clearError: () => set({ error: undefined }),
   setAccountSummary: (data) => set({ accountSummary: data }),
+  setWatchlists: (data) =>set({watchlists: data}),
 
   updateStock: (data) => {
     set(state => ({
@@ -74,7 +78,7 @@ export const useStockStore = create<StockState>((set, get) => ({
       net_liquidation: 0,
       total_cash_value: 0,
       buying_power: 0
-    }
+    }, watchlists: {}
   }),
 
   // You can define actions that call other actions using get()
@@ -123,8 +127,9 @@ function connectWebSocket(get: () => StockState) {
         break;
       case 'account_summary':
         get().setAccountSummary(message.data);
-
         break;
+      case 'watchlists':
+        get().setWatchlists(message.data)
       case 'error':
         get().setError(message.message);
         break;

@@ -8,7 +8,7 @@ from typing import Callable, Awaitable, Optional
 from websockets.server import ServerProtocol
 from config import AppConfig
 from app_state import AppState
-from models import FrontendMarketDataUpdate, FrontendAccountSummaryUpdate # PositionData, AccountSummaryData
+from models import FrontendMarketDataUpdate, FrontendAccountSummaryUpdate, WatchlistMessage # PositionData, AccountSummaryData
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +24,10 @@ class FrontendGateway:
         if self.app_state.account_summary:
             summary_msg = FrontendAccountSummaryUpdate(data=self.app_state.account_summary.model_dump(exclude_none=True))
             await websocket.send(json.dumps(summary_msg.model_dump()))
+            
+        if hasattr(self.app_state, 'watchlists') and self.app_state.watchlists:
+            watchlist_msg_obj = WatchlistMessage(data=self.app_state.watchlists)
+            await websocket.send(json.dumps(watchlist_msg_obj.model_dump()))
 
         # Send All Positions
         for conid_str, position in self.app_state.current_positions.items():
