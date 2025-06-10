@@ -41,3 +41,8 @@ def safe_float_conversion(value: str, default: float = 0.0) -> float:
 def safe_string(value, default: str = "") -> str:
             return str(value).strip() if value else default
         
+def try_float(val):
+        try:
+            return float(val)
+        except (TypeError, ValueError):
+            return None

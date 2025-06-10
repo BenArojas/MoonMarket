@@ -13,7 +13,7 @@ export type StockData = {
 
 export async function getStockData(ticker: string) {
   const stock = await api.get(
-    `/stock/quote/${ticker}`
+    `/market/quote/${ticker}`
   );
     return stock.data;
 }

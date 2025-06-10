@@ -1,4 +1,5 @@
 // src/stores/stockStore.ts
+import { toast } from 'react-toastify';
 import { create } from 'zustand';
 
 // --- 1. Define the state and action types ---
@@ -88,7 +89,7 @@ export const useStockStore = create<StockState>((set, get) => ({
   },
   disconnect: () => {
     disconnectWebSocket();
-    get().clearAllData();
+    // get().clearAllData();
     get().setConnectionStatus('disconnected');
   }
 }));
@@ -111,7 +112,7 @@ function connectWebSocket(get: () => StockState) {
   get().setConnectionStatus('connecting');
   get().clearError();
 
-  ws = new WebSocket('ws://localhost:8765'); // Use env variable here
+  ws = new WebSocket('ws://localhost:8000/ws'); // Use env variable here
 
   ws.onopen = () => {
     console.log('WebSocket connected (Zustand)');
@@ -121,6 +122,10 @@ function connectWebSocket(get: () => StockState) {
 
   ws.onmessage = (event) => {
     const message = JSON.parse(event.data);
+    if (message.type === 'RATE_LIMIT') {
+           toast.error(`IBKR pacing hit – retrying in ${message.retry}s`);
+           return;
+        }
     switch (message.type) {
       case 'market_data':
         get().updateStock(message);

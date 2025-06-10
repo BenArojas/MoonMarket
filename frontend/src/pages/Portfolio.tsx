@@ -27,6 +27,9 @@ function Portfolio() {
   const accountSummary = useStockStore(state => state.accountSummary);
   const status = useStockStore(state => state.connectionStatus);
   const watchlist = useStockStore(state => state.watchlists);
+  // console.log({
+  //   stocks, accountSummary, status, watchlist
+  // })
 
   // This selector computes a derived value. It's automatically memoized.
   const totalValue = useStockStore(state =>
@@ -55,6 +58,9 @@ function Portfolio() {
       setLoadingAI(false);
     }
   };
+// return(
+//   <div>hey</div>
+// )
 
   return (
     <Box
@@ -154,6 +160,7 @@ interface StackedCardsWrapperProps {
 }
 const StackedCardsWrapper = ({ fetchInsights, loadingAI, accountSummary }: StackedCardsWrapperProps) => {
   const value = accountSummary.net_liquidation
+  console.log(value)
 
   return (
     <SnapshotChart
@@ -163,6 +170,6 @@ const StackedCardsWrapper = ({ fetchInsights, loadingAI, accountSummary }: Stack
     />
 
   );
-};
+}
 
 export default Portfolio;

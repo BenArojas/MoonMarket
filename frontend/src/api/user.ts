@@ -1,6 +1,7 @@
 import api from "@/api/axios";
 import { ChartDataPoint } from "@/components/CurrentStockChart";
 import { Dayjs } from "dayjs";
+import { Time } from "lightweight-charts";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -57,7 +58,7 @@ export const fetchHistoricalStockDataBars = async (
   period: string
 ): Promise<ChartDataBars[]> => {
   try {
-    const response = await api.get('/stocks/history', {
+    const response = await api.get('/market/history', {
       params: {
         ticker,
         period,
@@ -81,17 +82,13 @@ export const fetchHistoricalStockData = async (
   ticker: string,
   period: string
 ): Promise<ChartDataPoint[]> => {
-  try {
-    const response = await api.get('/stocks/history', {
-      params: {
-        ticker,
-        period,
-      },
-    });
-    return response.data as ChartDataPoint[];
-  } catch (error) {
-    console.error("Error fetching historical stock data:", error);
-    // Re-throw the error so react-query can catch it and set the error state
-    throw error;
-  }
+  const { data } = await api.get<ChartDataBars[]>('/market/history', {
+    params: { ticker, period },
+  });
+
+  // Pick the field you want to plot – here I’m using `close`
+  return data.map(({ time, close }) => ({
+    time: (time as unknown) as Time, // or convert to the exact Time type you need
+    value: close,
+  }));
 };

@@ -1,336 +1,156 @@
-# ibkr_service.py
+# models.py  – pydantic versions
 import asyncio
-from datetime import datetime, timezone
-import re
-import httpx
+import contextlib
 import json
 import logging
 import ssl
+import httpx
+from pydantic import BaseModel, Field
+from typing import Awaitable, Callable, Optional, List, Dict, Any
 import websockets
-from websockets.client import ClientProtocol
-from typing import Optional, Callable, Awaitable, List, Dict, Any
-from utils import safe_float_conversion, safe_string
-from config import AppConfig
-from app_state import AppState
-from models import AuthStatus, FrontendAccountSummaryUpdate, FrontendMarketDataUpdate, PositionData, AccountSummaryData, WatchlistMessage
+from models import AccountSummaryData, FrontendMarketDataUpdate
+from cache import cached
+from rate_control import paced
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
+
+class IBKRConfig(BaseModel):
+    host: str                  = Field(..., examples=["127.0.0.1"])
+    port: int                  = Field(..., examples=[4002])
+    client_id: int             = Field(..., examples=[1])
+    tls: bool                  = False
+    auth_token: Optional[str]  = None   # if you ever need OAuth
+
+class IBKRState(BaseModel):
+    ibkr_authenticated: bool = False
+    ibkr_session_token: Optional[str] = None
+    ws_connected: bool = False
+    account_id: Optional[str] = None
+    positions: List[Dict[str, Any]] = Field(default_factory=list)
+    account_summary: Optional[AccountSummaryData] = None
+    accounts_fetched: bool = False
+    accounts_cache: List[Dict[str, Any]] = Field(default_factory=list)
+
+class AuthStatusDTO(BaseModel):
+    authenticated: bool
+    websocket_ready: bool
+    message: str
 
 class IBKRService:
-    def __init__(self, config: AppConfig, app_state: AppState):
-        self.config = config
-        self.app_state = app_state
-        self.http_client = httpx.AsyncClient(verify=False, timeout=10) # verify=False for localhost SSL
-        self._ibkr_ws: Optional[ClientProtocol] = None
-        self._ws_listener_task: Optional[asyncio.Task] = None
-        self._ws_heartbeat_task: Optional[asyncio.Task] = None
-        self._session_tickler_task: Optional[asyncio.Task] = None
-        self._broadcast_callback: Optional[Callable[[str], Awaitable[None]]] = None
-        self._ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-        self._ssl_context.check_hostname = False
-        self._ssl_context.verify_mode = ssl.CERT_NONE
+    def __init__(self, base_url: str = "https://localhost:5000/v1/api"):
+        self.base_url = base_url.rstrip("/")
+        self.state = IBKRState()
+        self.http = httpx.AsyncClient(base_url=self.base_url, verify=False,
+                                      headers={"Host": "api.ibkr.com"})
+        self._ws_task: asyncio.Task | None = None
+    
+    def set_broadcast(self, cb: Callable[[str], Awaitable[None]]) -> None:
+        self._broadcast = cb
 
-    async def _make_request(self, method: str, endpoint: str, **kwargs) -> Optional[httpx.Response]:
-        try:
-            url = f"{self.config.ibkr_api_url}{endpoint}"
-            response = await self.http_client.request(method, url, **kwargs)
-            response.raise_for_status() # Raise an exception for bad status codes
-            return response
-        except Exception as e:
-            # Log the error but re-raise it instead of returning None
-            logger.error(f"Request error for {method} {endpoint}: {str(e)}")
-            raise  # Re-raise the exception instead of returning None
+    # ---------- low-level helpers ----------
+    @paced("dynamic")  
+    async def _req(self, method: str, ep: str, **kw):
+        r = await self.http.request(method, ep, **kw)
+        if r.status_code >= 400:
+            log.error("IBKR %s %s → %s", method, ep, r.text)
+        r.raise_for_status()
+        return r.json()
 
+    # ---------- auth flow ----------
     async def sso_validate(self) -> bool:
-        response = await self._make_request("GET", "/sso/validate")
-        if response and response.status_code == 200:
-            logger.info("SSO validation successful.")
-            self.app_state.ibkr_authenticated = True
+        try:
+            await self._req("GET", "/sso/validate")
             return True
-        logger.warning("SSO validation failed.")
-        self.app_state.ibkr_authenticated = False
-        return False
-
-    async def tickle_session(self) -> bool:
-        response = await self._make_request("POST", "/tickle")
-        if response and response.status_code == 200:
-            session_data = response.json()
-            self.app_state.ibkr_session_token = session_data.get("session")
-            if self.app_state.ibkr_session_token:
-                logger.info("Session tickled successfully, session token updated.")
-                self.app_state.ibkr_authenticated = True # Tickle implies auth active
-                return True
-            else:
-                logger.warning("Tickle successful but no session token found in response.")
-        else:
-            logger.error(f"Session tickle failed.")
-            self.app_state.ibkr_authenticated = False # If tickle fails, assume session might be dead
-        return False
-
-    async def maintain_session_tickle_task(self):
-        while True:
-            await self.tickle_session()
-            await asyncio.sleep(60) # Tickle every 60 seconds
-
-    async def get_account_id_from_api(self) -> Optional[str]:
-        if self.app_state.ibkr_account_id:
-            return self.app_state.ibkr_account_id
-        
-        response = await self._make_request("GET", "/portfolio/accounts")
-        if response:
-            accounts = response.json()
-            if accounts and isinstance(accounts, list) and accounts[0].get('accountId'):
-                self.app_state.ibkr_account_id = accounts[0]['accountId']
-                logger.info(f"Fetched IBKR Account ID: {self.app_state.ibkr_account_id}")
-                return self.app_state.ibkr_account_id
-        logger.error("Could not retrieve account ID.")
-        return None
-
-    async def get_conid_for_symbol(self, symbol: str, sec_type: str = "STK") -> Optional[str]:
-        response = await self._make_request(
-            "GET", 
-            "/iserver/secdef/search", 
-            params={
-                "symbol": symbol,
-                "secType": sec_type
-            }
-        )
-        if not response:
-            return None
-        
-        results = response.json()
-        if results and len(results) > 0:
-            return results[0].get("conid")
-        return None
-    
-    def calculate_daily_change_percentage(self, snapshot_data: dict) -> Optional[dict]:
-        """
-        Extract and calculate price change data from snapshot response
-        Using correct IBKR field codes
-        """
-        if not snapshot_data or len(snapshot_data) == 0:
-            return None
-            
-        data = snapshot_data[0]  # Snapshot returns a list with one item
-        
-        # Extract data using correct field codes
-        last_price = safe_float_conversion(data.get("31", "0"))      # Last Price
-        prev_close = safe_float_conversion(data.get("7741", "0"))   # Prior Close (Yesterday's closing price)
-        change_amount = safe_float_conversion(data.get("82", "0"))  # Change
-        change_percent = safe_float_conversion(data.get("83", "0")) # Change %
-        dayHigh = safe_float_conversion(data.get("70", "0"))
-        dayLow = safe_float_conversion(data.get("71", "0"))
-        
-        # Calculate manually as backup/verification
-        calculated_change_percent = 0.0
-        if prev_close != 0:
-            calculated_change_percent = ((last_price - prev_close) / prev_close) * 100
-        
-        # Log for debugging
-        logger.info(f"Raw field values - 31: {data.get('31')}, 7741: {data.get('7741')}, 82: {data.get('82')}, 83: {data.get('83')}, 70: {data.get('70')}, 71: {data.get('71')}")
-        
-        result = {
-            "last_price": last_price,
-            "previous_close": prev_close,
-            "change_amount": change_amount,
-            "change_percent": change_percent,  # From API
-            "calculated_change_percent": calculated_change_percent,
-            "dayLow": dayLow,
-            "dayHigh": dayHigh
-            
-        }
-        
-        return result
-    
-    # Alternative version with additional useful fields
-    async def fetch_extended_stock_data(self, conid: str) -> dict:
-        """
-        Fetch extended stock data with additional useful fields
-        """
-        # Extended field set:
-        # 31 = Last Price
-        # 7741 = Prior Close
-        # 82 = Change
-        # 83 = Change %
-        # 70 = High (Current day high price)
-        # 71 = Low (Current day low price)
-        # 7295 = Open (Today's opening price)
-        # 87 = Volume
-        # 55 = Symbol
-        # 7051 = Company name
-        fields = "31,7741,82,83,70,71,7295,87,55,7051"
-        
-        params = {
-            "conids": conid,
-            "fields": fields
-        }
-        
-        try:
-            response = await self._make_request("GET", "/iserver/marketdata/snapshot", params=params)
-            if response is None:
-                raise Exception(f"Failed to fetch extended stock data: API request returned None")
-            return response.json()
-        except Exception as e:
-            logger.error(f"Failed to fetch extended stock data for conid {conid}: {str(e)}")
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 401:
+                return False
             raise
+
+    async def tickle(self) -> bool:
+        data = await self._req("POST", "/tickle")
+        self.state.ibkr_authenticated = True
+        self.state.ibkr_session_token = data.get("session")
+        return True
     
-    def parse_extended_stock_data(self, snapshot_data: dict) -> Optional[dict]:
+    async def ensure_accounts(self):
+        if not self.state.accounts_fetched:
+            log.info("Priming IBKR session by calling /iserver/accounts")
+            self.state.accounts_cache = await self._req("GET", "/iserver/accounts")
+            self.state.accounts_fetched = True
+
+    async def check_and_authenticate(self) -> AuthStatusDTO:
         """
-        Parse extended stock data with additional fields
+        Called from the /auth/status endpoint.
+        Returns AuthStatusDTO; if authenticated for the
+        first time it also spins up the WebSocket task.
         """
-        if not snapshot_data or len(snapshot_data) == 0:
+        if not await self.sso_validate():
+            log.info("[SVC]  ➜  not validated – ask user to login")
+            return AuthStatusDTO(authenticated=False, websocket_ready=False, message= "Please log in via https://localhost:5000")
+
+        log.info("[SVC]  SSO validated – tickling session …")
+        await self.tickle()
+
+        if self.state.ibkr_authenticated and not self.state.ws_connected:
+            # first time we’re authenticated → launch WS
+            log.info("[SVC]  first-time auth – launching WS task")
+            self._ws_task = asyncio.create_task(self._websocket_loop())
+            self.state.ws_connected = True
+            log.info("IBKR WS task started.")
+
+        return AuthStatusDTO(authenticated=True, websocket_ready=self.state.ws_connected,
+                             message="Authenticated & session active")
+        
+    async def logout(self):
+        return await self._req("POST", "/logout")
+        
+    # market ----------------------------------------------------------
+    @cached(ttl=3600)
+    async def get_conid(self, symbol: str, sec_type: str = "STK") -> str | None:
+        try:
+            res = await self._req(
+                "GET",
+                "/iserver/secdef/search",
+                params={"symbol": symbol, "secType": sec_type},
+            )
+            return res[0]["conid"] if res else None
+        except httpx.HTTPStatusError as exc:
+            log.warning("secdef search failed %s %s", exc.response.status_code, symbol)
             return None
-            
-        data = snapshot_data[0]
-        
-        # Parse all fields
-        last_price = safe_float_conversion(data.get("31", "0"))
-        prev_close = safe_float_conversion(data.get("7741", "0"))
-        change_amount = safe_float_conversion(data.get("82", "0"))
-        change_percent = safe_float_conversion(data.get("83", "0"))
-        high = safe_float_conversion(data.get("70", "0"))
-        low = safe_float_conversion(data.get("71", "0"))
-        open_price = safe_float_conversion(data.get("7295", "0"))
-        volume = safe_string(data.get("87", ""))  # Volume is formatted (K/M), keep as string
-        symbol = safe_string(data.get("55", ""))
-        company_name = safe_string(data.get("7051", ""))
-        
-        # Calculate change percentage as verification
-        calculated_change_percent = 0.0
-        if prev_close != 0:
-            calculated_change_percent = ((last_price - prev_close) / prev_close) * 100
-        
-        return {
-            "last_price": last_price,
-            "previous_close": prev_close,
-            "change_amount": change_amount,
-            "change_percent": change_percent,
-            "calculated_change_percent": calculated_change_percent,
-            "high": high,
-            "low": low,
-            "open": open_price,
-            "volume": volume,
-            "symbol": symbol,
-            "company_name": company_name,
-            "raw_data": data  # Include raw data for debugging
-        }
+
+    @cached(ttl=15)
+    async def snapshot(self, conids, fields="31,84,86"):
+        await self.ensure_accounts()
+        q = {"conids": ",".join(map(str, conids)), "fields": fields}
+        return await self._req("GET", "/iserver/marketdata/snapshot", params=q)
+
+    @cached(ttl=15)
+    async def history(self, conid, period="1w", bar="15min"):
+        q = {"conid": conid, "period": period, "bar": bar, "outsideRth": "true"}
+        return await self._req("GET", "/iserver/marketdata/history", params=q)
+
+    # positions -------------------------------------------------------
+    # @cached(ttl=30)
+    async def positions(self, acct: str | None = None):
+        acct = acct or await self._primary_account()
+        return await self._req("GET", f"/portfolio/{acct}/positions")
+
+    # account ---------------------------------------------------------
+    async def _primary_account(self) -> str | None:
+        if self.state.account_id:
+            return self.state.account_id
+        data = await self._req("GET", "/portfolio/accounts")
+        self.state.account_id = data[0]["accountId"]
+        return self.state.account_id
     
-    async def fetch_historical_data(self, conid: str, period: str, bar: str) -> dict:
-        params = {
-            "conid": conid,
-            "period": period,
-            "bar": bar,
-            "outsideRth": "true"
-        }
-        try:
-            response = await self._make_request("GET", "/iserver/marketdata/history", params=params)
-            if response is None:
-                raise Exception(f"Failed to fetch historical data: API request returned None")
-            return response.json()
-        except Exception as e:
-            logger.error(f"Failed to fetch historical data for conid {conid}: {str(e)}")
-            raise  # Re-raise to let the calling code handle it
-        
-    async def fetch_stock_data(self, conid: str) -> dict:
-        """
-        Fetch stock data using correct IBKR field codes
-        Based on official IBKR API documentation
-        """
-        accounts = await self._make_request("GET", "/iserver/accounts")
-        # logging.info(f"pre-flight request + {accounts.json()}")
-        await asyncio.sleep(3)
-        # Correct field codes based on IBKR documentation:
-        # 31 = Last Price
-        # 7741 = Prior Close (Yesterday's closing price)
-        # 82 = Change (The difference between the last price and the close on the previous trading day)
-        # 83 = Change % (The difference between the last price and the close on the previous trading day in percentage)
-        fields = "31,7741,82,83,70,71"
-        
-        params = {
-            "conids": conid,
-            "fields": fields
-        }
-        
-        try:
-            response = await self._make_request("GET", "/iserver/marketdata/snapshot", params=params)
-            if response is None:
-                raise Exception(f"Failed to fetch stock data: API request returned None")
-            return response.json()
-        except Exception as e:
-            logger.error(f"Failed to fetch stock data for conid {conid}: {str(e)}")
-            raise
-        
-    async def check_market_data_subscriptions(self):
-        """Check available market data subscriptions"""
-        try:
-            response = await self._make_request("GET", "/iserver/marketdata/subscriptions")
-            logging.info(f"Market data subscriptions: {response.json()}")
-            return response.json()
-        except Exception as e:
-            logging.error(f"Subscription check failed: {e}")
-            return None
-        
+    async def account_summary(self, acct: str | None = None) -> AccountSummaryData:
+        acct = acct or await self._primary_account()
+        response = await self._req("GET", f"/portfolio/{acct}/summary")
 
-    async def fetch_portfolio_positions_from_api(self) -> List[PositionData]:
-        account_id = self.app_state.ibkr_account_id or await self.get_account_id_from_api()
-        if not account_id: return []
-
-        response = await self._make_request("GET", f"/portfolio/{account_id}/positions")
-        if not response: return []
-        
-        positions_api_data = response.json()
-        updated_positions = []
-        if isinstance(positions_api_data, list):
-            for pos_data in positions_api_data:
-                conid = pos_data.get('conid')
-                if not conid: continue
-                
-                position = PositionData(
-                    symbol=pos_data.get('contractDesc', 'N/A'),
-                    conid=int(conid),
-                    last_price=pos_data.get('mktPrice', 0.0),
-                    avg_bought_price=pos_data.get('avgCost', 0.0),
-                    quantity=pos_data.get('position', 0.0),
-                    mkt_value=pos_data.get('mktValue', 0.0),
-                    unrealized_pnl=pos_data.get('unrealizedPnl', 0.0)
-                )
-                self.app_state.update_or_create_position(str(conid), position)
-                updated_positions.append(position)
-            logger.info(f"Fetched and updated {len(updated_positions)} positions.")
-        return updated_positions
-
-    async def fetch_watchlists_from_api(self):
-        
-        account_id = self.app_state.ibkr_account_id or await self.get_account_id_from_api()
-        if not account_id: return None
-        params ={
-            "SC": "USER_WATCHLIST"
-        }
-        response = await self._make_request("GET", "/iserver/watchlists", params = params)
-        if not response: return None
-        watchlists_data = response.json()
-        # Extract just ID and name from user_lists
-        watchlists = {}
-        if 'data' in watchlists_data and 'user_lists' in watchlists_data['data']:
-            for watchlist in watchlists_data['data']['user_lists']:
-                watchlists[watchlist['id']] = watchlist['name']
-        
-        return watchlists
-        
-
-    async def fetch_account_summary_from_api(self) -> Optional[AccountSummaryData]:
-        account_id = self.app_state.ibkr_account_id or await self.get_account_id_from_api()
-        if not account_id: return None
-
-        response = await self._make_request("GET", f"/portfolio/{account_id}/summary")
-        if not response: return None
-        
-        summary_api_data = response.json()
         # Transform to AccountSummaryData model
-        # This example is basic; you'd map specific known fields and put others in additional_details
         mapped_summary = {
             key.lower().replace(' ', '_'): details.get("amount") if isinstance(details, dict) else details
-            for key, details in summary_api_data.items()
+            for key, details in response.items()
             if isinstance(details, dict) and "amount" in details # Only take items with amount
         }
         
@@ -338,13 +158,11 @@ class IBKRService:
             net_liquidation=mapped_summary.get("netliquidation"),
             total_cash_value=mapped_summary.get("totalcashvalue"),
             buying_power=mapped_summary.get("buyingpower"),
-            additional_details={k:v for k,v in summary_api_data.items() if k.lower().replace(' ', '_') not in mapped_summary}
+            additional_details={k:v for k,v in response.items() if k.lower().replace(' ', '_') not in mapped_summary}
         )
-        self.app_state.update_account_summary(summary)
-        logger.info("Fetched and updated account summary.")
         return summary
     
-    async def fetch_account_performance_history(self, period: str = "1Y") -> list[dict]:
+    async def account_performance(self, period: str = "1Y", acct: str | None = None) -> list[dict]:
         """
         Fetches historical account NAV data from /pa/performance for the primary account
         and transforms it into the format required by the frontend chart.
@@ -352,325 +170,126 @@ class IBKRService:
         :param period: The period for which to fetch data (e.g., "1D", "1M", "1Y").
         :return: A list of dictionaries, e.g., [{'time': 1609459200, 'value': 100500.75}, ...]
         """
-        if not self.app_state.ibkr_authenticated:
-            logger.error("IBKR not authenticated or base_url missing for performance history call.")
-            return []
         
-        account_id = self.app_state.ibkr_account_id or await self.get_account_id_from_api()
+        acct = acct or await self._primary_account()
 
         # Use the primary account ID fetched and stored in app_state
         payload = {
-            "acctIds": [account_id], 
+            "acctIds": [acct], 
             "period": period
         }
         headers = {"Content-Type": "application/json"}
 
-        try:
-            response = await self._make_request(
+        return await self._req(
             "POST", 
             "/pa/performance",
             json=payload,  
             headers=headers
             )
-            if not response: return []
-            performance_data = response.json()
-            
-            # Navigate the IBKR response structure to get NAVs and dates
-            # Expected path based on documentation: response['nav']['data'][0] for NAVs, response['nav']['dates'] for dates
-            nav_section = performance_data.get("nav", {})
-            account_nav_details_list = nav_section.get("data", [])
-            
-            if not account_nav_details_list:
-                logger.warning(f"No 'data' array found in 'nav' section for /pa/performance. Account: {self.app_state.ibkr_account_id}, Period: {period}")
-                return []
-            
-            # Assuming the first entry in 'data' corresponds to our requested accountId
-            account_nav_data = account_nav_details_list[0]
-            
-            nav_values = account_nav_data.get("navs", [])
-            date_strings = nav_section.get("dates", []) # Dates are directly under 'nav'
-
-            if not nav_values or not date_strings:
-                logger.warning(f"Missing 'navs' or 'dates' in /pa/performance response. NAVs: {len(nav_values)}, Dates: {len(date_strings)}")
-                return []
-
-            if len(nav_values) != len(date_strings):
-                logger.error(f"Data mismatch: {len(nav_values)} NAV values but {len(date_strings)} dates.")
-                return []
-
-            chart_data_points = []
-            for i in range(len(date_strings)):
-                date_str = date_strings[i]  # Format: "YYYYMMDD"
-                nav_val = nav_values[i]
-                
-                try:
-                    # Convert "YYYYMMDD" to a datetime object
-                    dt_obj_naive = datetime.strptime(date_str, "%Y%m%d")
-                    # Assume the date represents the start of the day in UTC for consistency.
-                    # Lightweight Charts expects UNIX timestamps in seconds.
-                    dt_obj_utc = dt_obj_naive.replace(tzinfo=timezone.utc)
-                    timestamp_seconds = int(dt_obj_utc.timestamp())
-                    
-                    chart_data_points.append({"time": timestamp_seconds, "value": float(nav_val)})
-                except ValueError as e:
-                    logger.error(f"Error parsing date '{date_str}' or NAV '{nav_val}': {e}")
-                    continue 
-                except TypeError as e: # Handles cases where nav_val might not be directly float-convertible (e.g. None)
-                    logger.error(f"Error converting NAV '{nav_val}' to float for date '{date_str}': {e}")
-                    continue
-
-
-            logger.info(f"Successfully fetched and transformed {len(chart_data_points)} NAV data points for account {self.app_state.ibkr_account_id}, period {period}.")
-            return chart_data_points
-
-        except httpx.HTTPStatusError as e:
-            logger.error(f"HTTP error calling /pa/performance: {e.response.status_code} - {e.response.text}")
-        except httpx.RequestError as e: # Covers network errors, timeouts etc.
-            logger.error(f"Request error calling /pa/performance: {e}")
-        except Exception as e:
-            logger.error(f"Unexpected error fetching or processing account performance for {self.app_state.ibkr_account_id}, period {period}: {e}", exc_info=True)
-        return []
-
-    async def _ws_send_heartbeat_task(self):
-        try:
-            while self._ibkr_ws and not self._ibkr_ws.state == websockets.protocol.State.CLOSED:
-                await asyncio.sleep(30)
-                if self._ibkr_ws and not self._ibkr_ws.state == websockets.protocol.State.CLOSED:  # Re-check before send
-                    await self._ibkr_ws.send('tic')
-                    logger.debug("Sent 'tic' heartbeat to IBKR WS.")
-        except websockets.ConnectionClosed:
-            logger.info("IBKR WS connection closed during heartbeat task.")
-        except Exception as e:
-            logger.error(f"Error in IBKR WS heartbeat task: {e}")
-
-    async def _process_ibkr_ws_message(self, message_str: str):
-        logger.debug(f"IBKR WS Recv: {message_str}")
-        try:
-            messages_list = json.loads(message_str) if message_str.startswith('[') else [json.loads(message_str)]
-        except json.JSONDecodeError:
-            if "sok" in message_str or "ack" in message_str: # Subscription confirmation or ack
-                logger.info(f"IBKR WS confirmation: {message_str}")
-            else:
-                logger.warning(f"Non-JSON/unhandled message from IBKR WS: {message_str}")
-            return
-
-        for ibkr_msg in messages_list:
-            if not isinstance(ibkr_msg, dict): continue
-            topic = ibkr_msg.get("topic", "")
-
-            if topic == "hb": continue # Handled by our 'tic' sender
-            if topic == "system": logger.info(f"IBKR System: {ibkr_msg.get('message')}"); continue
-
-            # Market Data Processing
-            conid_from_topic = None
-            if topic.startswith("smd+"):
-                try: conid_from_topic = topic.split('+')[1]
-                except IndexError: pass
-            
-            data_payload = ibkr_msg.get("args", ibkr_msg) # Some APIs nest data in 'args'
-            if not isinstance(data_payload, dict): data_payload = ibkr_msg # Fallback
-
-            msg_conid_str = str(data_payload.get("conid", conid_from_topic))
-
-            if msg_conid_str != "None" and (position := self.app_state.get_position(msg_conid_str)):
-                new_price = None
-                if "31" in data_payload: new_price = float(data_payload["31"]) # Last Price
-                elif "7295" in data_payload: new_price = float(data_payload["7295"]) # Mark Price
-
-                if new_price is not None and position.last_price != new_price:
-                    position.update_market_data(new_price)
-                    if self._broadcast_callback:
-                        await self._broadcast_callback(json.dumps(FrontendMarketDataUpdate.from_position_data(position).model_dump()))
-            
-            # Account Summary Processing (if subscribed via WS)
-            elif topic.startswith("sor+"):
-                logger.info(f"IBKR WS account update (sor): {ibkr_msg}. Triggering summary fetch via API.")
-                # For simplicity, re-fetch summary via REST. Direct parsing of 'sor' could be added.
-                new_summary = await self.fetch_account_summary_from_api()
-                if new_summary and self._broadcast_callback:
-                    await self._broadcast_callback(json.dumps(FrontendAccountSummaryUpdate(data=new_summary.model_dump(exclude_none=True)).model_dump()))
-
-
-    async def _ws_listener_loop(self):
-        if not self._ibkr_ws: return
-        try:
-            async for message_str in self._ibkr_ws:
-                await self._process_ibkr_ws_message(message_str)
-        except websockets.ConnectionClosedError as e:
-            logger.warning(f"IBKR WebSocket connection closed: {e}")
-        except Exception as e:
-            logger.error(f"Error in IBKR WebSocket listener loop: {e}", exc_info=True)
-        finally:
-            self.app_state.ibkr_websocket_connected = False
-            if self._ws_heartbeat_task and not self._ws_heartbeat_task.done():
-                self._ws_heartbeat_task.cancel()
-
-    async def manage_ibkr_websocket_connection(self, broadcast_callback: Callable[[str], Awaitable[None]]):
-        self._broadcast_callback = broadcast_callback
-        while True:
-            if not self.app_state.ibkr_authenticated or not self.app_state.ibkr_session_token:
-                logger.info("IBKR not authenticated or session token missing. WS connection deferred.")
-                await asyncio.sleep(5)
-                continue
-            
-            try:
-                logger.info(f"Attempting to connect to IBKR WebSocket: {self.config.ibkr_ws_url}")
-                async with websockets.connect(str(self.config.ibkr_ws_url), ssl=self._ssl_context) as ws:
-                    self._ibkr_ws = ws
-                    self.app_state.ibkr_websocket_connected = True
-                    logger.info("Successfully connected to IBKR WebSocket.")
-
-                    # Start heartbeat task
-                    if self._ws_heartbeat_task and not self._ws_heartbeat_task.done(): self._ws_heartbeat_task.cancel()
-                    self._ws_heartbeat_task = asyncio.create_task(self._ws_send_heartbeat_task())
-
-                    # Initial data fetch and subscriptions
-                    await self.get_account_id_from_api() # Ensure account ID is loaded
-                    initial_positions = await self.fetch_portfolio_positions_from_api()
-                    watchlists = await self.fetch_watchlists_from_api()
-                    if watchlists and self._broadcast_callback:
-                        self.app_state.watchlists = watchlists
-                        await self._broadcast_callback(json.dumps(WatchlistMessage(data=watchlists).model_dump()))
-                    for pos in initial_positions: # Broadcast initial state
-                        if self._broadcast_callback:
-                            await self._broadcast_callback(json.dumps(FrontendMarketDataUpdate.from_position_data(pos).model_dump()))
-                    
-                    initial_summary = await self.fetch_account_summary_from_api()
-                    if initial_summary and self._broadcast_callback:
-                        await self._broadcast_callback(json.dumps(FrontendAccountSummaryUpdate(data=initial_summary.model_dump(exclude_none=True)).model_dump()))
-
-                    # Subscribe to market data for all current positions
-                    conids_to_subscribe = [str(p.conid) for p in self.app_state.current_positions.values()]
-                    for conid_str in conids_to_subscribe:
-                        sub_msg = f'smd+{conid_str}+{{"fields":["31", "7295"]}}' # Last, Mark Price
-                        await self._ibkr_ws.send(sub_msg)
-                        logger.info(f"Subscribed to market data for conid {conid_str}")
-                    
-                    # Start listener loop (blocks until connection closes)
-                    await self._ws_listener_loop()
-
-            except ConnectionRefusedError:
-                logger.error(f"IBKR WebSocket connection refused. Is Gateway/Portal running at {self.config.ibkr_ws_url}?")
-            except Exception as e:
-                logger.error(f"Error in IBKR WebSocket management: {e}", exc_info=True)
-            
-            # Cleanup and retry delay
-            self.app_state.ibkr_websocket_connected = False
-            if self._ibkr_ws and not self._ibkr_ws.state == websockets.protocol.State.CLOSED: await self._ibkr_ws.close()
-            self._ibkr_ws = None
-            if self._ws_heartbeat_task and not self._ws_heartbeat_task.done(): self._ws_heartbeat_task.cancel()
-            
-            logger.info("Retrying IBKR WebSocket connection in 15 seconds...")
-            await asyncio.sleep(15)
-
-    async def start_services(self, broadcast_callback: Callable[[str], Awaitable[None]]):
-        # Initial auth check
-        await self.sso_validate()
         
-        # Start background tasks
-        if self._session_tickler_task and not self._session_tickler_task.done(): self._session_tickler_task.cancel()
-        self._session_tickler_task = asyncio.create_task(self.maintain_session_tickle_task())
-
-        if self._ws_listener_task and not self._ws_listener_task.done(): self._ws_listener_task.cancel()
-        self._ws_listener_task = asyncio.create_task(self.manage_ibkr_websocket_connection(broadcast_callback))
-
-    async def stop_services(self):
-        logger.info("Stopping IBKR services...")
-        
-        # Cancel tasks
-        if self._session_tickler_task: 
-            self._session_tickler_task.cancel()
-        if self._ws_listener_task: 
-            self._ws_listener_task.cancel()
-        if self._ws_heartbeat_task: 
-            self._ws_heartbeat_task.cancel()
-        
-        # Close WebSocket connection - check state instead of closed attribute
-        if self._ibkr_ws and self._ibkr_ws.state != websockets.protocol.State.CLOSED:
-            await self._ibkr_ws.close()
-        
-        # Close HTTP client
-        await self.http_client.aclose()
-        # Reset connection state
-        self._ibkr_ws = None
-        self._ws_listener_task = None
-        self._ws_heartbeat_task = None
-        self._session_tickler_task = None
-        logger.info("IBKR services stopped.")
-
-    async def get_auth_status_details(self) -> AuthStatus:
-        """Provides detailed authentication status, similar to user's original endpoint."""
-        is_authenticated = self.app_state.ibkr_authenticated
-        status_kwargs = {"authenticated": is_authenticated}
-
-        if is_authenticated:
-            try:
-                # This makes an actual /tickle call to get freshest data, could also use AppState if preferred for less IO
-                response = await self.http_client.post(f"{self.config.ibkr_api_url}/tickle") # No raise_for_status here
-                if response and response.status_code == 200:
-                    auth_data = response.json()
-                    
-                    # Convert user_id to string to match Pydantic model expectations
-                    user_id = auth_data.get("userId", "unknown")
-                    if isinstance(user_id, int):
-                        user_id = str(user_id)
-                    
-                    status_kwargs.update({
-                        "session_active": True,
-                        "session_id_short": (auth_data.get("session", "")[:8] + "...") if auth_data.get("session") else "unknown",
-                        "user_id": user_id,
-                        "iserver_status": auth_data.get("iserver", {}).get("authStatus", {}),
-                        "websocket_ready": self.app_state.ibkr_websocket_connected
-                    })
-                else:
-                    status_kwargs["session_active"] = False
-                    status_kwargs["message"] = "Tickle failed or session inactive."
-                    if response: status_kwargs["message"] += f" Status: {response.status_code}"
-            except Exception as e:
-                logger.error(f"Error getting detailed auth status from tickle: {e}")
-                status_kwargs["session_active"] = False
-                status_kwargs["error"] = str(e)
-        else:
-            status_kwargs["message"] = f"Please authenticate. Gateway might not be running or logged in."
-        
-        return AuthStatus(**status_kwargs)
-    
-    async def logout(self) -> dict:
-        """
-        Perform logout operations - close IBKR WebSocket and clean up sessions.
-        Returns details about the logout operation.
-        """
-        logger.info("Starting logout process...")
-        logout_details = {
-            "ibkr_websocket_closed": False,
-            "session_invalidated": False,
-            "tasks_cancelled": False
+    async def account_watchlists(self):
+        acct = acct or await self._primary_account()
+        if not acct: return None
+        params ={
+            "SC": "USER_WATCHLIST"
         }
+        response = await self._req("GET", "/iserver/watchlists", params = params)
+        if not response: return None
+        # Extract just ID and name from user_lists
+        watchlists = {}
+        if 'data' in response and 'user_lists' in response['data']:
+            for watchlist in response['data']['user_lists']:
+                watchlists[watchlist['id']] = watchlist['name']
         
-        try:
-            # 1. Stop all background tasks and close WebSocket
-            await self.stop_services()
-            logout_details["ibkr_websocket_closed"] = True
-            logout_details["tasks_cancelled"] = True
-            
-            # 2. Optional: Make HTTP request to IBKR logout endpoint if available
+        return watchlists
+
+    
+
+
+    # ---------- WebSocket handling ----------
+    async def _websocket_loop(self) -> None:
+        """
+        *Dial the Client-Portal WS as a **client***
+        • subscribe to every position once
+        • forward each ‘tick’ to React via self._broadcast(...)
+        • keep the socket alive with "tic"
+        """
+        uri = "wss://localhost:5000/v1/api/ws"
+        ssl_ctx = ssl.SSLContext(); ssl_ctx.check_hostname = False
+        ssl_ctx.verify_mode = ssl.CERT_NONE
+
+        while True:                                   # reconnect forever
             try:
-                logout_response = await self.http_client.post(
-                    f"{self.config.ibkr_api_url}/logout",
-                    json={}
-                )
-                if logout_response.status_code == 200:
-                    logout_details["session_invalidated"] = True
-                    logger.info("IBKR session invalidated via HTTP")
-            except Exception as e:
-                logger.warning(f"Could not invalidate IBKR session via HTTP: {e}")
-            
-            # 3. Clear any cached authentication state
-            
-            
-            logger.info("Logout completed successfully")
-            return logout_details
-            
-        except Exception as e:
-            logger.error(f"Error during logout: {e}", exc_info=True)
-            raise
+                cookie = f"api={{'session':'{self.state.ibkr_session_token}'}}"
+                self.state.ws_connected = False       # pessimistic
+
+                # log.debug("[WS]  pulling positions via REST")
+                self.state.positions = await self.positions()   # REST call
+                conids = [str(p["conid"]) for p in self.state.positions]
+                log.info("[WS]  %d positions found", len(conids))
+                
+                self.state.account_summary = await self.account_summary()
+
+                # --- dial -----------------------------------------------------------------
+                async with websockets.connect(
+                        uri,
+                        ssl=ssl_ctx,
+                        additional_headers=[("Cookie", cookie)]) as ws:
+
+                    self.state.ws_connected = True
+                    # log.info("[WS]  connected – sending initial snapshot")
+
+                    # ❶ send one snapshot of positions to FE
+                    for idx, p in enumerate(self.state.positions, 1):
+                        await self._broadcast(
+                            FrontendMarketDataUpdate.from_position_row(p).model_dump_json()
+                        )
+                        # log.info("[WS]  snapshot %d/%d sent", idx, len(self.state.positions))
+
+                    # ❷ subscribe to live price fields 31 (last) & 7295 (mark)
+                    for cid in conids:
+                        await ws.send(f'smd+{cid}+{{"fields":["31","7295"]}}')
+                    log.info("[WS]  subscriptions sent")
+
+                    # ❸ heartbeat helper ---------------------------------------------------
+                    async def heartbeat():
+                        while True:
+                            await ws.send("tic")
+                            await asyncio.sleep(30)
+                    hb = asyncio.create_task(heartbeat())
+
+                    # ❹ main receive loop --------------------------------------------------
+                    async for raw in ws:                      # raw may be str *or* bytes
+                        if isinstance(raw, bytes):            # ← new
+                            try:
+                                raw = raw.decode("utf-8")     # convert to str
+                            except UnicodeDecodeError:
+                                continue                      # skip non-UTF8 payloads
+
+                        # from here on `raw` is guaranteed to be str
+                        if raw in ("sok", "ack", "hb"):       # ignore housekeeping
+                            continue
+
+                        try:
+                            payloads = json.loads(raw) if raw.startswith("[") else [json.loads(raw)]
+                        except json.JSONDecodeError:
+                            # log.debug("non-JSON WS frame ignored: %s", raw[:60])
+                            continue                    # ignore "sok", "hb", etc.
+
+                        for msg in payloads:
+                            if msg.get("topic", "").startswith("smd+"):
+                                # minimal example — just forward entire IBKR blob
+                                await self._broadcast(json.dumps(msg))
+                    hb.cancel()                        # socket closed cleanly
+            except Exception as exc:
+                log.warning("WS loop error: %s – reconnect in 15 s", exc)
+                await asyncio.sleep(15)
+
+    # ---------- graceful shutdown ----------
+    async def stop(self):
+        if self._ws_task:
+            self._ws_task.cancel()
+            with contextlib.suppress(Exception):
+                await self._ws_task
+        await self.http.aclose()
+        

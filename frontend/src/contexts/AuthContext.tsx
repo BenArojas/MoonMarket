@@ -1,7 +1,7 @@
 // AuthContext.tsx
 import React, { createContext, useContext, useEffect } from "react"; // 1. Import useEffect
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchAuthStatus, logout as apiLogout } from "@/api/auth"; // Renamed to avoid conflict
+import { fetchAuthStatus, logout as apiLogout, AuthDTO } from "@/api/auth"; // Renamed to avoid conflict
 import { useStockStore } from "@/stores/stockStore"; // 2. Import your Zustand store
 
 interface AuthContextType {
@@ -23,16 +23,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const connectWebSocket = useStockStore((state) => state.connect);
   const disconnectWebSocket = useStockStore((state) => state.disconnect);
   const {
-    data: isAuth,
+    data: auth,
     isLoading,
     isError,
     error,
-  } = useQuery<boolean>({
+  } = useQuery<AuthDTO>({
     queryKey: ["authStatus"],
     queryFn: fetchAuthStatus,
     retry: false,
     refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000,
   });
+  const isAuth = auth?.authenticated;
 
   // 4. ADD THIS USEEFFECT FOR THE CONNECTION LIFECYCLE
   useEffect(() => {

@@ -3,12 +3,16 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 
+export interface AuthDTO {
+  authenticated: boolean
+  websocket_ready: boolean
+  message: string
+}
+
 export const fetchAuthStatus = async () => {
-  const response = await authCheckApi.get("/auth/status");
-  if (response.data.authenticated === false) {
-    toast.error(response.data.message);
-  }
-  return response.data.authenticated;
+  const { data } = await authCheckApi.get<AuthDTO>("/auth/status");
+  if (!data.authenticated) toast.error(data.message);
+  return data;                               // return entire object
 };
 
 export const logout = async () => {

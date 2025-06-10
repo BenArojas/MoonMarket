@@ -1,26 +1,6 @@
 # models.py
-import logging
-from pydantic import BaseModel, Field
-from typing import Dict, Any, Optional, List
-
-class PositionData(BaseModel):
-    symbol: str
-    conid: int
-    last_price: float = 0.0
-    avg_bought_price: float = 0.0
-    quantity: float = 0.0 # Use float for quantity if fractional shares are possible
-    mkt_value: float = 0.0
-    unrealized_pnl: float = 0.0
-
-    def update_market_data(self, new_price: float):
-        self.last_price = new_price
-        self.mkt_value = self.last_price * self.quantity
-        if self.avg_bought_price != 0: # Avoid issues if avg_cost is zero
-            self.unrealized_pnl = (self.last_price - self.avg_bought_price) * self.quantity
-        elif self.quantity > 0 : # PNL is market value if no cost basis
-             self.unrealized_pnl = self.mkt_value
-        else:
-            self.unrealized_pnl = 0.0
+from pydantic import BaseModel
+from typing import Dict, Any, Optional
 
 
 class AccountSummaryData(BaseModel):
@@ -45,14 +25,14 @@ class FrontendMarketDataUpdate(FrontendMessageBase):
     unrealized_pnl: float
 
     @classmethod
-    def from_position_data(cls, pos: PositionData) -> "FrontendMarketDataUpdate":
+    def from_position_row(cls, row: dict) -> "FrontendMarketDataUpdate":
         return cls(
-            symbol=pos.symbol,
-            last_price=pos.last_price,
-            avg_bought_price=pos.avg_bought_price,
-            quantity=pos.quantity,
-            value=pos.mkt_value,
-            unrealized_pnl=pos.unrealized_pnl,
+            symbol=row["contractDesc"],
+            last_price=row["mktPrice"],
+            avg_bought_price=row["avgCost"],
+            quantity=row["position"],
+            value=row["mktValue"],
+            unrealized_pnl=row["unrealizedPnl"],
         )
 
 class FrontendAccountSummaryUpdate(FrontendMessageBase):
