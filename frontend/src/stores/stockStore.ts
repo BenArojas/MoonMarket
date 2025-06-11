@@ -16,11 +16,13 @@ export type AccountSummaryData = {
   total_cash_value: number
   buying_power: number
 }
+type WatchlistDict = Record<string, string>; 
+
 interface StockState {
   // State
   stocks: { [symbol: string]: StockData };
   accountSummary: AccountSummaryData
-  watchlists: { [key: string]: string }
+  watchlists: WatchlistDict
   connectionStatus: 'disconnected' | 'connecting' | 'connected' | 'error';
   error?: string;
 
@@ -30,7 +32,7 @@ interface StockState {
   clearError: () => void;
   updateStock: (data: any) => void;
   setAccountSummary: (data: any) => void;
-  setWatchlists: (data: any) =>void
+  setWatchlists: (w: WatchlistDict) => void;
   clearAllData: () => void;
 
   // Connection management actions

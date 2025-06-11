@@ -41,6 +41,7 @@ class IBKRService:
         self.base_url = base_url.rstrip("/")
         self.state = IBKRState()
         self.http = httpx.AsyncClient(base_url=self.base_url, verify=False,
+                                      timeout=httpx.Timeout(30.0),
                                       headers={"Host": "api.ibkr.com"})
         self._ws_task: asyncio.Task | None = None
     
@@ -187,7 +188,7 @@ class IBKRService:
             headers=headers
             )
         
-    async def account_watchlists(self):
+    async def account_watchlists(self, acct: str | None = None):
         acct = acct or await self._primary_account()
         if not acct: return None
         params ={
@@ -238,6 +239,11 @@ class IBKRService:
 
                     self.state.ws_connected = True
                     # log.info("[WS]  connected – sending initial snapshot")
+                    if self.state.account_summary is not None:
+                        await self._broadcast(json.dumps({
+                            "type": "account_summary",
+                            "data": self.state.account_summary.model_dump()
+                        }))
 
                     # ❶ send one snapshot of positions to FE
                     for idx, p in enumerate(self.state.positions, 1):

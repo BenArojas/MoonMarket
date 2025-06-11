@@ -22,9 +22,9 @@ const PortfolioSummary = ({
 }: PortfolioSummaryProps) => {
   const theme = useTheme();
 
-  if (watchlistPortfolio.length === 0) {
-    return null;
-  }
+  // if (watchlistPortfolio.length === 0) {
+  //   return null;
+  // }
 
   return (
     <div

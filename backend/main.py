@@ -13,6 +13,7 @@ from starlette.middleware.cors import CORSMiddleware
 from gateway_ws import router as ws_router, broadcast
 from routers.market import router as market_router
 from routers.account import router as account_router
+from routers.watchlist import router as watchlist_router
 # --- Global instances and config loading ---
 from deps import get_ibkr_service
 
@@ -37,6 +38,8 @@ app.add_middleware(
 app.include_router(ws_router)
 app.include_router(market_router)    
 app.include_router(account_router)
+app.include_router(watchlist_router)
+
 
 
 @app.get("/auth/status", response_model=AuthStatusDTO)

@@ -7,7 +7,7 @@ from ibkr_service import IBKRService
 from models import ChartDataBars
 from typing import List
 from deps import get_ibkr_service 
-
+from constants import CRYPTO_SYMBOLS, PERIOD_BAR 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/market", tags=["Market"])
 
@@ -25,10 +25,7 @@ router = APIRouter(prefix="/market", tags=["Market"])
 
 
 
-PERIOD_BAR = {
-    "1D": ("1d", "2min"), "7D": ("1w", "15min"), "1M": ("1m", "1h"),
-    "3M": ("3m", "3h"),   "6M": ("6m", "1d"),    "1Y": ("1y", "1d"),
-}
+
 
 @router.get("/history", response_model=list[ChartDataBars])
 async def history(
@@ -39,8 +36,9 @@ async def history(
     if period not in PERIOD_BAR:
         raise HTTPException(400, "bad period")
 
+    sec_type = "CRYPTO" if ticker.upper() in CRYPTO_SYMBOLS else "STK"
     try:
-        conid = await svc.get_conid(ticker)
+        conid = await svc.get_conid(ticker, sec_type=sec_type)
         if not conid:
             raise HTTPException(404, "ticker not found")
         
@@ -114,8 +112,9 @@ def price_delta(snap: list[dict]) -> dict:
 
 @router.get("/quote/{ticker}")
 async def getStockQuote(ticker:str, ibkr_service: IBKRService = Depends(get_ibkr_service)):
+    sec_type = "CRYPTO" if ticker.upper() in CRYPTO_SYMBOLS else "STK"
     try:
-        conid = await ibkr_service.get_conid(ticker)
+        conid = await ibkr_service.get_conid(ticker, sec_type=sec_type)
         if not conid:
             raise HTTPException(status_code=404, detail=f"Could not find conid for ticker '{ticker}'.")
 
