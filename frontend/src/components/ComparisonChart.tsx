@@ -21,7 +21,6 @@ const ComparisonChart = ({
   stocksLoading 
 }: ComparisonChartProps) => {
   const theme = useTheme();
-  console.log("chartdata is: ", chartData)
   
   const generateColor = (index: number) => {
     const hue = (index * 137) % 360; // Use a prime number like 137

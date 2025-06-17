@@ -8,11 +8,15 @@ import httpx
 from pydantic import BaseModel, Field
 from typing import Awaitable, Callable, Optional, List, Dict, Any
 import websockets
-from models import AccountSummaryData, FrontendMarketDataUpdate
+from websocket_md import on_close, on_error, on_message, on_open
+from models import AccountSummaryData, FrontendMarketDataUpdate, PnlRow, PnlUpdate
 from cache import cached
 from rate_control import paced
+import websocket
 
-log = logging.getLogger(__name__)
+
+        
+log = logging.getLogger("ibkr.ws")   # dedicate a channel for WS payloads
 
 class IBKRConfig(BaseModel):
     host: str                  = Field(..., examples=["127.0.0.1"])
@@ -30,6 +34,11 @@ class IBKRState(BaseModel):
     account_summary: Optional[AccountSummaryData] = None
     accounts_fetched: bool = False
     accounts_cache: List[Dict[str, Any]] = Field(default_factory=list)
+    allocation: Optional[dict] = None         # assetClass/sector/group
+    ledger: Optional[dict] = None             # raw PER-CURRENCY map
+    combo_positions: list[dict] = Field(default_factory=list)
+    watchlists: list[dict] = Field(default_factory=list)
+    pnl: Dict[str, PnlRow] = Field(default_factory=dict)
 
 class AuthStatusDTO(BaseModel):
     authenticated: bool
@@ -91,13 +100,22 @@ class IBKRService:
 
         log.info("[SVC]  SSO validated – tickling session …")
         await self.tickle()
+        await self._prime_caches()
 
         if self.state.ibkr_authenticated and not self.state.ws_connected:
             # first time we’re authenticated → launch WS
             log.info("[SVC]  first-time auth – launching WS task")
             self._ws_task = asyncio.create_task(self._websocket_loop())
-            self.state.ws_connected = True
-            log.info("IBKR WS task started.")
+        #     ws = websocket.WebSocketApp(
+        #     url="wss://localhost:5000/v1/api/ws",
+        #     on_open=on_open,
+        #     on_message=on_message,
+        #     on_error=on_error,
+        #     on_close=on_close
+        # )
+        # ws.run_forever(sslopt={"cert_reqs":ssl.CERT_NONE})
+        self.state.ws_connected = True
+        log.info("IBKR WS task started.")
 
         return AuthStatusDTO(authenticated=True, websocket_ready=self.state.ws_connected,
                              message="Authenticated & session active")
@@ -127,6 +145,7 @@ class IBKRService:
 
     @cached(ttl=15)
     async def history(self, conid, period="1w", bar="15min"):
+        await self.ensure_accounts()
         q = {"conid": conid, "period": period, "bar": bar, "outsideRth": "true"}
         return await self._req("GET", "/iserver/marketdata/history", params=q)
 
@@ -162,6 +181,21 @@ class IBKRService:
             additional_details={k:v for k,v in response.items() if k.lower().replace(' ', '_') not in mapped_summary}
         )
         return summary
+    
+    async def _prime_caches(self):
+        await self.ensure_accounts()
+        acct = await self._primary_account()
+
+        # ① positions
+        self.state.positions = await self.positions(acct)
+        print([str(p["conid"]) for p in self.state.positions])
+        self.state.account_summary = await self.account_summary(acct)
+        # ② watch-lists
+        # self.state.watchlists = await self.account_watchlists(acct)
+
+        # ③ initial P&L
+        pnl_raw = await self._req("GET", "/iserver/account/pnl/partitioned")
+        self.state.pnl = pnl_raw.get("upnl", {})
     
     async def account_performance(self, period: str = "1Y", acct: str | None = None) -> list[dict]:
         """
@@ -203,99 +237,178 @@ class IBKRService:
                 watchlists[watchlist['id']] = watchlist['name']
         
         return watchlists
-
     
+    # ---------------------------------------------------------------- asset alloc
+    @cached(ttl=300)
+    async def account_allocation(self, acct: str | None = None):
+        acct = acct or await self._primary_account()
+        data = await self._req("GET", f"/portfolio/{acct}/allocation")
+        self.state.allocation = data        # keep latest for WS/REST reuse
+        return data
+
+    # ------------------------------------------------------------- combo pos
+    @cached(ttl=300)
+    async def combo_positions(self, acct: str | None = None, nocache: bool = False):
+        acct = acct or await self._primary_account()
+        params = {"nocache": str(nocache).lower()}
+        data = await self._req("GET", f"/portfolio/{acct}/combo/positions", params=params)
+        self.state.combo_positions = data
+        return data
+
+    # --------------------------------------------------------------- ledger
+    @cached(ttl=60)
+    async def ledger(self, acct: str | None = None):
+        acct = acct or await self._primary_account()
+        data = await self._req("GET", f"/portfolio/{acct}/ledger")
+        self.state.ledger = data
+        return data
 
 
     # ---------- WebSocket handling ----------
+    async def _dispatch_pnl(self, msg: dict) -> None:
+        """
+        Convert an 'spl' frame (either list- or dict-style) into Frontend PnL payload.
+        """
+        args = msg.get("args")    # may be list OR dict
+
+        rows: dict[str, PnlRow] = {}
+
+        # — shape A: dict keyed by rowKey ————————————————
+        if isinstance(args, dict):
+            for k, v in args.items():
+                if isinstance(v, dict):
+                    rows[k] = PnlRow(**v)
+
+        # — shape B: legacy list of dicts ————————————————
+        elif isinstance(args, list):
+            for v in args:
+                if isinstance(v, dict):
+                    key = v.get("key") or v.get("acctId")   # fallback
+                    if key:
+                        rows[key] = PnlRow(**v)
+
+        if rows:                                           # only broadcast if we parsed something
+            await self._broadcast(
+                PnlUpdate(type="pnl", data=rows).model_dump_json()
+            )
+
+        
+    async def _dispatch_tick(
+    self,
+    msg: Dict[str, Any],
+    conid_to_pos: Dict[int, Dict[str, Any]],
+) -> None:
+        """
+        Convert a raw `smd+…` frame from IBKR into FrontendMarketDataUpdate
+        and broadcast it to connected WebSocket clients.
+        """
+        # ── 1. identify the contract ──────────────────────────────────────────
+        topic: str = msg["topic"]            # e.g. "smd+450017186"
+        cid:   int = int(topic.split("+", 1)[1])
+
+        # ── 2. mandatory fields ───────────────────────────────────────────────
+        last = float(str(msg.get("31", "nan")).lstrip("ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
+
+        update = FrontendMarketDataUpdate(
+            conid      = cid,
+            symbol     = conid_to_pos.get(cid, {}).get("contractDesc", str(cid)),
+            last_price = last,
+        )
+
+        # ── 3. enrich with static position data (if we have it) ───────────────
+        if (pos := conid_to_pos.get(cid)):
+            qty  = pos["position"]
+            cost = pos["avgCost"]
+
+            update.quantity          = qty
+            update.avg_bought_price  = cost
+            update.value             = last * qty
+            update.unrealized_pnl    = (last - cost) * qty   # ← requested calc
+
+        # ── 4. ship it to the front-end ───────────────────────────────────────
+        await self._broadcast(update.model_dump_json())
+    
+    
     async def _websocket_loop(self) -> None:
-        """
-        *Dial the Client-Portal WS as a **client***
-        • subscribe to every position once
-        • forward each ‘tick’ to React via self._broadcast(...)
-        • keep the socket alive with "tic"
-        """
-        uri = "wss://localhost:5000/v1/api/ws"
-        ssl_ctx = ssl.SSLContext(); ssl_ctx.check_hostname = False
-        ssl_ctx.verify_mode = ssl.CERT_NONE
+        uri     = "wss://localhost:5000/v1/api/ws"
+        cookie  = f'api={{"session":"{self.state.ibkr_session_token}"}}'
 
-        while True:                                   # reconnect forever
+        ssl_ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        ssl_ctx.check_hostname = False
+        ssl_ctx.verify_mode    = ssl.CERT_NONE
+
+        while True:                           # reconnect forever
             try:
-                cookie = f"api={{'session':'{self.state.ibkr_session_token}'}}"
-                self.state.ws_connected = False       # pessimistic
+                acct_id = self.state.account_id or await self._primary_account()
+                if not self.state.positions:
+                    self.state.positions = await self.positions(acct_id)
 
-                # log.debug("[WS]  pulling positions via REST")
-                self.state.positions = await self.positions()   # REST call
-                conids = [str(p["conid"]) for p in self.state.positions]
-                log.info("[WS]  %d positions found", len(conids))
-                
-                self.state.account_summary = await self.account_summary()
+                conids   = [str(p["conid"]) for p in self.state.positions]
+                conid_to_pos: dict[int, dict] = {p["conid"]: p for p in self.state.positions}
 
-                # --- dial -----------------------------------------------------------------
                 async with websockets.connect(
-                        uri,
-                        ssl=ssl_ctx,
-                        additional_headers=[("Cookie", cookie)]) as ws:
+                    uri,
+                    ssl=ssl_ctx,
+                    compression=None,                 # match websocket-client default
+                    ping_interval=None,               # we do heartbeat ourselves
+                    additional_headers=[("Cookie", cookie)]
+                ) as ws:
 
                     self.state.ws_connected = True
-                    # log.info("[WS]  connected – sending initial snapshot")
-                    if self.state.account_summary is not None:
-                        await self._broadcast(json.dumps({
-                            "type": "account_summary",
-                            "data": self.state.account_summary.model_dump()
-                        }))
 
-                    # ❶ send one snapshot of positions to FE
-                    for idx, p in enumerate(self.state.positions, 1):
-                        await self._broadcast(
-                            FrontendMarketDataUpdate.from_position_row(p).model_dump_json()
-                        )
-                        # log.info("[WS]  snapshot %d/%d sent", idx, len(self.state.positions))
+                    # —— ① give Gateway a moment (matches time.sleep(3)) ——
+                    await asyncio.sleep(2)
 
-                    # ❷ subscribe to live price fields 31 (last) & 7295 (mark)
+                    # —— ② account-level streams (optional) ————————————
+                    await ws.send(f"ssd+{acct_id}")
+                    await asyncio.sleep(0.05)
+                    await ws.send(f"sld+{acct_id}")
+                    await asyncio.sleep(0.05)
+                    await ws.send(f"spl+{acct_id}")
+                    await asyncio.sleep(0.05)
+
+                    # —— ③ market-data subscriptions ————————————————
                     for cid in conids:
-                        await ws.send(f'smd+{cid}+{{"fields":["31","7295"]}}')
-                    log.info("[WS]  subscriptions sent")
+                        cmd = f'smd+{cid}+{{"fields":["31","7295"]}}'
+                        await ws.send(cmd)
+                        await asyncio.sleep(0.05)     # throttle
 
-                    # ❸ heartbeat helper ---------------------------------------------------
+                    # —— ④ heartbeat task ————————————————————————————
                     async def heartbeat():
                         while True:
-                            await ws.send("tic")
                             await asyncio.sleep(30)
+                            await ws.send("tic")
                     hb = asyncio.create_task(heartbeat())
 
-                    # ❹ main receive loop --------------------------------------------------
-                    async for raw in ws:                      # raw may be str *or* bytes
-                        if isinstance(raw, bytes):            # ← new
+                    # —— ⑤ receive loop ————————————————————————————
+                    async for raw in ws:
+                        if isinstance(raw, bytes):
                             try:
-                                raw = raw.decode("utf-8")     # convert to str
+                                raw = raw.decode()
                             except UnicodeDecodeError:
-                                continue                      # skip non-UTF8 payloads
-
-                        # from here on `raw` is guaranteed to be str
-                        if raw in ("sok", "ack", "hb"):       # ignore housekeeping
+                                continue
+                        try:
+                            msgs = json.loads(raw)
+                            if not isinstance(msgs, list):
+                                msgs = [msgs]
+                        except json.JSONDecodeError:
                             continue
 
-                        try:
-                            payloads = json.loads(raw) if raw.startswith("[") else [json.loads(raw)]
-                        except json.JSONDecodeError:
-                            # log.debug("non-JSON WS frame ignored: %s", raw[:60])
-                            continue                    # ignore "sok", "hb", etc.
+                        for msg in msgs:
+                            topic = msg.get("topic", "")
+                            if topic.startswith("smd+"):
+                                await self._dispatch_tick(msg, conid_to_pos)
+                            elif topic == "spl":               
+                                await self._dispatch_pnl(msg)
+                            elif topic in ("system", "sts", "act", "tic", "hb"):
+                                continue
+                            elif topic == "error":
+                                log.warning("[IBKR-ERR] %s", msg)
 
-                        for msg in payloads:
-                            if msg.get("topic", "").startswith("smd+"):
-                                # minimal example — just forward entire IBKR blob
-                                await self._broadcast(json.dumps(msg))
-                    hb.cancel()                        # socket closed cleanly
             except Exception as exc:
-                log.warning("WS loop error: %s – reconnect in 15 s", exc)
+                log.warning("WS loop error: %s – retry in 15 s", exc)
                 await asyncio.sleep(15)
+            finally:
+                self.state.ws_connected = False
 
-    # ---------- graceful shutdown ----------
-    async def stop(self):
-        if self._ws_task:
-            self._ws_task.cancel()
-            with contextlib.suppress(Exception):
-                await self._ws_task
-        await self.http.aclose()
-        
+

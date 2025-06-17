@@ -43,6 +43,25 @@ async def _initial_snapshot(ws: WebSocket, svc: IBKRService) -> None:
             .from_position_row(p)
             .model_dump_json()
         )
+    
+    # 3️⃣  account-wide P&L snapshot (NEW)
+    # The `svc.state.pnl` is populated by _prime_caches and is already
+    # in the dictionary format the frontend expects for the 'data' field.
+    if svc.state.pnl:
+        await ws.send_text(json.dumps({
+            "type": "pnl",
+            "data": svc.state.pnl
+        }))
+
+    # You could continue to send other initial state here, like
+    # allocation, ledger, watchlists, etc. following the same pattern.
+    # For example:
+    # if svc.state.allocation:
+    #     await ws.send(json.dumps({
+    #         "type": "allocation",
+    #         "data": svc.state.allocation
+    #     }))
+
 
 
 # ---------- WebSocket endpoint ----------

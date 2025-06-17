@@ -1,5 +1,4 @@
 import { deleteTransaction, getUserTransactions } from "@/api/transaction";
-import { getUserStocks } from "@/api/user";
 import {
   TradingActivityDistribution,
   TransactionsByQuarter,
@@ -26,31 +25,31 @@ import { useState } from "react";
 
 // Main component
 const TransactionsPage = () => {
+
   const {
     data: transactions = [],
     isLoading: transactionsLoading,
-    error: transactionsError
+    error: transactionsError,
   } = useQuery({
-    queryKey: ['transactions'],
-    queryFn: getUserTransactions
+    queryKey: ["transactions", 90],   
+    queryFn: () => getUserTransactions(90),
   });
 
-  const {
-    data: stocks = [],
-    isLoading: stocksLoading,
-    error: stocksError
-  } = useQuery({
-    queryKey: ['userStocks'],
-    queryFn: getUserStocks
-  });
+  // const {
+  //   data: stocks = [],
+  //   isLoading: stocksLoading,
+  //   error: stocksError
+  // } = useQuery({
+  //   queryKey: ['userStocks'],
+  //   queryFn: getUserStocks
+  // });
 
   const summaryData = useTransactionSummary({
     transactions,
-    stocks,
   });
 
   // Show loading state
-  if (transactionsLoading || stocksLoading) {
+  if (transactionsLoading ) {
     return (
       <div className="h-[calc(100vh-10rem)] flex flex-col">
         <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
@@ -61,7 +60,7 @@ const TransactionsPage = () => {
   }
 
   // Show error state
-  if (transactionsError || stocksError) {
+  if (transactionsError ) {
     return (
       <div className="h-[calc(100vh-10rem)] flex flex-col">
         <div className="flex-1 p-6">
@@ -95,7 +94,6 @@ export interface TransactionSummary {
   closedTrades: number
   moneySpent: number
   winRate: number
-  totalProfit: number
 };
 // Separate component for summary cards
 interface SummaryCardsProps {
@@ -105,7 +103,7 @@ const SummaryCards = ({ summaryData }: SummaryCardsProps) => {
   const theme = useTheme();
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <div className="text-sm font-medium">Total Trades</div>
@@ -142,7 +140,7 @@ const SummaryCards = ({ summaryData }: SummaryCardsProps) => {
           <div className="text-2xl font-bold">{summaryData.winRate}%</div>
         </CardContent>
       </Card>
-      <Card>
+      {/* <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <div className="text-sm font-medium">Total Profit/Loss</div>
           <TrendingUp className="h-4 w-4" color={theme.palette.primary.main} />
@@ -150,7 +148,7 @@ const SummaryCards = ({ summaryData }: SummaryCardsProps) => {
         <CardContent>
           <div className="text-2xl font-bold">${summaryData.totalProfit}</div>
         </CardContent>
-      </Card>
+      </Card> */}
     </div>
   );
 };

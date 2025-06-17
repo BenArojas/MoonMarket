@@ -1,11 +1,15 @@
 import api from "@/api/axios";
+import { Transaction } from "@/hooks/useTransactionSummary";
 import { AxiosError } from "axios";
 
 
 
-export async function getUserTransactions() {
-  const transactions = await api.get(`/user/user_transactions`);
-  return transactions.data;
+export async function getUserTransactions(days = 90) {
+  const { data } = await api.get<Transaction[]>(
+    "/transactions",
+    { params: { days } }          // backend default is also 90 so this is optional
+  );
+  return data;
 }
 
 export async function deleteTransaction(transactionId: string) {

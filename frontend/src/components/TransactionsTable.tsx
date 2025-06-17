@@ -191,9 +191,7 @@ export default function TransactionsTable({ data, filters, onDeleteTransaction }
             <StyledTableCell align="right">Type</StyledTableCell>
             <StyledTableCell align="right">Description</StyledTableCell>
             <StyledTableCell align="right">Position price</StyledTableCell>
-            <StyledTableCell align="right">Commission</StyledTableCell>
             <StyledTableCell align="right">Date</StyledTableCell>
-            <StyledTableCell align="right">Actions</StyledTableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -201,7 +199,7 @@ export default function TransactionsTable({ data, filters, onDeleteTransaction }
             ? filteredData.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
             : filteredData
           ).map((transaction: Transaction) => (
-            <StyledTableRow key={transaction._id}>
+            <StyledTableRow key={transaction.conid}>
               <StyledTableCell component="th" scope="row" style={{ width: 60 }}>
                 {transaction.ticker}
               </StyledTableCell>
@@ -214,38 +212,8 @@ export default function TransactionsTable({ data, filters, onDeleteTransaction }
               <StyledTableCell style={{ width: 100 }} align="right">
                 {(transaction.price * transaction.quantity).toFixed(2)}$
               </StyledTableCell>
-              <StyledTableCell style={{ width: 100 }} align="right">
-                {(transaction.commission).toFixed(2)}$
-              </StyledTableCell>
               <StyledTableCell style={{ width: 160 }} align="right">
                 {formatDate(transaction.transaction_date)}
-              </StyledTableCell>
-              <StyledTableCell style={{ width: 80 }} align="right">
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <button className="p-2 hover:bg-gray-100 rounded-full">
-                      <Trash2 className="h-4 w-4 text-gray-500 hover:text-red-500" />
-                    </button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Delete Transaction</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to delete this {transaction.type} transaction for {transaction.ticker}? 
-                        This action cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        className="bg-red-500 hover:bg-red-600"
-                        onClick={() => onDeleteTransaction(transaction._id)}
-                      >
-                        Delete
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
               </StyledTableCell>
             </StyledTableRow>
           ))}

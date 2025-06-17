@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 import logging
 from fastapi import APIRouter, Depends, HTTPException
 from ibkr_service import IBKRService
-from models import ChartDataBars, ChartDataPoint
+from models import AllocationDTO, ChartDataBars, ChartDataPoint, ComboDTO, LedgerDTO
 from typing import List
 from deps import get_ibkr_service 
 
@@ -86,3 +86,26 @@ async def get_performance_history(
         # Log the exception 'e' if not already logged deep within the service call
         log.info(e)
         raise HTTPException(status_code=500, detail="An internal error occurred while fetching account performance history.")
+    
+
+@router.get("/account/allocation", response_model=AllocationDTO)
+async def get_allocation(svc: IBKRService = Depends(get_ibkr_service)):
+    return await svc.account_allocation()
+
+@router.get("/account/ledger", response_model=LedgerDTO)
+async def get_ledger(svc: IBKRService = Depends(get_ibkr_service)):
+    return await svc.ledger()
+
+@router.get("/account/combos", response_model=list[ComboDTO])
+async def get_combo_positions(svc: IBKRService = Depends(get_ibkr_service)):
+    return await svc.combo_positions()
+
+@router.get("/account/overview")
+async def overview(svc: IBKRService = Depends(get_ibkr_service)):
+    return {
+        "summary": svc.state.account_summary,
+        "ledger": svc.state.ledger,
+        "allocation": svc.state.allocation,
+        "positions": svc.state.positions,
+        "combos": svc.state.combo_positions,
+    }

@@ -409,18 +409,18 @@ type TransactionSummary =  {
   totalTrades: number;
   closedTrades: number;
   moneySpent: number;
-  totalProfit: number;
+  // totalProfit: number;
   winRate: number;
 }
 export const calculateTransactionSummary = (
   transactions: Transaction[],
-  currentStockPrices: Record<string, number>
+  // currentStockPrices: Record<string, number>
 ): TransactionSummary => {
   let totalTrades: number = 0;
   let closedTrades: number = 0;
   let profitableTrades: number = 0;
   let moneySpent: number = 0;
-  let totalProfit: number = 0;
+  // let totalProfit: number = 0;
 
   // Sort transactions by date
   const sortedTransactions: Transaction[] = [...transactions].sort(
@@ -471,20 +471,19 @@ export const calculateTransactionSummary = (
           profitableTrades++;
         }
 
-        totalProfit += position.realizedProfit;
       }
     }
   });
 
-  // Calculate unrealized profit for open positions
-  Object.entries(positionsByTicker).forEach(([ticker, position]: [string, Position]) => {
-    if (!position.isFullyClosed && currentStockPrices[ticker] && position.totalQuantity > 0) {
-      const currentPrice: number = currentStockPrices[ticker];
-      const avgCost: number = position.totalCost / position.totalQuantity;
-      const unrealizedProfit: number = (currentPrice - avgCost) * position.totalQuantity;
-      totalProfit += unrealizedProfit;
-    }
-  });
+  // // Calculate unrealized profit for open positions
+  // Object.entries(positionsByTicker).forEach(([ticker, position]: [string, Position]) => {
+  //   if (!position.isFullyClosed && currentStockPrices[ticker] && position.totalQuantity > 0) {
+  //     const currentPrice: number = currentStockPrices[ticker];
+  //     const avgCost: number = position.totalCost / position.totalQuantity;
+  //     const unrealizedProfit: number = (currentPrice - avgCost) * position.totalQuantity;
+  //     totalProfit += unrealizedProfit;
+  //   }
+  // });
 
   // Calculate win rate: profitable trades divided by closed trades
   const winRate: number = closedTrades > 0 ? (profitableTrades / closedTrades) * 100 : 0;
@@ -493,7 +492,6 @@ export const calculateTransactionSummary = (
     totalTrades,
     closedTrades,
     moneySpent: Number(moneySpent),
-    totalProfit: Number(totalProfit),
     winRate: Number(winRate.toFixed(1)),
   };
 };

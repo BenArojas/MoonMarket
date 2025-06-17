@@ -30,7 +30,6 @@ export function HistoricalDataCard() {
     // fetchHistoricalStockData now only takes ticker and period
     queryFn: () => fetchHistoricalStockData(ticker, selectedPeriod),
   });
-  console.log("chartData ", chartData)
 
 
   if (isLoading) return <GraphSkeleton height={320}/>;

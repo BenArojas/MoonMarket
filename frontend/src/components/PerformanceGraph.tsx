@@ -7,9 +7,10 @@ import { ChartDataPoint } from './CurrentStockChart';
 
 interface PerformanceChartProps {
   data: ChartDataPoint[];
+  height: number
 }
 
-const PerformanceChart = ({ data }: PerformanceChartProps) => {
+const PerformanceChart = ({ data, height }: PerformanceChartProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -83,7 +84,7 @@ const PerformanceChart = ({ data }: PerformanceChartProps) => {
         },
       },
       width: chartContainerRef.current.clientWidth,
-      height: 250,
+      height: height,
       handleScroll: false,
       handleScale: false,
       rightPriceScale: {

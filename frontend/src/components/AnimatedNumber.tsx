@@ -9,7 +9,7 @@ const PortfolioValue = ({ value }: PortfolioValue) => {
   theme = responsiveFontSizes(theme);
   const isMobileScreen = useMediaQuery(theme.breakpoints.down('sm'));
   return (
-    <Typography variant={isMobileScreen?"subtitle1":"h6"} color="secondary">
+    <Typography variant={isMobileScreen?"subtitle1":"h5"} color="secondary">
       <CountUp
         end={value}
         separator=","

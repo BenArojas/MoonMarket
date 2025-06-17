@@ -2,7 +2,7 @@ import logging
 
 # ---- global logging setup *first* ----
 logging.basicConfig(
-    level=logging.INFO,                       # or DEBUG
+    level=logging.INFO,                      
     format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
 )
 
@@ -14,6 +14,7 @@ from gateway_ws import router as ws_router, broadcast
 from routers.market import router as market_router
 from routers.account import router as account_router
 from routers.watchlist import router as watchlist_router
+from routers.account_transactions import router as transactions_router
 # --- Global instances and config loading ---
 from deps import get_ibkr_service
 
@@ -24,7 +25,7 @@ svc.set_broadcast(broadcast)
 async def lifespan(app: FastAPI):
     app.state.ibkr = svc 
     yield
-    await svc.stop() 
+    # await svc._cancel_all() 
     
 app = FastAPI(lifespan=lifespan)
 
@@ -39,7 +40,7 @@ app.include_router(ws_router)
 app.include_router(market_router)    
 app.include_router(account_router)
 app.include_router(watchlist_router)
-
+app.include_router(transactions_router)
 
 
 @app.get("/auth/status", response_model=AuthStatusDTO)
