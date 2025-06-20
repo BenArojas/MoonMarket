@@ -1,206 +1,201 @@
-import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react';
-import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi,  Time, PriceLineOptions, LineStyle, LineWidth, BusinessDay } from 'lightweight-charts';
+import React, { useRef, useEffect, useMemo, useState } from "react";
+import {
+  createChart,
+  ColorType,
+  CrosshairMode,
+  IChartApi,
+  ISeriesApi,
+  Time,
+  BusinessDay,
+} from "lightweight-charts";
 import { useTheme } from "@mui/material";
-import { debounce } from 'lodash';
-import { formatCurrency, formatDate } from '@/utils/dataProcessing';
-import { ChartDataPoint } from './CurrentStockChart';
+import { debounce } from "lodash";
+import { formatDate } from "@/utils/dataProcessing";
+
+export interface ChartDataPoint {
+  time: Time;
+  value: number;
+}
 
 interface PerformanceChartProps {
   data: ChartDataPoint[];
-  height: number
+  height: number;
+  /** Total cash-in / cost basis.  If omitted → first point baseline. */
+  baseline: number | "prev";
 }
 
-const PerformanceChart = ({ data, height }: PerformanceChartProps) => {
-  const chartContainerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<IChartApi | null>(null);
-  const tooltipRef = useRef<HTMLDivElement>(null);
+const PerformanceChart = ({
+  data,
+  height,
+  baseline,
+}: PerformanceChartProps) => {
   const theme = useTheme();
-  const [tooltipVisible, setTooltipVisible] = useState<boolean>(false);
-  const [tooltipData, setTooltipData] = useState<{ value: string; time: Time }>({ value: '0', time: '' });
-  const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<IChartApi>();
+  const seriesRef = useRef<ISeriesApi<"Baseline">>();
+  const [tip, setTip] = useState<{
+    v: string;
+    t: Time;
+    x: number;
+    y: number;
+  }>();
 
-  const memoizedData = useMemo<ChartDataPoint[]>(() => data, [data]);
+  /* ─────────────────────────── % conversion ─────────────────────────── */
+  const pctData = useMemo<ChartDataPoint[]>(() => {
+    if (!data.length) return [];
 
-  const { maxValue, minValue } = useMemo<{ maxValue: number; minValue: number }>(() => ({
-    maxValue: Math.max(...memoizedData.map(item => item.value)),
-    minValue: Math.min(...memoizedData.map(item => item.value))
-  }), [memoizedData]);
+    // switch between the three baselines
+    return data.map((p, idx) => {
+      const base =
+        baseline === "prev"
+          ? idx === 0
+            ? p.value
+            : data[idx - 1].value // previous point
+          : baseline ?? data[0].value; // explicit number or first point
 
-  const updateTooltip = useCallback(
-    debounce((param, series: ISeriesApi<'Baseline'>) => {
-      if (param.point && param.time && param.point.x >= 0 && param.point.y >= 0) {
-        const dataPoint = param.seriesData.get(series);
-        if (dataPoint) {
-          const timestamp = (dataPoint as ChartDataPoint).time; // number (Unix timestamp in seconds)
-          setTooltipData({
-            value: (dataPoint as ChartDataPoint).value.toFixed(2),
-            time: timestamp // Store as number, which is a valid Time type
-          });
-          setTooltipVisible(true);
+      return { ...p, value: base ? (p.value / base - 1) * 100 : 0 };
+    });
+  }, [data, baseline]);
 
-          const coordinate = series.priceToCoordinate((dataPoint as ChartDataPoint).value);
-          if (coordinate !== null) {
-            const shiftedCoordinate = param.point.x - 50;
-            setTooltipPosition({ x: shiftedCoordinate, y: coordinate });
-          }
-        }
-      } else {
-        setTooltipVisible(false);
-      }
-    }, 20),
-    []
-  );
-
-  useEffect(() => {
-    if (!chartContainerRef.current) return;
-
-    const handleResize = () => {
-      if (chartRef.current) {
-        chartRef.current.applyOptions({ width: chartContainerRef.current!.clientWidth });
-      }
+  const { min, max } = useMemo(() => {
+    if (!pctData.length) return { min: 0, max: 0 };
+    return {
+      min: Math.min(...pctData.map((p) => p.value)),
+      max: Math.max(...pctData.map((p) => p.value)),
     };
+  }, [pctData]);
 
-    const chart = createChart(chartContainerRef.current, {
+  /* ───────────────────── init chart (runs once) ───────────────────── */
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const chart = createChart(containerRef.current, {
+      width: containerRef.current.clientWidth,
+      height,
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
         textColor: theme.palette.text.primary,
         attributionLogo: false,
       },
-      grid: {
-        horzLines: { visible: false },
-        vertLines: { visible: false },
-      },
+      grid: { horzLines: { visible: false }, vertLines: { visible: false } },
       crosshair: {
         mode: CrosshairMode.Normal,
-        vertLine: {
-          width: 1,
-          color: theme.palette.text.secondary,
-          style: 2,
-          labelVisible: false,
-        },
-        horzLine: {
-          visible: false,
-          labelVisible: false,
-        },
+        vertLine: { width: 1, color: theme.palette.text.secondary, style: 2 },
+        horzLine: { visible: false },
       },
-      width: chartContainerRef.current.clientWidth,
-      height: height,
-      handleScroll: false,
-      handleScale: false,
-      rightPriceScale: {
-        scaleMargins: {
-          top: 0.35,
-          bottom: 0.15,
-        },
-        borderVisible: false,
-      },
+      rightPriceScale: { borderVisible: false },
       timeScale: {
         borderVisible: false,
-        fixLeftEdge: true,
-        fixRightEdge: true,
         timeVisible: true,
-        tickMarkFormatter: (time: Time, tickMarkType: unknown): string => {
-            let date: Date;
-            if (typeof time === 'number') {
-              date = new Date(time * 1000); // Unix timestamp in seconds (UTCTimestamp)
-            } else if (typeof time === 'string') {
-              date = new Date(time); // Parse string date
-            } else {
-              // Handle BusinessDay
-              const businessDay = time as BusinessDay;
-              date = new Date(businessDay.year, businessDay.month - 1, businessDay.day); // month is 1-based
-            }
-            return `${date.getUTCDate()} ${date.toLocaleString('default', { month: 'short' })}`;
-          }
+        tickMarkFormatter: (t: Time) => {
+          const d =
+            typeof t === "number"
+              ? new Date(t * 1000)
+              : typeof t === "string"
+              ? new Date(t)
+              : new Date(
+                  (t as BusinessDay).year,
+                  (t as BusinessDay).month - 1,
+                  (t as BusinessDay).day
+                );
+          return `${d.getUTCDate()} ${d.toLocaleString("default", {
+            month: "short",
+          })}`;
+        },
       },
+      handleScroll: false,
+      handleScale: false,
+      localization: { priceFormatter: (p) => `${p.toFixed(2)} %` },
     });
 
-    chart.applyOptions({
-      localization: {
-        priceFormatter: (price: number): string => `${price.toFixed(2)}%`
-      },
-    });
-
-    const baselineSeries: ISeriesApi<'Baseline'> = chart.addBaselineSeries({
-      baseValue: { type: 'price', price: 0 },
+    const series = chart.addBaselineSeries({
+      baseValue: { type: "price", price: 0 },
+      topLineColor: "rgba(38,166,154,1)",
+      topFillColor1: "rgba(38,166,154,.28)",
+      topFillColor2: "rgba(38,166,154,.05)",
+      bottomLineColor: "rgba(239,83,80,1)",
+      bottomFillColor1: "rgba(239,83,80,.05)",
+      bottomFillColor2: "rgba(239,83,80,.28)",
       lastValueVisible: false,
       priceLineVisible: false,
-      topLineColor: 'rgba(38, 166, 154, 1)',
-      topFillColor1: 'rgba(38, 166, 154, 0.28)',
-      topFillColor2: 'rgba(38, 166, 154, 0.05)',
-      bottomLineColor: 'rgba(239, 83, 80, 1)',
-      bottomFillColor1: 'rgba(239, 83, 80, 0.05)',
-      bottomFillColor2: 'rgba(239, 83, 80, 0.28)'
     });
 
-    baselineSeries.setData(memoizedData);
+    /* tooltip */
+    const handleCrosshair = debounce((param) => {
+      if (!param.point || !param.time) return setTip(undefined);
+      const dp = param.seriesData.get(series) as ChartDataPoint | undefined;
+      if (!dp) return setTip(undefined);
 
-    const zeroLine: Partial<PriceLineOptions> = {
-      price: 0,
-      color: theme.palette.text.primary,
-      lineWidth: 1 as LineWidth,
-      lineStyle: 1 as LineStyle,
-    };
+      const coord = series.priceToCoordinate(dp.value);
+      if (coord == null) return setTip(undefined);
 
-    baselineSeries.createPriceLine(zeroLine);
-
-    if (maxValue < 0) {
-      chart.applyOptions({
-        rightPriceScale: {
-          scaleMargins: {
-            top: 0.55,
-            bottom: 0.36,
-          },
-        },
+      setTip({
+        v: dp.value.toFixed(2),
+        t: dp.time,
+        x: param.point.x - 50,
+        y: coord,
       });
-    }
+    }, 25);
 
-    chart.timeScale().fitContent();
+    chart.subscribeCrosshairMove(handleCrosshair);
 
-    chart.subscribeCrosshairMove((param) => {
-      updateTooltip(param, baselineSeries);
-    });
+    /* resize */
+    const onResize = () =>
+      chart.applyOptions({ width: containerRef.current!.clientWidth });
+    window.addEventListener("resize", onResize);
 
+    /* store refs & cleanup */
     chartRef.current = chart;
-
-    window.addEventListener('resize', handleResize);
+    seriesRef.current = series;
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener("resize", onResize);
+      chart.unsubscribeCrosshairMove(handleCrosshair);
       chart.remove();
     };
-  }, [memoizedData, theme, maxValue, updateTooltip]);
+  }, [theme, height]);
+
+  /* ─────────── update data + axis range when pctData changes ────────── */
+  useEffect(() => {
+    if (!seriesRef.current || !chartRef.current) return;
+
+    seriesRef.current.setData(pctData);
+
+    // symmetric y-range around 0 % (adjust if you prefer padding)
+    const span = Math.max(Math.abs(max), Math.abs(min));
+    const fixedRange = { minValue: -span, maxValue: span };
+
+    (seriesRef.current as any).autoscaleInfoProvider = () => ({
+      priceRange: fixedRange,
+    });
+    chartRef.current.timeScale().fitContent();
+  }, [pctData, min, max]);
+
+  /* ─────────────────────────────────────────────────────────────────── */
 
   return (
     <div
-      ref={chartContainerRef}
-      style={{
-        position: "relative",
-        width: "100%",
-        height: 250,
-        minWidth: "260px"
-      }}
+      ref={containerRef}
+      style={{ position: "relative", width: "100%", minWidth: 260, height }}
     >
-      {tooltipVisible && (
+      {tip && (
         <div
-          ref={tooltipRef}
           style={{
-            position: 'absolute',
-            padding: '4px',
-            backgroundColor: theme.palette.background.paper,
+            position: "absolute",
+            left: tip.x,
+            top: tip.y,
+            padding: "4px",
             border: `1px solid ${theme.palette.divider}`,
-            borderRadius: '4px',
-            fontSize: '12px',
+            borderRadius: 4,
+            fontSize: 12,
+            background: theme.palette.background.paper,
             color: theme.palette.text.primary,
+            pointerEvents: "none",
             zIndex: 1000,
-            left: `${tooltipPosition.x}px`,
-            top: `${tooltipPosition.y}px`,
-            transition: 'left 0.1s, top 0.1s',
-            pointerEvents: 'none',
           }}
         >
-          <div>Value: {tooltipData.value}%</div>
-          <div>Date: {formatDate(tooltipData.time)}</div>
+          <div>Return: {tip.v}%</div>
+          <div>Date&nbsp;&nbsp;: {formatDate(tip.t)}</div>
         </div>
       )}
     </div>

@@ -183,7 +183,7 @@ class IBKRService:
         return summary
     
     async def _prime_caches(self):
-        await self.ensure_accounts()
+        # await self.ensure_accounts()
         acct = await self._primary_account()
 
         # ① positions

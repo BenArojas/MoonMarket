@@ -243,7 +243,7 @@ function connectWebSocket(get: () => StockState) {
 
   ws.onmessage = (event) => {
     const msg = JSON.parse(event.data);
-    console.log("got a msg", msg)
+    // console.log("got a msg", msg)
 
     switch (msg.type) {
       case "market_data":

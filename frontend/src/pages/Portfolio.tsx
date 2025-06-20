@@ -6,10 +6,7 @@ import GraphMenu, { GraphType } from "@/components/GraphMenu";
 import { HistoricalDataCard } from "@/components/HistoricalDataCard";
 import SnapshotChart from "@/components/SnapShotChart";
 import useGraphData from "@/hooks/useGraphData";
-import {
-  StockData,
-  useStockStore,
-} from "@/stores/stockStore";
+import { StockData, useStockStore } from "@/stores/stockStore";
 import "@/styles/App.css";
 import { Box, Stack, useMediaQuery, useTheme } from "@mui/material";
 import { useState } from "react";
