@@ -1,7 +1,7 @@
 import { ChartDataPoint } from '@/components/CurrentStockChart';
 import {  SankeyInputData, SankeyInputLink, SankeyInputNode } from '@/components/SankeyChart';
 import { Transaction } from '@/hooks/useTransactionSummary';
-import { StockData } from '@/stores/stockStore';
+import { AllocationDTO, AllocationView, StockData } from '@/stores/stockStore';
 
 
 export function formatNumber(
@@ -117,6 +117,41 @@ export function processTreemapData(stocks: { [symbol: string]: StockData }): Tre
   }
 
   return newStocksTree;
+}
+
+
+import {  DonutDatum } from "@/schemas/allocation";
+
+
+export function processAllocationData(
+  alloc: AllocationDTO,
+  view: AllocationView = "assetClass",
+  topN = 8
+): DonutDatum[] {
+  const longSide = alloc[view].long;
+  const total = Object.values(longSide).reduce((a, b) => a + b, 0);
+
+  const entries = Object.entries(longSide)
+    .sort(([, a], [, b]) => b - a)
+    .map(([name, value]) => ({
+      name,
+      value,
+      percentageOfPortfolio: +(100 * value / total).toFixed(2),
+    }));
+
+  if (entries.length <= topN) return entries;
+
+  const head = entries.slice(0, topN);
+  const othersValue = entries.slice(topN).reduce((a, d) => a + d.value, 0);
+
+  return [
+    ...head,
+    {
+      name: "Others",
+      value: othersValue,
+      percentageOfPortfolio: +(100 * othersValue / total).toFixed(2),
+    },
+  ];
 }
 
 // Donut Data Processing

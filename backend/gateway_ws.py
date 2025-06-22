@@ -56,11 +56,11 @@ async def _initial_snapshot(ws: WebSocket, svc: IBKRService) -> None:
     # You could continue to send other initial state here, like
     # allocation, ledger, watchlists, etc. following the same pattern.
     # For example:
-    # if svc.state.allocation:
-    #     await ws.send(json.dumps({
-    #         "type": "allocation",
-    #         "data": svc.state.allocation
-    #     }))
+    if svc.state.allocation:
+        await ws.send_text(json.dumps({
+            "type": "allocation",
+            "data": svc.state.allocation
+        }))
 
 
 

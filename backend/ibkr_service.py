@@ -122,7 +122,22 @@ class IBKRService:
         
     async def logout(self):
         return await self._req("POST", "/logout")
-        
+    
+    # scanner ----------------------------------------------------------
+
+    @cached(ttl=3600) # Params don't change often, cache for an hour
+    async def get_scanner_params(self):
+        """Fetches the available parameters for the market scanner."""
+        log.info("Fetching IServer scanner parameters...")
+        return await self._req("GET", "/iserver/scanner/params")
+
+    async def run_scanner(self, scanner_payload: dict):
+        """
+        Runs a market scan with the given payload.
+        :param scanner_payload: A dict like {"instrument": "STK", "type": "TOP_PERC_GAIN", ...}
+        """
+        log.info("Running IServer scanner with payload: %s", scanner_payload)
+        return await self._req("POST", "/iserver/scanner/run", json=scanner_payload)
     # market ----------------------------------------------------------
     @cached(ttl=3600)
     async def get_conid(self, symbol: str, sec_type: str = "STK") -> str | None:
@@ -137,13 +152,13 @@ class IBKRService:
             log.warning("secdef search failed %s %s", exc.response.status_code, symbol)
             return None
 
-    @cached(ttl=15)
+    @cached(ttl=150)
     async def snapshot(self, conids, fields="31,84,86"):
         await self.ensure_accounts()
         q = {"conids": ",".join(map(str, conids)), "fields": fields}
         return await self._req("GET", "/iserver/marketdata/snapshot", params=q)
 
-    @cached(ttl=15)
+    @cached(ttl=150)
     async def history(self, conid, period="1w", bar="15min"):
         await self.ensure_accounts()
         q = {"conid": conid, "period": period, "bar": bar, "outsideRth": "true"}
@@ -153,7 +168,18 @@ class IBKRService:
     # @cached(ttl=30)
     async def positions(self, acct: str | None = None):
         acct = acct or await self._primary_account()
-        return await self._req("GET", f"/portfolio/{acct}/positions")
+        all_positions = []
+        page_id = 0
+        while True:
+            # The API uses pageId as a path parameter
+            pos_page = await self._req("GET", f"/portfolio/{acct}/positions/{page_id}")
+            if not pos_page:
+                # No more positions on this page, we're done.
+                break 
+            all_positions.extend(pos_page)
+            page_id += 1
+
+        return all_positions
 
     # account ---------------------------------------------------------
     async def _primary_account(self) -> str | None:
@@ -188,10 +214,9 @@ class IBKRService:
 
         # ① positions
         self.state.positions = await self.positions(acct)
-        print([str(p["conid"]) for p in self.state.positions])
         self.state.account_summary = await self.account_summary(acct)
-        # ② watch-lists
-        # self.state.watchlists = await self.account_watchlists(acct)
+        
+        self.state.allocation = await self.account_allocation(acct)
 
         # ③ initial P&L
         pnl_raw = await self._req("GET", "/iserver/account/pnl/partitioned")
@@ -307,7 +332,8 @@ class IBKRService:
         cid:   int = int(topic.split("+", 1)[1])
 
         # ── 2. mandatory fields ───────────────────────────────────────────────
-        last = float(str(msg.get("31", "nan")).lstrip("ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
+        price_str = str(msg.get("31", "nan")).lstrip("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+        last = float(price_str or "nan") # If price_str is empty, this becomes float("nan")
 
         update = FrontendMarketDataUpdate(
             conid      = cid,
@@ -327,7 +353,10 @@ class IBKRService:
 
         # ── 4. ship it to the front-end ───────────────────────────────────────
         await self._broadcast(update.model_dump_json())
+        
     
+    
+
     
     async def _websocket_loop(self) -> None:
         uri     = "wss://localhost:5000/v1/api/ws"
@@ -375,35 +404,69 @@ class IBKRService:
 
                     # —— ④ heartbeat task ————————————————————————————
                     async def heartbeat():
+                        try:
+                            while True:
+                                await asyncio.sleep(30)
+                                await ws.send("tic")
+                        except asyncio.CancelledError:
+                            # This is expected when the task is cancelled, exit gracefully
+                            pass
+                        except websockets.exceptions.ConnectionClosed:
+                            # Connection died unexpectedly, exit gracefully
+                            pass
+                    
+                    async def allocation_refresher():
+                        """Periodically re-fetches allocation data and broadcasts it."""
+                        acct_id = self.state.account_id or await self._primary_account()
                         while True:
-                            await asyncio.sleep(30)
-                            await ws.send("tic")
+                            await asyncio.sleep(300) # Refresh every 5 minutes
+                            try:
+                                log.info("Refreshing account allocation...")
+                                # This function updates self.state.allocation automatically
+                                fresh_data = await self.account_allocation(acct_id)
+                                
+                                # Now broadcast it to all clients
+                                await self._broadcast(json.dumps({
+                                    "type": "allocation",
+                                    "data": fresh_data
+                                }))
+
+                            except Exception as e:
+                                log.error("Failed to refresh allocation data: %s", e)
+                        
                     hb = asyncio.create_task(heartbeat())
+                    alloc_task = asyncio.create_task(allocation_refresher())
 
                     # —— ⑤ receive loop ————————————————————————————
-                    async for raw in ws:
-                        if isinstance(raw, bytes):
+                    try:
+                        async for raw in ws:
+                            if isinstance(raw, bytes):
+                                try:
+                                    raw = raw.decode()
+                                except UnicodeDecodeError:
+                                    continue
                             try:
-                                raw = raw.decode()
-                            except UnicodeDecodeError:
+                                msgs = json.loads(raw)
+                                if not isinstance(msgs, list):
+                                    msgs = [msgs]
+                            except json.JSONDecodeError:
                                 continue
-                        try:
-                            msgs = json.loads(raw)
-                            if not isinstance(msgs, list):
-                                msgs = [msgs]
-                        except json.JSONDecodeError:
-                            continue
 
-                        for msg in msgs:
-                            topic = msg.get("topic", "")
-                            if topic.startswith("smd+"):
-                                await self._dispatch_tick(msg, conid_to_pos)
-                            elif topic == "spl":               
-                                await self._dispatch_pnl(msg)
-                            elif topic in ("system", "sts", "act", "tic", "hb"):
-                                continue
-                            elif topic == "error":
-                                log.warning("[IBKR-ERR] %s", msg)
+                            for msg in msgs:
+                                topic = msg.get("topic", "")
+                                if topic.startswith("smd+"):
+                                    await self._dispatch_tick(msg, conid_to_pos)
+                                elif topic == "spl":               
+                                    await self._dispatch_pnl(msg)
+                                elif topic in ("system", "sts", "act", "tic", "hb"):
+                                    continue
+                                elif topic == "error":
+                                    log.warning("[IBKR-ERR] %s", msg)
+                    finally:
+                        # This will run when the loop exits for any reason
+                        # (e.g., connection closed, or an outer exception)
+                        hb.cancel()
+                        alloc_task.cancel()
 
             except Exception as exc:
                 log.warning("WS loop error: %s – retry in 15 s", exc)

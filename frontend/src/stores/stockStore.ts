@@ -1,5 +1,4 @@
 // src/stores/stockStore.ts
-import { toast } from "react-toastify";
 import { create } from "zustand";
 
 /* -------------------------------- AllocationDTO ------------------------- */
@@ -14,6 +13,8 @@ export interface AllocationDTO {
   sector: LongShort;              // Technology / Financial …
   group: LongShort;               // Semiconductors / Banks …
 }
+export type AllocationView = "assetClass" | "sector" | "group";
+
 
 /* -------------------------------- LedgerDTO ----------------------------- */
 
@@ -105,6 +106,7 @@ interface StockState {
   connectionStatus: "disconnected" | "connecting" | "connected" | "error";
   error?: string;
   allocation?: AllocationDTO;
+  allocationView: AllocationView;
   ledger?: LedgerDTO;
   combos?: ComboDTO[];
   pnl: Record<string, PnlRow>;             // ⬅️ NEW – keyed by "U1234567.Core"
@@ -115,6 +117,7 @@ interface StockState {
   };
   setPnl: (rows: Record<string, PnlRow>) => void;
   setAllocation: (a: AllocationDTO) => void;
+  setAllocationView: (v: AllocationView) => void;
   setLedger: (l: LedgerDTO) => void;
   setCombos: (c: ComboDTO[]) => void;
 
@@ -143,6 +146,8 @@ export const useStockStore = create<StockState>((set, get) => ({
     buying_power: 0,
   },
   pnl: {},
+  allocation: undefined,
+  allocationView: "assetClass",
   coreTotals: { dailyRealized: 0, unrealized: 0, netLiq: 0 },
   connectionStatus: "disconnected",
   error: undefined,
@@ -170,6 +175,7 @@ export const useStockStore = create<StockState>((set, get) => ({
   setAccountSummary: (data) => set({ accountSummary: data }),
   setWatchlists: (data) => set({ watchlists: data }),
   setAllocation: (data) => set({ allocation: data }),
+  setAllocationView: (v) => set({ allocationView: v }),
   setLedger: (data) => set({ ledger: data }),
   setCombos: (data) => set({ combos: data }),
 
@@ -263,6 +269,7 @@ function connectWebSocket(get: () => StockState) {
         break;
 
       case "allocation":
+        console.log(msg)
         get().setAllocation(msg.data);
         break;
 

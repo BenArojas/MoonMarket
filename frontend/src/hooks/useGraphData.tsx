@@ -1,17 +1,21 @@
-import { StockData } from "@/stores/stockStore";
+import { StockData, useStockStore } from "@/stores/stockStore";
 import {
+  processAllocationData,
   processCircularData,
-  processDonutData,
   processLeaderboardsData,
   processSankeyData,
-  processTreemapData
+  processTreemapData,
 } from "@/utils/dataProcessing";
 import { useMemo } from "react";
 
-function useGraphData(stocks: { [symbol: string]: StockData }, selectedGraph: string, isDailyView: boolean = false) {
-  
-    const tickers = Object.keys(stocks);
-   
+function useGraphData(
+  stocks: { [symbol: string]: StockData },
+  selectedGraph: string,
+  isDailyView: boolean = false
+) {
+  const tickers = Object.keys(stocks);
+  const allocationView = useStockStore((state) => state.allocationView);
+  const allocation = useStockStore((state) => state.allocation);
 
   const visualizationData = useMemo(() => {
     if (!stocks || Object.keys(stocks).length === 0) return null;
@@ -20,7 +24,9 @@ function useGraphData(stocks: { [symbol: string]: StockData }, selectedGraph: st
       case "Treemap":
         return processTreemapData(stocks);
       case "DonutChart":
-        return processDonutData(stocks);
+        return allocation
+          ? processAllocationData(allocation, allocationView)
+          : [];
       case "Circular":
         return processCircularData(stocks);
       case "Leaderboards":
@@ -30,7 +36,7 @@ function useGraphData(stocks: { [symbol: string]: StockData }, selectedGraph: st
       default:
         return processTreemapData(stocks);
     }
-  }, [selectedGraph, stocks, isDailyView]);
+  }, [selectedGraph, stocks, isDailyView, , allocationView, allocation]);
 
   return {
     stockTickers: tickers,
