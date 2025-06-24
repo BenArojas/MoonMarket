@@ -3,16 +3,16 @@ import asyncio
 import contextlib
 import json
 import logging
+import math
 import ssl
 import httpx
 from pydantic import BaseModel, Field
 from typing import Awaitable, Callable, Optional, List, Dict, Any
 import websockets
-from websocket_md import on_close, on_error, on_message, on_open
+from utils import safe_float_conversion
 from models import AccountSummaryData, FrontendMarketDataUpdate, PnlRow, PnlUpdate
 from cache import cached
 from rate_control import paced
-import websocket
 
 
         
@@ -153,10 +153,27 @@ class IBKRService:
             return None
 
     @cached(ttl=150)
-    async def snapshot(self, conids, fields="31,84,86"):
+    async def snapshot(self, conids, fields="31,84,86,7635,7741,83"):
+        """
+        Get market data snapshot for given contract IDs.
+        
+        Fields:
+        - 31: Last Price
+        - 84: Bid Price  
+        - 86: Ask Price
+        - 7635: Mark Price (calculated fair value - best for options)
+        """
         await self.ensure_accounts()
         q = {"conids": ",".join(map(str, conids)), "fields": fields}
         return await self._req("GET", "/iserver/marketdata/snapshot", params=q)
+    
+    def _extract_price_from_snapshot(self, snapshot_data: dict) -> float:
+        """
+        Extract price for websocket updates - returns NaN if no price available
+        (maintains backward compatibility with existing websocket code)
+        """
+        price = _extract_best_price_from_snapshot(snapshot_data)
+        return price if price is not None else float('nan')
 
     @cached(ttl=150)
     async def history(self, conid, period="1w", bar="15min"):
@@ -326,32 +343,58 @@ class IBKRService:
         """
         Convert a raw `smd+…` frame from IBKR into FrontendMarketDataUpdate
         and broadcast it to connected WebSocket clients.
+        
+        This version is robust: it ignores ticks without price data.
         """
         # ── 1. identify the contract ──────────────────────────────────────────
-        topic: str = msg["topic"]            # e.g. "smd+450017186"
-        cid:   int = int(topic.split("+", 1)[1])
+        topic: str = msg["topic"]
+        cid: int = int(topic.split("+", 1)[1])
 
-        # ── 2. mandatory fields ───────────────────────────────────────────────
-        price_str = str(msg.get("31", "nan")).lstrip("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-        last = float(price_str or "nan") # If price_str is empty, this becomes float("nan")
+        # ── 2. Extract price from the tick message ────────────────────────────
+        last = self._extract_price_from_snapshot(msg)
 
+        # ─── SOLUTION: GUARD CLAUSE ───────────────────────────────────────────
+        # If no price could be extracted from this specific tick message (e.g., it was
+        # just a volume update), stop processing and do not broadcast anything.
+        if math.isnan(last):
+            return
+        # ──────────────────────────────────────────────────────────────────────
+
+        # ── 3. Create the base update object ──────────────────────────────────
+        symbol_name = conid_to_pos.get(cid, {}).get("fullName", str(cid))
+        
         update = FrontendMarketDataUpdate(
-            conid      = cid,
-            symbol     = conid_to_pos.get(cid, {}).get("contractDesc", str(cid)),
-            last_price = last,
+            conid=cid,
+            symbol=symbol_name,
+            last_price=last,
         )
 
-        # ── 3. enrich with static position data (if we have it) ───────────────
+        # ── 4. Enrich with static position data (if we have it) ───────────────
         if (pos := conid_to_pos.get(cid)):
-            qty  = pos["position"]
-            cost = pos["avgCost"]
+            qty = pos.get("position")
+            cost = pos.get("avgPrice")
+            
+            multiplier_str = pos.get("multiplier") 
+            multiplier = float(multiplier_str) if multiplier_str is not None else 1.0
+            log.info(f"mult is+ {multiplier}")
+            if multiplier == 0: # Fix for stocks where multiplier can be 0
+                multiplier = 1.0
 
-            update.quantity          = qty
-            update.avg_bought_price  = cost
-            update.value             = last * qty
-            update.unrealized_pnl    = (last - cost) * qty   # ← requested calc
+            update.quantity = qty
+            update.avg_bought_price = cost
 
-        # ── 4. ship it to the front-end ───────────────────────────────────────
+            # Calculate PnL - this code now only runs if `last` is a valid number
+            if qty is not None and cost is not None:
+                # The core change is to always use the multiplier.
+                calc_value = last * qty * multiplier
+                
+                # This is the correct PnL calculation for both stocks and options
+                calc_pnl_correct = (last - cost) * qty * multiplier
+
+                update.value = calc_value
+                update.unrealized_pnl = calc_pnl_correct
+        
+        # ── 5. Ship it to the front-end ───────────────────────────────────────
         await self._broadcast(update.model_dump_json())
         
     
@@ -398,7 +441,7 @@ class IBKRService:
 
                     # —— ③ market-data subscriptions ————————————————
                     for cid in conids:
-                        cmd = f'smd+{cid}+{{"fields":["31","7295"]}}'
+                        cmd = f'smd+{cid}+{{"fields":["31","7295","84","86","7635","7741","83"]}}'
                         await ws.send(cmd)
                         await asyncio.sleep(0.05)     # throttle
 
@@ -475,3 +518,31 @@ class IBKRService:
                 self.state.ws_connected = False
 
 
+def _extract_best_price_from_snapshot(snapshot_data: dict) -> float | None:
+    """
+    Extract the best available price from snapshot data in a prioritized order.
+    Priority: Last Price (31) -> Mark Price (7635) -> Mid Price -> Bid Price (84)
+    """
+    # 1. Last Price (highest priority)
+    last_price = safe_float_conversion(snapshot_data.get("31"))
+    if last_price is not None:
+        return last_price
+
+    # 2. Mark Price (often best for options)
+    mark_price = safe_float_conversion(snapshot_data.get("7635"))
+    if mark_price is not None:
+        return mark_price
+
+    # 3. Mid-price or Bid/Ask
+    bid = safe_float_conversion(snapshot_data.get("84"))
+    ask = safe_float_conversion(snapshot_data.get("86"))
+
+    if bid is not None and ask is not None:
+        return (bid + ask) / 2  # Mid-price
+
+    # 4. Fallback to Bid price if only bid is available
+    if bid is not None:
+        return bid
+
+    # If no price could be determined
+    return None

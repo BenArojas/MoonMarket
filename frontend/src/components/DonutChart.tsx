@@ -1,8 +1,8 @@
-import { AllocationView, useStockStore } from "@/stores/stockStore";
+import { useStockStore } from "@/stores/stockStore";
 import "@/styles/donut-chart.css";
 import { Box, Button, ButtonGroup, useMediaQuery, useTheme } from "@mui/material";
 import * as d3 from "d3";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef } from "react";
 
 const MARGIN_X = 100;
 const MARGIN_Y = 50;

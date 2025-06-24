@@ -17,7 +17,6 @@ import {
   MenuItem,
   Select,
 } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -42,16 +41,6 @@ interface PortfolioPerf {
   totalPercentChange: number;
 }
 
-/* -------------------- Period → IBKR bar -------------------- */
-
-const PERIOD_BAR: Record<string, [string, string]> = {
-  "1D": ["1d", "2min"],
-  "7D": ["1w", "15min"],
-  "1M": ["1m", "1h"],
-  "3M": ["3m", "3h"],
-  "6M": ["6m", "1d"],
-  "1Y": ["1y", "1d"],
-};
 
 /* =====================  MAIN PAGE  ========================= */
 
@@ -68,6 +57,9 @@ const WatchlistPage: React.FC = () => {
   const [localQuantities, setLocalQuantities] = useState<
     Record<string, number>
   >({});
+
+  // This state will hold only the tickers selected for the comparison chart.
+  const [comparisonTickers, setComparisonTickers] = useState<string[]>([]);
 
   /* user edits */
   const handleQuantityChange = (tkr: string, v: string) => {
@@ -122,11 +114,11 @@ const WatchlistPage: React.FC = () => {
    * 3️⃣  fetch historical prices for the tickers + benchmark
    * ========================================================= */
   const { data: stocksData, isLoading: priceLoading } = useQuery<StockData[]>({
-    queryKey: ["prices", tickers, benchmark, timeRange],
-    enabled: tickers.length > 0 || !!benchmark,
+    queryKey: ["prices", comparisonTickers, benchmark, timeRange],
+    enabled: comparisonTickers.length > 0 || !!benchmark,
     queryFn: async () => {
       const body = {
-        tickers: Array.from(new Set([...tickers, benchmark])),
+        tickers: Array.from(new Set([...comparisonTickers, benchmark])),
         timeRange,
         sec_types: secTypes,
         // metrics: ["price"],
@@ -135,6 +127,11 @@ const WatchlistPage: React.FC = () => {
       return data;
     },
   });
+
+  // When the watchlist changes, reset the selected comparison tickers.
+  useEffect(() => {
+    setComparisonTickers([]);
+  }, [selectedId]);
 
   /* reset quantities whenever the watch-list changes */
   useEffect(() => {
@@ -163,11 +160,16 @@ const WatchlistPage: React.FC = () => {
 
   /* ----------- dummy portfolio simulation (same as old) -------------- */
 
-    // Helper to calculate % change
-    const calculatePercentChange = (startValue: number, endValue: number): number => {
-      if (!startValue || startValue === 0) return 0;
-      return ((endValue - startValue) / startValue) * 100;
-    };
+  // Helper to calculate % change
+  const calculatePercentChange = (
+    startValue: number,
+    endValue: number
+  ): number => {
+    if (!startValue || startValue === 0) return 0;
+    return ((endValue - startValue) / startValue) * 100;
+  };
+
+  // In WatchlistPage.tsx
 
   const processPortfolioPerformanceChartData = useCallback(
     (
@@ -175,16 +177,20 @@ const WatchlistPage: React.FC = () => {
       portfolio: PortfolioItem[],
       benchmarkTicker: string
     ) => {
+      // ... (initial checks and priceMap creation are the same)
       if (!data || data.length === 0 || portfolio.length === 0) return [];
 
-      const benchmarkData = data.find((stock) => stock.ticker === benchmarkTicker);
+      const benchmarkData = data.find(
+        (stock) => stock.ticker === benchmarkTicker
+      );
       const portfolioStockData = data.filter((stock) =>
         portfolio.some((p) => p.ticker === stock.ticker)
       );
 
       if (!benchmarkData || portfolioStockData.length === 0) return [];
 
-      const referenceSeries = benchmarkData.historical || portfolioStockData[0]?.historical || [];
+      const referenceSeries =
+        benchmarkData.historical || portfolioStockData[0]?.historical || [];
       if (referenceSeries.length < 2) return [];
       const dates = referenceSeries.map((point) => point.date);
 
@@ -208,28 +214,45 @@ const WatchlistPage: React.FC = () => {
       });
 
       if (initialPortfolioValue === 0 || initialBenchmarkPrice === undefined) {
-        console.warn('Could not calculate initial values for portfolio chart.');
         return [];
       }
 
       return dates.map((date) => {
         let currentPortfolioValue = 0;
-        portfolio.forEach((item) => {
+        // --- FIX STARTS HERE ---
+        let isDataPointIncomplete = false;
+
+        for (const item of portfolio) {
+          if (item.quantity <= 0) continue;
+
           const currentPrice = priceMap[item.ticker]?.[date];
-          if (currentPrice !== undefined && item.quantity > 0) {
+          if (currentPrice !== undefined) {
             currentPortfolioValue += currentPrice * item.quantity;
+          } else {
+            // If a price is missing for an active item, flag this data point.
+            isDataPointIncomplete = true;
+            break; // No need to check other items for this date
           }
-        });
+        }
 
         const currentBenchmarkPrice = priceMap[benchmarkTicker]?.[date];
 
-        const portfolioPercentChange = calculatePercentChange(
-          initialPortfolioValue,
-          currentPortfolioValue
-        );
+        // If the data was incomplete, return null for the portfolio.
+        // The chart will then know to skip this point.
+        const portfolioPercentChange = isDataPointIncomplete
+          ? null
+          : calculatePercentChange(
+              initialPortfolioValue,
+              currentPortfolioValue
+            );
+        // --- FIX ENDS HERE ---
+
         const benchmarkPercentChange =
           currentBenchmarkPrice !== undefined
-            ? calculatePercentChange(initialBenchmarkPrice, currentBenchmarkPrice)
+            ? calculatePercentChange(
+                initialBenchmarkPrice,
+                currentBenchmarkPrice
+              )
             : null;
 
         return {
@@ -239,9 +262,9 @@ const WatchlistPage: React.FC = () => {
         };
       });
     },
-    [calculatePercentChange]
+    [] // Removed calculatePercentChange from deps as it's a stable local function
   );
-  
+
   const watchlistPortfolio: PortfolioItem[] = useMemo(
     () =>
       Object.entries(localQuantities) // {AAPL: 10, MSFT: 0, ...}
@@ -273,11 +296,11 @@ const WatchlistPage: React.FC = () => {
     return processPortfolioPerformanceChartData(
       stocksData,
       watchlistPortfolio,
-      benchmark,
+      benchmark
     );
   }, [stocksData, watchlistPortfolio, benchmark]);
   /* ------------------------- render ------------------------- */
-  if (listLoading) {
+  if (listLoading || detailLoading) {
     return (
       <CenteredBox>
         <CircularProgress />
@@ -311,24 +334,44 @@ const WatchlistPage: React.FC = () => {
         </Select>
       </FormControl>
 
-      {detailLoading || priceLoading ? (
+      <ComparisonControls
+        timeRange={timeRange}
+        setTimeRange={setTimeRange}
+        comparisonMetric="percent_change"
+        /* keep benchmark selection */
+        benchmark={benchmark}
+        setBenchmark={setBenchmark}
+      />
+
+      {/* This is the multi-select for choosing chart tickers */}
+      <FormControl sx={{ minWidth: 240, my: 2 }}>
+        <InputLabel id="tickers-select-label">Add Tickers to Chart</InputLabel>
+        <Select
+          labelId="tickers-select-label"
+          multiple
+          value={comparisonTickers}
+          onChange={(e) => setComparisonTickers(e.target.value as string[])}
+          label="Add Tickers to Chart"
+        >
+          {tickers.map((ticker) => (
+            <MenuItem key={ticker} value={ticker}>
+              {ticker}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+      {/* ------------------------------------------------- */}
+
+      {priceLoading && !stocksData ? (
         <CenteredBox>
-          <CircularProgress />
+          {" "}
+          <CircularProgress />{" "}
         </CenteredBox>
       ) : (
         <>
-          <ComparisonControls
-            timeRange={timeRange}
-            setTimeRange={setTimeRange}
-            comparisonMetric="percent_change"
-            /* keep benchmark selection */
-            benchmark={benchmark}
-            setBenchmark={setBenchmark}
-          />
-
           <ComparisonChart
             chartData={chartData}
-            watchlist={tickers}
+            watchlist={comparisonTickers}
             benchmark={benchmark}
             comparisonMetric="percent_change"
             stocksData={stocksData}

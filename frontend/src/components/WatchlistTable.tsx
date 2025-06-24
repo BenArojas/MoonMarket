@@ -78,7 +78,10 @@ const WatchlistTable: React.FC<WatchlistTableProps> = ({
             const hasData = price > 0;
 
             return (
-              <tr key={ticker}>
+              <tr key={ticker} style={{ 
+                opacity: hasData ? 1.0 : 0.5,
+                transition: 'opacity 0.3s ease-in-out' // Smooth transition
+              }}>
                 <td className="px-4 py-4 whitespace-nowrap" style={{ color: theme.palette.text.primary }}>
                   {ticker}
                 </td>
@@ -103,11 +106,13 @@ const WatchlistTable: React.FC<WatchlistTableProps> = ({
                     value={qty}
                     onChange={(e) => handleQuantityChange(ticker, e.target.value)}
                     className="w-20 p-1 rounded border"
+                    disabled={!hasData}
                     style={{
                       backgroundColor: theme.palette.background.paper,
                       color: theme.palette.text.primary,
                       borderColor: theme.palette.divider,
                       textAlign: 'right',
+                      cursor: hasData ? 'auto' : 'not-allowed',
                     }}
                   />
                 </td>

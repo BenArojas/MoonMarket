@@ -1,6 +1,8 @@
 # models.py
+import logging
 from pydantic import BaseModel, Field
 from typing import Dict, Any, List, Literal, Optional
+log = logging.getLogger("models")   # dedicate a channel for WS payloads
 
 
 class AccountSummaryData(BaseModel):
@@ -38,17 +40,16 @@ class FrontendMarketDataUpdate(FrontendMessageBase):
         Build a *snapshot* object from the IBKR /portfolio/positions row.
         This fills all optional fields so the front end starts fully hydrated.
         """
-        last = row["mktPrice"]
-        qty  = row["position"]
+        # log.info(row)
 
         return cls(
             conid             = row["conid"],
-            symbol            = row["contractDesc"],
-            last_price        = last,
-            quantity          = qty,
-            avg_bought_price  = row["avgCost"],
-            value             = last * qty,
-            unrealized_pnl    = (last - row["avgCost"]) * qty,
+            symbol            = row["fullName"],
+            last_price        = row["mktPrice"],
+            quantity          = row["position"],
+            avg_bought_price  = row["avgPrice"],
+            value             = row["mktValue"],
+            unrealized_pnl    = row["unrealizedPnl"],
         )
 
 class FrontendAccountSummaryUpdate(FrontendMessageBase):

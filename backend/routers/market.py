@@ -3,7 +3,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 import httpx
 from utils import safe_float_conversion
-from ibkr_service import IBKRService
+from ibkr_service import IBKRService, _extract_best_price_from_snapshot
 from models import ChartDataBars
 from typing import List
 from deps import get_ibkr_service 
@@ -85,30 +85,42 @@ def has_market_data(snapshot: dict) -> dict:
         }
         
 def price_delta(snap: list[dict]) -> dict:
-        src = snap[0]
-        availability = src.get("6509", None)
-        status_info = has_market_data(src)
-        last = safe_float_conversion(src.get("31"))
-        prev = safe_float_conversion(src.get("7741"))
-        pct = safe_float_conversion(src.get("83"))
-        if last is None and prev is None and pct is None:
-            return {
-                "market_data_status": status_info["type"],
-                "market_data_code": availability,
-                "last_price": None,
-                "previous_close": None,
-                "change_percent": None,
-                "change_amount": None
-            }
-        change_amount = (last - prev) if last is not None and prev is not None else None
-        return {
-            "market_data_status": status_info["type"],
-            "market_data_code": availability,
-            "last_price": last,
-            "previous_close": prev,
-            "change_percent": pct,
-            "change_amount": change_amount
-        }
+    """
+    Simplified and enhanced price_delta that works with options and stocks.
+    """
+    if not snap:
+        # Handle cases where the snapshot is empty
+        return {"error": "Empty snapshot received"}
+
+    src = snap[0]
+    status_info = has_market_data(src)
+
+    # Use the robust price extraction logic
+    last = _extract_best_price_from_snapshot(src)
+
+    # Extract other fields using the safe conversion helper
+    prev = safe_float_conversion(src.get("7741")) # Previous Close
+    pct = safe_float_conversion(src.get("83"))   # Change %
+    bid = safe_float_conversion(src.get("84"))
+    ask = safe_float_conversion(src.get("86"))
+    mark = safe_float_conversion(src.get("7635")) # Already used in `last` logic, but good to have separately
+
+    # Calculate change amount
+    change_amount = (last - prev) if last is not None and prev is not None else None
+
+    return {
+        "market_data_status": status_info["type"],
+        "market_data_code": status_info["code"],
+        "last_price": last,
+        "previous_close": prev,
+        "change_percent": pct,
+        "change_amount": change_amount,
+        "bid": bid,
+        "ask": ask,
+        "mark": mark,
+    }
+
+
 
 @router.get("/quote/{ticker}")
 async def getStockQuote(ticker:str, ibkr_service: IBKRService = Depends(get_ibkr_service)):
@@ -119,7 +131,10 @@ async def getStockQuote(ticker:str, ibkr_service: IBKRService = Depends(get_ibkr
             raise HTTPException(status_code=404, detail=f"Could not find conid for ticker '{ticker}'.")
 
         # market_data_sub = await ibkr_service.check_market_data_subscriptions()
-        raw_data = await ibkr_service.snapshot(conid)
+        raw_data = await ibkr_service.snapshot([conid])
+        if not raw_data:
+            raise HTTPException(status_code=404, detail="No market data available")
+        
         price_data = price_delta(raw_data)
         
         return {

@@ -2,15 +2,14 @@ import React from 'react';
 import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { PortfolioChartDataPoint, PortfolioItem, PortfolioPerformance } from '@/pages/Watchlist';
 
 
 interface PortfolioSummaryProps {
-  portfolioPerformance: PortfolioPerformance;
-  portfolioChartData: PortfolioChartDataPoint[];
+  portfolioPerformance: any;
+  portfolioChartData: any[];
   timeRange: string;
   benchmark: string;
-  watchlistPortfolio: PortfolioItem[];
+  watchlistPortfolio: any[];
 }
 
 const PortfolioSummary = ({ 
@@ -22,6 +21,7 @@ const PortfolioSummary = ({
 }: PortfolioSummaryProps) => {
   const theme = useTheme();
 
+  console.log("portfolioChartData", portfolioChartData)
   // if (watchlistPortfolio.length === 0) {
   //   return null;
   // }
@@ -101,7 +101,7 @@ const PortfolioSummary = ({
                   stroke={theme.palette.primary.main}
                   strokeWidth={2}
                   dot={false}
-                  connectNulls={false}
+                  connectNulls={true}
                 />
                 <Line
                   key="benchmark"
@@ -112,7 +112,7 @@ const PortfolioSummary = ({
                   strokeWidth={2}
                   strokeDasharray="5 5"
                   dot={false}
-                  connectNulls={false}
+                  connectNulls={true}
                 />
               </LineChart>
             </ResponsiveContainer>
