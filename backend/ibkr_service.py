@@ -371,14 +371,15 @@ class IBKRService:
 
         # ── 4. Enrich with static position data (if we have it) ───────────────
         if (pos := conid_to_pos.get(cid)):
+            # log.info(pos)
             qty = pos.get("position")
             cost = pos.get("avgPrice")
             
-            multiplier_str = pos.get("multiplier") 
-            multiplier = float(multiplier_str) if multiplier_str is not None else 1.0
-            log.info(f"mult is+ {multiplier}")
-            if multiplier == 0: # Fix for stocks where multiplier can be 0
-                multiplier = 1.0
+            asst_cls = pos.get("assetClass")
+            if asst_cls == "OPT":
+                multiplier = 100
+            else:
+                multiplier = 1
 
             update.quantity = qty
             update.avg_bought_price = cost
