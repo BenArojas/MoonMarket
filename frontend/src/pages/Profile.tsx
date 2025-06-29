@@ -1,85 +1,73 @@
-import { useQuery } from "@tanstack/react-query";
-import { Box, Divider, Typography, useTheme, useMediaQuery } from "@mui/material";
-import "@/styles/profile.css";
-import TabsSkeleton from "@/Skeletons/TabsSkeleton";
-import {getFriendList, getFriendRequestUsers, getSentFriendRequest} from '@/api/friend'
-import { MemoizedProfileTabs } from '@/components/ProfileTabs'
-import { useOutletContext } from "react-router-dom";
+// src/pages/ProfilePage.tsx
+import React from 'react';
+import { Box, Divider, Typography, GlobalStyles } from '@mui/material';
+import { ProfileTabs } from '@/components/ProfileTabs';
+
+// Define the custom CSS for the underline effect using GlobalStyles
+const customStyles = (
+  <GlobalStyles
+    styles={`
+      .underline-effect {
+        position: relative;
+        text-decoration: none;
+        display: inline-block;
+      }
+      .underline-effect::after {
+        content: '';
+        position: absolute;
+        bottom: -5px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 2px;
+        background-color: currentColor; /* Uses the Typography color */
+        transition: width 0.3s ease-in-out;
+      }
+      .underline-effect:hover::after {
+        width: 100%;
+      }
+    `}
+  />
+);
 
 
-
-const Profile = () => {
-  const userData = {};
-
-  const theme = useTheme();
-  const isMobileScreen = useMediaQuery(theme.breakpoints.down('sm'));
-
-  const friendRequestsCount: number = useOutletContext();
-
-  const { data: friendListData, isLoading: friendListLoading, error: friendListError } = useQuery({
-    queryKey: ['friendList'],
-    queryFn: getFriendList
-  });
-  const { data: friendRequestsData, isLoading: friendRequestsLoading, error: friendRequestsError } = useQuery({
-    queryKey: ['friendRequests'],
-    queryFn: getFriendRequestUsers
-  });
-
-  const { data: sentFriendRequestsData, isLoading: sentFriendRequestsLoading, error: sentFriendRequestsError } = useQuery({
-    queryKey: ['sentFriendRequests'],
-    queryFn: getSentFriendRequest
-  });
-
-
-  if (friendListLoading || friendRequestsLoading || sentFriendRequestsLoading) {
-    return <TabsSkeleton />;
-  }
-
-
-
+export const ProfilePage = () => {
   return (
-    <div>
-      <div className="heading-text">
-        <Typography
-          variant="h4"
-          color="primary"
-          sx={{
-            textAlign: "center",
-            margin: "auto",
-            cursor: "pointer",
-            width: "200px",
-            letterSpacing: "-3px",
-          }}
-          className="underline-effect"
-        >
-          ACCOUNT
-        </Typography>
-      </div>
-      <Divider />
+    <>
+      {customStyles}
       <Box
         sx={{
-          display: "flex",
-          justifyContent: "center",
-          mt: isMobileScreen? 2: 8 , 
-          mb:  isMobileScreen? 2: 0
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          py: 4, // Vertical padding
+          px: 2, // Horizontal padding
         }}
       >
-        <MemoizedProfileTabs
-          username={userData.username}
-          current_balance={userData.current_balance}
-          profit = {userData.profit}
-          deposits = {userData.deposits}
-          yearly_expenses = {userData.yearly_expenses}
-          friendRequests={friendRequestsData || []}
-          sentFriendRequestsData={sentFriendRequestsData || []}
-          friendList={friendListData || []}
-          friendRequestsCount={friendRequestsCount}
-          current_tier ={userData.account_type}
-          userId ={userData.id}
-        />
+        <div className="heading-text">
+          <Typography
+            variant="h4"
+            color="primary"
+            sx={{
+              textAlign: 'center',
+              margin: 'auto',
+              cursor: 'pointer',
+              width: '200px',
+              letterSpacing: '-3px',
+              fontWeight: 'bold',
+            }}
+            className="underline-effect"
+          >
+            ACCOUNT
+          </Typography>
+        </div>
+
+        <Divider sx={{ width: '80%', my: 4 }} />
+
+        <ProfileTabs />
       </Box>
-    </div>
+    </>
   );
 };
 
-export default Profile;
+export default ProfilePage;

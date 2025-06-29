@@ -1,5 +1,5 @@
 import api from "@/api/axios";
-import { ChartDataPoint } from "@/components/CurrentStockChart";
+import { ChartDataPoint } from "@/components/LwAreaChart";
 import { Dayjs } from "dayjs";
 import { Time } from "lightweight-charts";
 import { toast } from "react-toastify";
@@ -32,16 +32,21 @@ export async function getStockSentiment(ticker: string) {
 
 
 
+export interface NAVSeries   { dates: string[]; navs: number[] }
+export interface ReturnSeries{ dates: string[]; returns: number[] }
 
-// Define the function that fetches the data
-// This function will be called by useQuery
-export const fetchPerformanceData = async (period: string): Promise<ChartDataPoint[]> => {
-  const response = await api.get<ChartDataPoint[]>(`/account/performance-history`, {
+export interface Performance {
+  nav:  NAVSeries;
+  cps:  ReturnSeries;
+  tpps: ReturnSeries;
+}
+
+export async function fetchPerformance(period = "1Y"): Promise<Performance> {
+  const { data } = await api.get<Performance>("/account/performance", {
     params: { period },
   });
-  return response.data;
-};
-
+  return data;
+}
 
 
 export type ChartDataBars = {

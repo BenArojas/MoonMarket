@@ -185,13 +185,34 @@ export const AreaChart: FC<AreaChartProps> = (props) => {
         fixLeftEdge: true,
         fixRightEdge: true,
         timeVisible: true, // Ensure time is visible for advanced mode
-        tickMarkFormatter: (time: number, tickMarkType: TickMarkType): string => {
-          const date = new Date(time * 1000);
-          // Example Formatter: Show day and month for major ticks (e.g., start of month)
-          // if (tickMarkType === TickMarkType.Year || tickMarkType === TickMarkType.Month) {
-             return `${date.getUTCDate()} ${date.toLocaleString('default', { month: 'short' })}`;
-          // }
-          // return ''; // Return empty for minor ticks if desired
+        tickMarkFormatter: (time: Time, tickMarkType: TickMarkType): string => {
+          let date: Date;
+      
+          // Check if 'time' is a number (Unix timestamp)
+          if (typeof time === 'number') {
+            date = new Date(time * 1000);
+          } 
+          // Check if 'time' is a BusinessDay object
+          else if (typeof time === 'object' && 'year' in time) {
+            // The 'month' in JS Date is 0-indexed (0-11), but your data is 1-indexed (1-12)
+            date = new Date(Date.UTC(time.year, time.month - 1, time.day));
+          } 
+          // Handle the YYYY-MM-DD string format as a fallback
+          else if (typeof time === 'string') {
+              // This may not be necessary if you don't use this format
+              date = new Date(time);
+          }
+          else {
+            return ''; // Or handle as an error
+          }
+      
+          // Check for an invalid date after attempting to create it
+          if (isNaN(date.getTime())) {
+              return 'Invalid';
+          }
+      
+          // Now you can safely format the date
+          return `${date.getUTCDate()} ${date.toLocaleString('default', { month: 'short', timeZone: 'UTC' })}`;
         }
       });
 

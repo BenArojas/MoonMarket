@@ -28,18 +28,9 @@ function Portfolio() {
   const [loadingAI, setLoadingAI] = useState(false);
 
   const stocks = useStockStore((state) => state.stocks);
-  console.log({stocks})
-  // const accountSummary = useStockStore((state) => state.accountSummary);
   const status = useStockStore((state) => state.connectionStatus);
 
-  // console.log({
-  //   stocks, accountSummary, status, watchlist
-  // })
 
-  // This selector computes a derived value. It's automatically memoized.
-  const totalValue = useStockStore((state) =>
-    Object.values(state.stocks).reduce((total, stock) => total + stock.value, 0)
-  );
 
   if (status === "connecting") {
     return <div>Connecting to live data...</div>;
@@ -84,7 +75,6 @@ function Portfolio() {
     >
       <ErrorBoundary FallbackComponent={ErrorFallback}>
         <PortfolioContent
-          totalValue={totalValue}
           stocks={stocks}
           isMediumScreen={isMediumScreen}
           isMobileScreen={isMobileScreen}
@@ -131,7 +121,6 @@ interface PortfolioContentProps {
   isSmallScreen: boolean;
   isMobileScreen: boolean;
   isMediumScreen: boolean;
-  totalValue: number;
 }
 function PortfolioContent({
   stocks,

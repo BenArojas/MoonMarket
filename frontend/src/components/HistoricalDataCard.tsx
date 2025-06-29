@@ -8,7 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { useSearchParams } from "react-router-dom";
-import { AreaChart, ChartDataPoint } from "./CurrentStockChart";
+import { AreaChart, ChartDataPoint } from "./LwAreaChart";
 
 export function HistoricalDataCard() {
   const [searchParams, setSearchParams] = useSearchParams();

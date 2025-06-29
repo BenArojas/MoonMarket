@@ -1,5 +1,8 @@
 import logging
 
+from fastapi.responses import JSONResponse
+from rate_control import RateLimitExceededException
+
 # ---- global logging setup *first* ----
 logging.basicConfig(
     level=logging.INFO,                      
@@ -28,6 +31,18 @@ async def lifespan(app: FastAPI):
     # await svc._cancel_all() 
     
 app = FastAPI(lifespan=lifespan)
+@app.exception_handler(RateLimitExceededException)
+async def rate_limit_exception_handler(request, exc: RateLimitExceededException):
+    return JSONResponse(
+        status_code=429,
+        content={
+            "error": "rate_limit_exceeded",
+            "message": f"Rate limit exceeded for endpoint {exc.endpoint}",
+            "retry_after": exc.retry_after,
+            "endpoint": exc.endpoint
+        },
+        headers={"Retry-After": str(exc.retry_after)} if exc.retry_after else {}
+    )
 
 app.add_middleware(
     CORSMiddleware,

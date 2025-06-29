@@ -1,7 +1,7 @@
 import {  useState } from "react";
 import { Box, Card, Typography, Button } from "@mui/material";
 import SharesDialog from "@/components/SharesDialog.js";
-import { AreaChart, ChartDataPoint } from "@/components/CurrentStockChart.js";
+import { AreaChart, ChartDataPoint } from "@/components/LwAreaChart.js";
 
 
 

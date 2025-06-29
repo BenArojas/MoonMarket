@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from typing import Awaitable, Callable, Optional, List, Dict, Any
 import websockets
 from utils import safe_float_conversion
-from models import AccountSummaryData, FrontendMarketDataUpdate, PnlRow, PnlUpdate
+from models import AccountDetailsDTO, AccountInfoDTO, AccountSummaryData, FrontendMarketDataUpdate, OwnerInfoDTO, PermissionsDTO, PnlRow, PnlUpdate
 from cache import cached
 from rate_control import paced
 
@@ -31,7 +31,6 @@ class IBKRState(BaseModel):
     ws_connected: bool = False
     account_id: Optional[str] = None
     positions: List[Dict[str, Any]] = Field(default_factory=list)
-    account_summary: Optional[AccountSummaryData] = None
     accounts_fetched: bool = False
     accounts_cache: List[Dict[str, Any]] = Field(default_factory=list)
     allocation: Optional[dict] = None         # assetClass/sector/group
@@ -106,14 +105,6 @@ class IBKRService:
             # first time we’re authenticated → launch WS
             log.info("[SVC]  first-time auth – launching WS task")
             self._ws_task = asyncio.create_task(self._websocket_loop())
-        #     ws = websocket.WebSocketApp(
-        #     url="wss://localhost:5000/v1/api/ws",
-        #     on_open=on_open,
-        #     on_message=on_message,
-        #     on_error=on_error,
-        #     on_close=on_close
-        # )
-        # ws.run_forever(sslopt={"cert_reqs":ssl.CERT_NONE})
         self.state.ws_connected = True
         log.info("IBKR WS task started.")
 
@@ -206,32 +197,84 @@ class IBKRService:
         self.state.account_id = data[0]["accountId"]
         return self.state.account_id
     
-    async def account_summary(self, acct: str | None = None) -> AccountSummaryData:
-        acct = acct or await self._primary_account()
-        response = await self._req("GET", f"/portfolio/{acct}/summary")
-
-        # Transform to AccountSummaryData model
-        mapped_summary = {
-            key.lower().replace(' ', '_'): details.get("amount") if isinstance(details, dict) else details
-            for key, details in response.items()
-            if isinstance(details, dict) and "amount" in details # Only take items with amount
-        }
+    async def get_account_details(self, account_id: str) -> AccountDetailsDTO:
+        """Fetch complete account details from multiple endpoints"""
         
-        summary = AccountSummaryData(
-            net_liquidation=mapped_summary.get("netliquidation"),
-            total_cash_value=mapped_summary.get("totalcashvalue"),
-            buying_power=mapped_summary.get("buyingpower"),
-            additional_details={k:v for k,v in response.items() if k.lower().replace(' ', '_') not in mapped_summary}
+        # 1. Get owner info from signatures-and-owners
+        try:
+            owner_resp = await self._req("GET", f"/acesws/{account_id}/signatures-and-owners")
+            owner_data = owner_resp.get("owners", [{}])[0] if owner_resp.get("owners") else {}
+            owner_info = OwnerInfoDTO(
+                userName=owner_data.get("userName", ""),
+                entityName=owner_data.get("entityName", ""),
+                roleId=owner_data.get("roleId", "")
+            )
+        except Exception as e:
+            log.error(f"Failed to fetch owner info: {e}")
+            owner_info = OwnerInfoDTO(userName="", entityName="", roleId="")
+
+        # 2. Get account info from portfolio/accounts
+        try:
+            portfolio_resp = await self._req("GET", "/portfolio/accounts")
+            account_data = {}
+            if isinstance(portfolio_resp, list):
+                account_data = next((acc for acc in portfolio_resp if acc.get("accountId") == account_id), {})
+            elif isinstance(portfolio_resp, dict):
+                account_data = portfolio_resp
+                
+            account_info = AccountInfoDTO(
+                accountId=account_data.get("accountId", account_id),
+                accountTitle=account_data.get("accountTitle", ""),
+                accountType=account_data.get("accountType", ""),
+                tradingType=account_data.get("tradingType", ""),
+                baseCurrency=account_data.get("baseCurrency", "USD"),
+                ibEntity=account_data.get("ibEntity", ""),
+                clearingStatus=account_data.get("clearingStatus", ""),
+                isPaper=account_data.get("isPaper", False)
+            )
+        except Exception as e:
+            log.error(f"Failed to fetch account info: {e}")
+            account_info = AccountInfoDTO(
+                accountId=account_id, accountTitle="", accountType="", 
+                tradingType="", baseCurrency="USD", ibEntity="", 
+                clearingStatus="", isPaper=False
+            )
+
+        # 3. Get permissions from iserver/accounts
+        try:
+            accounts_resp = await self._req("GET", "/iserver/accounts")
+            permissions_data = {}
+            if isinstance(accounts_resp, dict):
+                # Look for the specific account or use first one
+                accounts_list = accounts_resp.get("accounts", [])
+                if accounts_list:
+                    permissions_data = accounts_list[0]  # or find by account_id
+            
+            permissions = PermissionsDTO(
+                allowFXConv=permissions_data.get("allowFXConv", False),
+                allowCrypto=permissions_data.get("allowCrypto", False),
+                allowEventTrading=permissions_data.get("allowEventTrading", False),
+                supportsFractions=permissions_data.get("supportsFractions", False)
+            )
+        except Exception as e:
+            log.error(f"Failed to fetch permissions: {e}")
+            permissions = PermissionsDTO(
+                allowFXConv=False, allowCrypto=False, 
+                allowEventTrading=False, supportsFractions=False
+            )
+
+        return AccountDetailsDTO(
+            owner=owner_info,
+            account=account_info,
+            permissions=permissions
         )
-        return summary
     
     async def _prime_caches(self):
         # await self.ensure_accounts()
         acct = await self._primary_account()
-
+        await self.ensure_accounts()
         # ① positions
         self.state.positions = await self.positions(acct)
-        self.state.account_summary = await self.account_summary(acct)
         
         self.state.allocation = await self.account_allocation(acct)
 
@@ -400,10 +443,8 @@ class IBKRService:
         
     
     
-
-    
     async def _websocket_loop(self) -> None:
-        uri     = "wss://localhost:5000/v1/api/ws"
+        uri = "wss://localhost:5000/v1/api/ws"
         cookie  = f'api={{"session":"{self.state.ibkr_session_token}"}}'
 
         ssl_ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)

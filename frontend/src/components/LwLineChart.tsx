@@ -20,15 +20,9 @@ export interface ChartDataPoint {
 interface PerformanceChartProps {
   data: ChartDataPoint[];
   height: number;
-  /** Total cash-in / cost basis.  If omitted → first point baseline. */
-  baseline: number | "prev";
 }
 
-const PerformanceChart = ({
-  data,
-  height,
-  baseline,
-}: PerformanceChartProps) => {
+const PerformanceChart = ({ data, height }: PerformanceChartProps) => {
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi>();
@@ -40,30 +34,20 @@ const PerformanceChart = ({
     y: number;
   }>();
 
+  console.log("baseline data is ", data);
+
   /* ─────────────────────────── % conversion ─────────────────────────── */
   const pctData = useMemo<ChartDataPoint[]>(() => {
     if (!data.length) return [];
 
-    // switch between the three baselines
-    return data.map((p, idx) => {
-      const base =
-        baseline === "prev"
-          ? idx === 0
-            ? p.value
-            : data[idx - 1].value // previous point
-          : baseline ?? data[0].value; // explicit number or first point
-
-      return { ...p, value: base ? (p.value / base - 1) * 100 : 0 };
-    });
-  }, [data, baseline]);
-
-  const { min, max } = useMemo(() => {
-    if (!pctData.length) return { min: 0, max: 0 };
-    return {
-      min: Math.min(...pctData.map((p) => p.value)),
-      max: Math.max(...pctData.map((p) => p.value)),
-    };
-  }, [pctData]);
+    // The incoming data's `value` is already the cumulative return as a decimal (e.g., 0.0639 for 6.39%).
+    // We just need to multiply by 100 to get the percentage value for the chart axis.
+    // The `baseline` prop is not needed for this calculation.
+    return data.map((p) => ({
+      ...p,
+      value: p.value * 100,
+    }));
+  }, [data]); // The only dependency needed is `data`
 
   /* ───────────────────── init chart (runs once) ───────────────────── */
   useEffect(() => {
@@ -161,15 +145,8 @@ const PerformanceChart = ({
 
     seriesRef.current.setData(pctData);
 
-    // symmetric y-range around 0 % (adjust if you prefer padding)
-    const span = Math.max(Math.abs(max), Math.abs(min));
-    const fixedRange = { minValue: -span, maxValue: span };
-
-    (seriesRef.current as any).autoscaleInfoProvider = () => ({
-      priceRange: fixedRange,
-    });
     chartRef.current.timeScale().fitContent();
-  }, [pctData, min, max]);
+  }, [pctData]);
 
   /* ─────────────────────────────────────────────────────────────────── */
 

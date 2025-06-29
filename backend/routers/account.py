@@ -1,91 +1,70 @@
 from datetime import datetime, timezone
 import logging
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 from ibkr_service import IBKRService
-from models import AllocationDTO, ChartDataBars, ChartDataPoint, ComboDTO, LedgerDTO
+from models import AllocationDTO, ChartDataPoint, ComboDTO, LedgerDTO
 from typing import List
 from deps import get_ibkr_service 
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/account", tags=["Market"])
 
-@router.get(
-    "/performance-history",
-    response_model=List[ChartDataPoint],
-    summary="Get Account Performance History",
-    tags=["Account Data"]
-)
-async def get_performance_history(
-    ibkr_service: IBKRService = Depends(get_ibkr_service),
-    period: str = "1Y",  # Default to 1 Year, frontend can override
-):
-    """
-    Retrieves historical Net Asset Value (NAV) for the logged-in account,
-    formatted for time-series charts.
+
+class _Series(BaseModel):
+    dates: List[str]
+    values: List[float]
+
+
+class NAVSeries(_Series):
+    """Dollar account values – one point per day"""
+    values: List[float] = Field(alias="navs")
+
+
+class ReturnSeries(_Series):
+    """Return percentages in decimal form (0.063 ⇒ 6.3 %)"""
+    values: List[float] = Field(alias="returns")
+
+
+class PerformanceResponse(BaseModel):
+    nav: NAVSeries
+    cps: ReturnSeries           # cumulative %
+    tpps: ReturnSeries          # period %
     
-    Available periods: "1D", "7D", "MTD", "1M", "YTD", "1Y".
-    """
-    valid_periods = ["1D", "7D", "MTD", "1M", "YTD", "1Y"]
-    if period not in valid_periods:
+_VALID_PERIODS = {"1D", "7D", "MTD", "1M", "YTD", "1Y"}
+
+@router.get("/performance", response_model=PerformanceResponse)
+async def account_performance(
+    period: str = "1Y",
+    ibkr: IBKRService = Depends(get_ibkr_service),
+):
+    if period not in _VALID_PERIODS:
         raise HTTPException(
-            status_code=400, 
-            detail=f"Invalid period '{period}'. Valid periods are: {', '.join(valid_periods)}"
+            400,
+            f"Invalid period '{period}'. Choose one of: {', '.join(sorted(_VALID_PERIODS))}",
         )
 
+    raw = await ibkr.account_performance(period=period)         # ↩︎ POST /pa/performance
+
     try:
-        data = await ibkr_service.account_performance(period=period)
-        # Navigate the IBKR response structure to get NAVs and dates
-        # Expected path based on documentation: response['nav']['data'][0] for NAVs, response['nav']['dates'] for dates
-        nav_section = data.get("nav", {})
-        account_nav_details_list = nav_section.get("data", [])
-        
-        if not account_nav_details_list:
-            # logger.warning(f"No 'data' array found in 'nav' section for /pa/performance. Account: {self.app_state.ibkr_account_id}, Period: {period}")
-            return []
-        
-        # Assuming the first entry in 'data' corresponds to our requested accountId
-        account_nav_data = account_nav_details_list[0]
-        
-        nav_values = account_nav_data.get("navs", [])
-        date_strings = nav_section.get("dates", []) # Dates are directly under 'nav'
+        # Each section already contains its own dates; just normalise keys
+        return PerformanceResponse(
+            nav = {
+                "dates": raw["nav"]["dates"],
+                "navs" : raw["nav"]["data"][0]["navs"],       # <-- alias
+            },
+            cps = {
+                "dates"   : raw["cps"]["dates"],
+                "returns" : raw["cps"]["data"][0]["returns"], # <-- alias
+            },
+            tpps = {
+                "dates"   : raw["tpps"]["dates"],
+                "returns" : raw["tpps"]["data"][0]["returns"],
+            },
+        )
 
-        if not nav_values or not date_strings:
-            # logger.warning(f"Missing 'navs' or 'dates' in /pa/performance response. NAVs: {len(nav_values)}, Dates: {len(date_strings)}")
-            return []
-
-        if len(nav_values) != len(date_strings):
-            # logger.error(f"Data mismatch: {len(nav_values)} NAV values but {len(date_strings)} dates.")
-            return []
-
-        chart_data_points = []
-        for i in range(len(date_strings)):
-            date_str = date_strings[i]  # Format: "YYYYMMDD"
-            nav_val = nav_values[i]
-            
-            try:
-                # Convert "YYYYMMDD" to a datetime object
-                dt_obj_naive = datetime.strptime(date_str, "%Y%m%d")
-                # Assume the date represents the start of the day in UTC for consistency.
-                # Lightweight Charts expects UNIX timestamps in seconds.
-                dt_obj_utc = dt_obj_naive.replace(tzinfo=timezone.utc)
-                timestamp_seconds = int(dt_obj_utc.timestamp())
-                
-                chart_data_points.append({"time": timestamp_seconds, "value": float(nav_val)})
-            except ValueError as e:
-                # logger.error(f"Error parsing date '{date_str}' or NAV '{nav_val}': {e}")
-                continue 
-            except TypeError as e: # Handles cases where nav_val might not be directly float-convertible (e.g. None)
-                # logger.error(f"Error converting NAV '{nav_val}' to float for date '{date_str}': {e}")
-                continue
-
-
-        # logger.info(f"Successfully fetched and transformed {len(chart_data_points)} NAV data points for account {self.app_state.ibkr_account_id}, period {period}.")
-        return chart_data_points
-
-    except Exception as e:
-        # Log the exception 'e' if not already logged deep within the service call
-        log.info(e)
-        raise HTTPException(status_code=500, detail="An internal error occurred while fetching account performance history.")
+    except (KeyError, IndexError) as exc:
+        raise HTTPException(502, f"Unexpected IBKR payload: {exc}")
     
 
 @router.get("/account/allocation", response_model=AllocationDTO)

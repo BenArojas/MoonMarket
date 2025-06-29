@@ -1,4 +1,4 @@
-import { ChartDataPoint } from '@/components/CurrentStockChart';
+import { ChartDataPoint } from '@/components/LwAreaChart';
 import {  SankeyInputData, SankeyInputLink, SankeyInputNode } from '@/components/SankeyChart';
 import { Transaction } from '@/hooks/useTransactionSummary';
 import { AllocationDTO, AllocationView, StockData } from '@/stores/stockStore';

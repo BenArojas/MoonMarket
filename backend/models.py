@@ -148,3 +148,30 @@ class PnlRow(BaseModel):
 class PnlUpdate(BaseModel):
     type: Literal["pnl"]
     data: Dict[str, PnlRow]   # keyed by "U1234567.Core"
+    
+
+class OwnerInfoDTO(BaseModel):
+    userName: str
+    entityName: str
+    roleId: str
+
+class AccountInfoDTO(BaseModel):
+    accountId: str
+    accountTitle: str
+    accountType: str
+    tradingType: str
+    baseCurrency: str
+    ibEntity: str
+    clearingStatus: str
+    isPaper: bool
+
+class PermissionsDTO(BaseModel):
+    allowFXConv: bool
+    allowCrypto: bool
+    allowEventTrading: bool
+    supportsFractions: bool
+
+class AccountDetailsDTO(BaseModel):
+    owner: OwnerInfoDTO
+    account: AccountInfoDTO
+    permissions: PermissionsDTO

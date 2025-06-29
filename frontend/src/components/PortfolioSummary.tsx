@@ -21,7 +21,6 @@ const PortfolioSummary = ({
 }: PortfolioSummaryProps) => {
   const theme = useTheme();
 
-  console.log("portfolioChartData", portfolioChartData)
   // if (watchlistPortfolio.length === 0) {
   //   return null;
   // }

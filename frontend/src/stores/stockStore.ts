@@ -18,47 +18,8 @@ export type AllocationView = "assetClass" | "sector" | "group";
 
 /* -------------------------------- LedgerDTO ----------------------------- */
 
-export interface LedgerCurrencyDTO {
-  currency: string;               // "USD" | "EUR" | "BASE" | …
-  cashBalance: number;            // cashbalance
-  unrealizedPnl: number;          // unrealized_pnl (camel-cased)
-  realizedPnl: number;            // realized_pnl
-  netLiquidationValue: number;    // net_liquidation_value
-  timestamp: number;              // epoch seconds
-}
+// todo
 
-export interface LedgerDTO {
-  currencies: LedgerCurrencyDTO[];
-}
-
-/* -------------------------------- ComboDTO ------------------------------ */
-
-export interface ComboLegDTO {
-  conid: number;
-  ratio: number;                  // positive or negative
-}
-
-export interface ComboPositionLegDTO {
-  acctId: string;
-  conid: number;
-  contractDesc: string;
-  position: number;
-  mktPrice: number;
-  mktValue: number;
-  currency: string;
-  avgCost: number;
-  avgPrice: number;
-  realizedPnl: number;
-  unrealizedPnl: number;
-  assetClass: string;             // "OPT", "STK", …
-}
-
-export interface ComboDTO {
-  name: string;                   // internal combo id
-  description: string;            // "1*708474422-1*710225103" …
-  legs: ComboLegDTO[];
-  positions: ComboPositionLegDTO[];
-}
 
 /* --------------------------- PnL DTO --------------------------- */
 export interface PnlRow {
@@ -68,6 +29,37 @@ export interface PnlRow {
   upl: number;        // unrealised P&L
   uel: number;        // excess liquidity (un-rounded)
   mv: number;         // margin value
+}
+
+/* --------------------------- AccountSummary DTO --------------------------- */
+export interface OwnerInfoDTO {
+  userName: string;
+  entityName: string;
+  roleId: string;
+}
+
+export interface AccountInfoDTO {
+  accountId: string;
+  accountTitle: string;
+  accountType: string;
+  tradingType: string;
+  baseCurrency: string;
+  ibEntity: string;
+  clearingStatus: string;
+  isPaper: boolean;
+}
+
+export interface PermissionsDTO {
+  allowFXConv: boolean;
+  allowCrypto: boolean;
+  allowEventTrading: boolean;
+  supportsFractions: boolean;
+}
+
+export interface AccountDetailsDTO {
+  owner: OwnerInfoDTO;
+  account: AccountInfoDTO;
+  permissions: PermissionsDTO;
 }
 
 
@@ -80,11 +72,7 @@ export interface StockData {
   value: number;
   unrealizedPnl: number;
 }
-export type AccountSummaryData = {
-  net_liquidation: number;
-  total_cash_value: number;
-  buying_power: number;
-};
+
 type WatchlistDict = Record<string, string>;
 
 interface FrontendMarketDataUpdate {
@@ -101,14 +89,12 @@ interface FrontendMarketDataUpdate {
 interface StockState {
   // State
   stocks: { [symbol: string]: StockData };
-  accountSummary: AccountSummaryData;
   watchlists: WatchlistDict;
   connectionStatus: "disconnected" | "connecting" | "connected" | "error";
   error?: string;
   allocation?: AllocationDTO;
   allocationView: AllocationView;
-  ledger?: LedgerDTO;
-  combos?: ComboDTO[];
+  // ledger?: LedgerDTO; todo
   pnl: Record<string, PnlRow>;             // ⬅️ NEW – keyed by "U1234567.Core"
   coreTotals: {                            // ⬅️ convenience slice for UI
     dailyRealized: number;
@@ -118,15 +104,13 @@ interface StockState {
   setPnl: (rows: Record<string, PnlRow>) => void;
   setAllocation: (a: AllocationDTO) => void;
   setAllocationView: (v: AllocationView) => void;
-  setLedger: (l: LedgerDTO) => void;
-  setCombos: (c: ComboDTO[]) => void;
+  // setLedger: (l: LedgerDTO) => void; todo
 
   // Actions
   setConnectionStatus: (status: StockState["connectionStatus"]) => void;
   setError: (errorMsg: string) => void;
   clearError: () => void;
   updateStock: (data: FrontendMarketDataUpdate) => void;
-  setAccountSummary: (data: any) => void;
   setWatchlists: (w: WatchlistDict) => void;
   clearAllData: () => void;
 
@@ -172,12 +156,10 @@ export const useStockStore = create<StockState>((set, get) => ({
   setConnectionStatus: (status) => set({ connectionStatus: status }),
   setError: (errorMsg) => set({ error: errorMsg, connectionStatus: "error" }),
   clearError: () => set({ error: undefined }),
-  setAccountSummary: (data) => set({ accountSummary: data }),
   setWatchlists: (data) => set({ watchlists: data }),
   setAllocation: (data) => set({ allocation: data }),
   setAllocationView: (v) => set({ allocationView: v }),
-  setLedger: (data) => set({ ledger: data }),
-  setCombos: (data) => set({ combos: data }),
+  // setLedger: (data) => set({ ledger: data }), todo
 
   updateStock: (data: FrontendMarketDataUpdate) =>
     set(state => {
@@ -202,11 +184,6 @@ export const useStockStore = create<StockState>((set, get) => ({
   clearAllData: () =>
     set({
       stocks: {},
-      accountSummary: {
-        net_liquidation: 0,
-        total_cash_value: 0,
-        buying_power: 0,
-      },
       watchlists: {},
     }),
 
@@ -257,7 +234,7 @@ function connectWebSocket(get: () => StockState) {
         break;
 
       case "account_summary":
-        get().setAccountSummary(msg.data);
+        // todo
         break;
         
       case "pnl":           
@@ -265,16 +242,12 @@ function connectWebSocket(get: () => StockState) {
         break;
 
       case "ledger":
-        get().setLedger({ currencies: msg.data });
+        //todo
         break;
 
       case "allocation":
         console.log(msg)
         get().setAllocation(msg.data);
-        break;
-
-      case "combos":
-        get().setCombos(msg.data);
         break;
 
       case "watchlists":

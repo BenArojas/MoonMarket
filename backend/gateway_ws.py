@@ -29,14 +29,7 @@ async def broadcast(msg: str) -> None:
         _clients.discard(ws)    
 
 async def _initial_snapshot(ws: WebSocket, svc: IBKRService) -> None:
-    # 1️⃣  account summary (if you want)
-    if svc.state.account_summary is not None:
-        await ws.send_text(json.dumps({
-            "type": "account_summary",
-            "data": svc.state.account_summary.model_dump()
-        }))
 
-    # 2️⃣  all open positions
     for p in svc.state.positions:
         await ws.send_text(
             FrontendMarketDataUpdate
@@ -44,9 +37,6 @@ async def _initial_snapshot(ws: WebSocket, svc: IBKRService) -> None:
             .model_dump_json()
         )
     
-    # 3️⃣  account-wide P&L snapshot (NEW)
-    # The `svc.state.pnl` is populated by _prime_caches and is already
-    # in the dictionary format the frontend expects for the 'data' field.
     if svc.state.pnl:
         await ws.send_text(json.dumps({
             "type": "pnl",
