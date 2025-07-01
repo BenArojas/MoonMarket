@@ -1,5 +1,6 @@
 from logging import log
 import logging
+import re
 from fastapi import APIRouter, Depends, HTTPException
 import httpx
 from utils import safe_float_conversion
@@ -121,16 +122,48 @@ def price_delta(snap: list[dict]) -> dict:
     }
 
 
+def parse_option_symbol(ticker: str):
+    """Parse option symbol like 'IBIT Jul31'25 65 Call' into components"""
+    # This is a simplified parser - you might need to adjust based on your format
+    pattern = r'^([A-Z]+)\s+([A-Za-z0-9\']+)\s+(\d+(?:\.\d+)?)\s+(Call|Put)$'
+    match = re.match(pattern, ticker, re.IGNORECASE)
+    
+    if match:
+        underlying, exp_str, strike, right = match.groups()
+        return {
+            'underlying': underlying,
+            'expiry': exp_str,
+            'strike': float(strike),
+            'right': right.upper()
+        }
+    return None
 
 @router.get("/quote/{ticker}")
-async def getStockQuote(ticker:str, ibkr_service: IBKRService = Depends(get_ibkr_service)):
-    sec_type = "CRYPTO" if ticker.upper() in CRYPTO_SYMBOLS else "STK"
+async def getStockQuote(ticker: str, ibkr_service: IBKRService = Depends(get_ibkr_service)):
+    # Determine security type
+    if ticker.upper() in CRYPTO_SYMBOLS:
+        sec_type = "CRYPTO"
+    elif any(word in ticker.upper() for word in ['CALL', 'PUT']):
+        sec_type = "OPT"
+    else:
+        sec_type = "STK"
+    
     try:
-        conid = await ibkr_service.get_conid(ticker, sec_type=sec_type)
+        if sec_type == "OPT":
+            # For options, you might need to search differently
+            # IBKR often requires the underlying symbol for options search
+            option_parts = parse_option_symbol(ticker)
+            if option_parts:
+                # Try searching with underlying symbol first
+                conid = await ibkr_service.get_conid(option_parts['underlying'], sec_type="OPT")
+            else:
+                conid = await ibkr_service.get_conid(ticker, sec_type=sec_type)
+        else:
+            conid = await ibkr_service.get_conid(ticker, sec_type=sec_type)
+            
         if not conid:
             raise HTTPException(status_code=404, detail=f"Could not find conid for ticker '{ticker}'.")
 
-        # market_data_sub = await ibkr_service.check_market_data_subscriptions()
         raw_data = await ibkr_service.snapshot([conid])
         if not raw_data:
             raise HTTPException(status_code=404, detail="No market data available")

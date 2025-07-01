@@ -34,7 +34,6 @@ const PerformanceChart = ({ data, height }: PerformanceChartProps) => {
     y: number;
   }>();
 
-  console.log("baseline data is ", data);
 
   /* ─────────────────────────── % conversion ─────────────────────────── */
   const pctData = useMemo<ChartDataPoint[]>(() => {
