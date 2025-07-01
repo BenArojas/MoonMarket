@@ -1,5 +1,6 @@
 import api from "@/api/axios";
 import { ChartDataPoint } from "@/components/LwAreaChart";
+import { AccountDetailsDTO, LedgerDTO } from "@/stores/stockStore";
 import { Dayjs } from "dayjs";
 import { Time } from "lightweight-charts";
 import { toast } from "react-toastify";
@@ -97,3 +98,20 @@ export const fetchHistoricalStockData = async (
     value: close,
   }));
 };
+
+/**
+ * Fetches consolidated account details from the backend.
+ */
+export async function fetchAccountDetails(): Promise<AccountDetailsDTO> {
+  const { data } = await api.get<AccountDetailsDTO>(`/account/account-details`);
+  return data;
+}
+
+/**
+ * Fetches the detailed, multi-currency balance ledger.
+ */
+export async function fetchBalances(): Promise<LedgerDTO> {
+  // Assuming your endpoint is /ledger and takes an 'acct' query param
+  const { data } = await api.get<LedgerDTO>('/account/ledger');
+  return data;
+}

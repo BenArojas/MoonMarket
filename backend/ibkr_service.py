@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from typing import Awaitable, Callable, Optional, List, Dict, Any
 import websockets
 from utils import safe_float_conversion
-from models import AccountDetailsDTO, AccountInfoDTO, AccountSummaryData, FrontendMarketDataUpdate, OwnerInfoDTO, PermissionsDTO, PnlRow, PnlUpdate
+from models import AccountDetailsDTO, AccountInfoDTO, AccountSummaryData, FrontendMarketDataUpdate, LedgerDTO, LedgerEntryDTO, OwnerInfoDTO, PermissionsDTO, PnlRow, PnlUpdate
 from cache import cached
 from rate_control import paced
 
@@ -197,12 +197,13 @@ class IBKRService:
         self.state.account_id = data[0]["accountId"]
         return self.state.account_id
     
-    async def get_account_details(self, account_id: str) -> AccountDetailsDTO:
+    async def get_account_details(self, acct: str | None = None) -> AccountDetailsDTO:
         """Fetch complete account details from multiple endpoints"""
+        acct = acct or await self._primary_account()
         
         # 1. Get owner info from signatures-and-owners
         try:
-            owner_resp = await self._req("GET", f"/acesws/{account_id}/signatures-and-owners")
+            owner_resp = await self._req("GET", f"/acesws/{acct}/signatures-and-owners")
             owner_data = owner_resp.get("owners", [{}])[0] if owner_resp.get("owners") else {}
             owner_info = OwnerInfoDTO(
                 userName=owner_data.get("userName", ""),
@@ -218,12 +219,12 @@ class IBKRService:
             portfolio_resp = await self._req("GET", "/portfolio/accounts")
             account_data = {}
             if isinstance(portfolio_resp, list):
-                account_data = next((acc for acc in portfolio_resp if acc.get("accountId") == account_id), {})
+                account_data = next((acc for acc in portfolio_resp if acc.get("accountId") == acct), {})
             elif isinstance(portfolio_resp, dict):
                 account_data = portfolio_resp
                 
             account_info = AccountInfoDTO(
-                accountId=account_data.get("accountId", account_id),
+                accountId=account_data.get("accountId", acct),
                 accountTitle=account_data.get("accountTitle", ""),
                 accountType=account_data.get("accountType", ""),
                 tradingType=account_data.get("tradingType", ""),
@@ -235,7 +236,7 @@ class IBKRService:
         except Exception as e:
             log.error(f"Failed to fetch account info: {e}")
             account_info = AccountInfoDTO(
-                accountId=account_id, accountTitle="", accountType="", 
+                accountId=acct, accountTitle="", accountType="", 
                 tradingType="", baseCurrency="USD", ibEntity="", 
                 clearingStatus="", isPaper=False
             )
@@ -243,18 +244,14 @@ class IBKRService:
         # 3. Get permissions from iserver/accounts
         try:
             accounts_resp = await self._req("GET", "/iserver/accounts")
-            permissions_data = {}
-            if isinstance(accounts_resp, dict):
-                # Look for the specific account or use first one
-                accounts_list = accounts_resp.get("accounts", [])
-                if accounts_list:
-                    permissions_data = accounts_list[0]  # or find by account_id
-            
+            permissions_data = accounts_resp.get("allowFeatures", {})
+            acct_props = accounts_resp.get("acctProps", {}).get(acct, {})
+
             permissions = PermissionsDTO(
                 allowFXConv=permissions_data.get("allowFXConv", False),
                 allowCrypto=permissions_data.get("allowCrypto", False),
                 allowEventTrading=permissions_data.get("allowEventTrading", False),
-                supportsFractions=permissions_data.get("supportsFractions", False)
+                supportsFractions=acct_props.get("supportsFractions", False)
             )
         except Exception as e:
             log.error(f"Failed to fetch permissions: {e}")
@@ -341,12 +338,34 @@ class IBKRService:
         return data
 
     # --------------------------------------------------------------- ledger
-    @cached(ttl=60)
-    async def ledger(self, acct: str | None = None):
-        acct = acct or await self._primary_account()
-        data = await self._req("GET", f"/portfolio/{acct}/ledger")
-        self.state.ledger = data
-        return data
+    @cached(ttl=300)
+    async def ledger(self, account_id: str | None = None) -> LedgerDTO:
+        """
+        Fetches the complete ledger for a given account.
+        The response format is massaged into our LedgerDTO.
+        """
+        account_id = account_id or await self._primary_account()
+        # The raw ledger data from IBKR is a dict with currency keys
+        raw_data = await self._req("GET", f"/portfolio/{account_id}/ledger")
+        
+        base_currency = raw_data.get("BASE", {}).get("currency", "USD")
+        ledgers = []
+        
+        for currency, data in raw_data.items():
+            # Skip if essential data is missing
+            if "cashbalance" not in data and "settledcash" not in data:
+                continue
+                
+            ledgers.append(LedgerEntryDTO(
+                currency=data.get("currency", currency),
+                cashBalance=data.get("cashbalance", 0.0),
+                settledCash=data.get("settledcash", 0.0),
+                unrealizedPnl=data.get("unrealizedpnl", 0.0),
+                dividends=data.get("dividends", 0.0),
+                exchangeRate=data.get("exchangerate", 1.0)
+            ))
+            
+        return LedgerDTO(baseCurrency=base_currency, ledgers=ledgers)
 
 
     # ---------- WebSocket handling ----------

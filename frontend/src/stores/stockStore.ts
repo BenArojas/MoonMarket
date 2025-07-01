@@ -18,8 +18,19 @@ export type AllocationView = "assetClass" | "sector" | "group";
 
 /* -------------------------------- LedgerDTO ----------------------------- */
 
-// todo
+export interface LedgerEntry {
+  currency: string;
+  cashBalance: number;
+  settledCash: number;
+  unrealizedPnl: number;
+  dividends: number;
+  exchangeRate: number;
+}
 
+export interface LedgerDTO {
+  baseCurrency: string;
+  ledgers: LedgerEntry[];
+}
 
 /* --------------------------- PnL DTO --------------------------- */
 export interface PnlRow {
@@ -94,19 +105,21 @@ interface StockState {
   error?: string;
   allocation?: AllocationDTO;
   allocationView: AllocationView;
-  // ledger?: LedgerDTO; todo
+  accountDetails: AccountDetailsDTO | null;
+  balances: LedgerDTO | null;
   pnl: Record<string, PnlRow>;             // ⬅️ NEW – keyed by "U1234567.Core"
   coreTotals: {                            // ⬅️ convenience slice for UI
     dailyRealized: number;
     unrealized: number;
     netLiq: number;
   };
+
+  // Actions
   setPnl: (rows: Record<string, PnlRow>) => void;
   setAllocation: (a: AllocationDTO) => void;
   setAllocationView: (v: AllocationView) => void;
-  // setLedger: (l: LedgerDTO) => void; todo
-
-  // Actions
+  setAccountDetails: (details: AccountDetailsDTO) => void;
+  setBalances: (balances: LedgerDTO) => void;
   setConnectionStatus: (status: StockState["connectionStatus"]) => void;
   setError: (errorMsg: string) => void;
   clearError: () => void;
@@ -135,8 +148,11 @@ export const useStockStore = create<StockState>((set, get) => ({
   coreTotals: { dailyRealized: 0, unrealized: 0, netLiq: 0 },
   connectionStatus: "disconnected",
   error: undefined,
+  accountDetails: null,
+  balances: null,
 
   // Actions
+  
   setPnl: (rows) => {
     // Pull the first *.Core row (default model) for quick widgets
     const coreKey = Object.keys(rows).find((k) => k.endsWith(".Core"));
@@ -153,13 +169,14 @@ export const useStockStore = create<StockState>((set, get) => ({
         : { dailyRealized: 0, unrealized: 0, netLiq: 0 },
     });
   },
+  setAccountDetails: (details) => set({ accountDetails: details }),
+  setBalances: (balances) => set({ balances }),
   setConnectionStatus: (status) => set({ connectionStatus: status }),
   setError: (errorMsg) => set({ error: errorMsg, connectionStatus: "error" }),
   clearError: () => set({ error: undefined }),
   setWatchlists: (data) => set({ watchlists: data }),
   setAllocation: (data) => set({ allocation: data }),
   setAllocationView: (v) => set({ allocationView: v }),
-  // setLedger: (data) => set({ ledger: data }), todo
 
   updateStock: (data: FrontendMarketDataUpdate) =>
     set(state => {
@@ -242,7 +259,7 @@ function connectWebSocket(get: () => StockState) {
         break;
 
       case "ledger":
-        //todo
+        get().setBalances(msg.data);
         break;
 
       case "allocation":

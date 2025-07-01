@@ -97,17 +97,21 @@ class AllocationDTO(BaseModel):
 
 
 # ---------- LedgerDTO --------------------------------------------------------
-class LedgerCurrencyDTO(BaseModel):
-    currency: str                   # "USD", "EUR", "BASE"…
-    cash_balance: float = Field(..., alias="cashbalance")
-    unrealized_pnl: float = Field(..., alias="unrealizedpnl")
-    realized_pnl: float = Field(..., alias="realizedpnl")
-    net_liquidation_value: float = Field(..., alias="netliquidationvalue")
-    timestamp: int
-
+class LedgerEntryDTO(BaseModel):
+    currency: str
+    cashBalance: float
+    settledCash: float
+    unrealizedPnl: float
+    dividends: float
+    exchangeRate: float
 
 class LedgerDTO(BaseModel):
-    currencies: List[LedgerCurrencyDTO]
+    baseCurrency: str
+    ledgers: List[LedgerEntryDTO]
+    
+class LedgerUpdate(BaseModel):
+    type: str = "ledger"
+    data: LedgerDTO
 
 
 # ---------- ComboDTO ---------------------------------------------------------

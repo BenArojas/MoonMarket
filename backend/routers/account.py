@@ -3,7 +3,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from ibkr_service import IBKRService
-from models import AllocationDTO, ChartDataPoint, ComboDTO, LedgerDTO
+from models import AccountDetailsDTO, AllocationDTO, ChartDataPoint, ComboDTO, LedgerDTO
 from typing import List
 from deps import get_ibkr_service 
 
@@ -67,24 +67,20 @@ async def account_performance(
         raise HTTPException(502, f"Unexpected IBKR payload: {exc}")
     
 
-@router.get("/account/allocation", response_model=AllocationDTO)
+@router.get("/allocation", response_model=AllocationDTO)
 async def get_allocation(svc: IBKRService = Depends(get_ibkr_service)):
     return await svc.account_allocation()
 
-@router.get("/account/ledger", response_model=LedgerDTO)
+@router.get("/ledger", response_model=LedgerDTO)
 async def get_ledger(svc: IBKRService = Depends(get_ibkr_service)):
     return await svc.ledger()
 
-@router.get("/account/combos", response_model=list[ComboDTO])
-async def get_combo_positions(svc: IBKRService = Depends(get_ibkr_service)):
-    return await svc.combo_positions()
+@router.get("/account-details/", response_model=AccountDetailsDTO)
+async def get_account_details(svc: IBKRService = Depends(get_ibkr_service)):
+    """
+    Provides a consolidated view of account details, including owner info,
+    account metadata, and trading permissions.
+    """
+    return await svc.get_account_details()
 
-@router.get("/account/overview")
-async def overview(svc: IBKRService = Depends(get_ibkr_service)):
-    return {
-        "summary": svc.state.account_summary,
-        "ledger": svc.state.ledger,
-        "allocation": svc.state.allocation,
-        "positions": svc.state.positions,
-        "combos": svc.state.combo_positions,
-    }
+
