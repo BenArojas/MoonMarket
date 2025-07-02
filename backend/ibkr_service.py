@@ -82,10 +82,10 @@ class IBKRService:
         return True
     
     async def ensure_accounts(self):
-        if not self.state.accounts_fetched:
-            log.info("Priming IBKR session by calling /iserver/accounts")
-            self.state.accounts_cache = await self._req("GET", "/iserver/accounts")
-            self.state.accounts_fetched = True
+        # if not self.state.accounts_fetched:
+        #     log.info("Priming IBKR session by calling /iserver/accounts")
+        self.state.accounts_cache = await self._req("GET", "/iserver/accounts")
+        self.state.accounts_fetched = True
 
     async def check_and_authenticate(self) -> AuthStatusDTO:
         """
@@ -143,8 +143,18 @@ class IBKRService:
             log.warning("secdef search failed %s %s", exc.response.status_code, symbol)
             return None
 
+    async def check_market_data_availability(self, conid):
+        """Check what market data is available for a contract"""
+        q = {"conids": str(conid), "fields": "6509"}  # Just get availability field
+        response = await self._req("GET", "/iserver/marketdata/snapshot", params=q)
+        if response and len(response) > 0 and "6509" in response[0]:
+            availability = response[0]["6509"]
+            log.info(f"Market data availability for {conid}: {availability}")
+            return availability
+        return None
+
     @cached(ttl=150)
-    async def snapshot(self, conids, fields="31,84,86,7635,7741,83"):
+    async def snapshot(self, conids, fields="31,84,86,7635,7741,83,70,71"):
         """
         Get market data snapshot for given contract IDs.
         
@@ -154,9 +164,21 @@ class IBKRService:
         - 86: Ask Price
         - 7635: Mark Price (calculated fair value - best for options)
         """
+    
+        # Make pre-flight request first
         await self.ensure_accounts()
         q = {"conids": ",".join(map(str, conids)), "fields": fields}
-        return await self._req("GET", "/iserver/marketdata/snapshot", params=q)
+        
+        # First request - often returns minimal data
+        initial_response = await self._req("GET", "/iserver/marketdata/snapshot", params=q)
+        log.info(f"Initial response: {initial_response}")
+        
+        # Wait a moment and make second request for actual data
+        await asyncio.sleep(1)
+        final_response = await self._req("GET", "/iserver/marketdata/snapshot", params=q)
+        log.info(f"Final response: {final_response}")
+        
+        return final_response
     
     def _extract_price_from_snapshot(self, snapshot_data: dict) -> float:
         """

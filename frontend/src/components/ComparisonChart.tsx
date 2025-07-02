@@ -1,6 +1,7 @@
 import { useTheme } from '@mui/material/styles';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import {  StockData } from '@/pages/Watchlist';
+import {   StockData } from '@/pages/Watchlist';
+import { formatDate } from '@/utils/dataProcessing';
 
 
 interface ComparisonChartProps {
@@ -11,6 +12,8 @@ interface ComparisonChartProps {
   stocksData: StockData[] | undefined;
   stocksLoading: boolean;
 }
+
+
 
 const ComparisonChart = ({ 
   chartData, 
@@ -27,14 +30,7 @@ const ComparisonChart = ({
     return `hsl(${hue}, 70%, 60%)`; // Adjusted lightness slightly too
   };
 
-  const formatDate = (unixSeconds: number) =>
-    new Date(unixSeconds * 1000).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: '2-digit',
-    });
-
-
+  
   if (stocksLoading && !stocksData) {
     return null; // Or return a loading state specific to this component
   }

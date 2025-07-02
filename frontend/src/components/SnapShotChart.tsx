@@ -115,6 +115,7 @@ const SnapshotChart = React.memo(
       right: " translate-x-[20%] scale-95  rotate-3  z-20", // ← and here
     };
 
+
     const cards = [
       { id: 'left', chart: <NavChartLW  dates={data.nav.dates}  values={data.nav.navs} /> },
       { id: 'main', chart: <CumulativeChartLW dates={data.cps.dates} values={data.cps.returns} /> },

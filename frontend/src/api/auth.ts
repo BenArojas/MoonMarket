@@ -17,5 +17,6 @@ export const fetchAuthStatus = async () => {
 
 export const logout = async () => {
   const response = await authCheckApi.post("/auth/logout");
+  console.log({response})
   return response.data.message;
 };

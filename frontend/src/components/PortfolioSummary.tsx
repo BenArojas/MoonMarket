@@ -2,6 +2,7 @@ import React from 'react';
 import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { formatDate } from '@/utils/dataProcessing';
 
 
 interface PortfolioSummaryProps {
@@ -9,7 +10,6 @@ interface PortfolioSummaryProps {
   portfolioChartData: any[];
   timeRange: string;
   benchmark: string;
-  watchlistPortfolio: any[];
 }
 
 const PortfolioSummary = ({ 
@@ -17,13 +17,9 @@ const PortfolioSummary = ({
   portfolioChartData, 
   timeRange, 
   benchmark,
-  watchlistPortfolio
 }: PortfolioSummaryProps) => {
   const theme = useTheme();
 
-  // if (watchlistPortfolio.length === 0) {
-  //   return null;
-  // }
 
   return (
     <div
@@ -68,6 +64,7 @@ const PortfolioSummary = ({
                   dataKey="date"
                   tick={{ fontSize: 11, fill: theme.palette.text.secondary }}
                   stroke={theme.palette.divider}
+                  tickFormatter={formatDate}
                 />
                 <YAxis
                   tick={{ fontSize: 11, fill: theme.palette.text.secondary }}

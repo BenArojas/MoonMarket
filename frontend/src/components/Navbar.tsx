@@ -1,21 +1,18 @@
-import { Box, Stack, Badge, IconButton, Divider } from "@mui/material";
+import { useAuth } from "@/contexts/AuthContext";
+import { useThemeHook } from "@/contexts/ThemeContext";
+import DarkModeIcon from "@mui/icons-material/DarkMode";
+import LightModeIcon from "@mui/icons-material/LightMode";
+import { Box, Divider, IconButton, Stack, useMediaQuery, useTheme } from "@mui/material";
 import {
   ArrowLeftRight,
   BriefcaseBusiness,
-  Orbit,
-  User,
-  LogOut,
   Globe,
   ListPlus,
+  LogOut,
+  User
 } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
-import LightModeIcon from "@mui/icons-material/LightMode";
-import DarkModeIcon from "@mui/icons-material/DarkMode";
-import { useThemeHook } from "@/contexts/ThemeContext";
-import { useTheme, useMediaQuery } from "@mui/material";
-import useLogout from "@/hooks/useLogOut";
 import { FC } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { Link, useLocation } from "react-router-dom";
 
 function capitalizeFirstLetter(string: string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
@@ -104,11 +101,11 @@ const Navbar = () => {
   const isMobileScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const isSpacePage = pathname === "/space";
 
-  const {logout } = useAuth();
+  const {logout} = useAuth();
   
   const handleLogout = async () => {
     await logout();
-    // User will be logged out and all cached data will be cleared
+    
   };
 
   const mainNavItems: NavItem[] = [

@@ -41,7 +41,7 @@ import {
         timeScale: { borderVisible: false, fixLeftEdge: true, fixRightEdge: true },
         handleScroll: false,
         handleScale: false,
-        localization: { priceFormatter: p => `${p.toFixed(2)} %` },
+        localization: { priceFormatter: p => `${(p*100).toFixed(2)} %` },
       });
   
       const series = chart.addHistogramSeries({

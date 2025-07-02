@@ -19,29 +19,21 @@ const apiConfig: ApiConfig = {
 };
 
 const api: AxiosInstance = axios.create(apiConfig);
+const API_ERROR_TOAST_ID = "api-error-toast";
 
 export const authCheckApi: AxiosInstance = axios.create(apiConfig);
 
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError) => {
-    // const originalRequest = error.config;
-    // if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/refresh')) {
-    //   originalRequest._retry = true;
-
-    //   try {
-    //     await api.post('/auth/refresh');
-    //     return api(originalRequest);
-    //   } catch (refreshError) {
-    //     // Redirect to login on refresh failure
-    //     window.location.href = '/login';
-    //     return Promise.reject(refreshError);
-    //   }
-    // }
     if (error.response?.status !== 401) {
-      toast.error((error.response?.data as { detail?: string })?.detail || 'An error occurred');
+      const message = (error.response?.data as { detail?: string })?.detail || 'An API error occurred';
+      
+      // Use a toastId to prevent duplicate toasts
+      toast.error(message, {
+        toastId: API_ERROR_TOAST_ID,
+      });
     }
-
     return Promise.reject(error);
   }
 );

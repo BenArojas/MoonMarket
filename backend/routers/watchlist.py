@@ -1,4 +1,6 @@
+import asyncio
 from logging import log
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 import httpx
 from pydantic import BaseModel, Field
@@ -8,6 +10,7 @@ from deps import get_ibkr_service
 from constants import CRYPTO_SYMBOLS, PERIOD_BAR 
 
 router = APIRouter(prefix="/watchlists", tags=["Watchlist"])
+log = logging.getLogger(__name__)
 
 # ---------------------- models ------------------------------
     
@@ -74,24 +77,45 @@ async def get_watchlist(id: str, svc: IBKRService = Depends(get_ibkr_service)):
 async def batch_history(req: HistoricalReq, svc: IBKRService = Depends(get_ibkr_service)):
     per, bar = PERIOD_BAR[req.timeRange]
     recs: list[StockHistorical] = []
+    
+    # Create a semaphore to limit concurrency to a safe number (e.g., 2)
+    semaphore = asyncio.Semaphore(2)
 
-    for symbol in req.tickers:
-        sec_hint = req.sec_types.get(symbol) if req.sec_types else None
+    async def fetch_history_for_symbol(symbol: str):
+        async with semaphore: # This will wait if 2 tasks are already running
+            sec_hint = req.sec_types.get(symbol) if req.sec_types else None
+            conid = await svc.get_conid(symbol, sec_type=sec_hint)
+            if not conid:
+                return None
 
-        conid = await svc.get_conid(symbol, sec_type=sec_hint)
-        if not conid:
-            continue  # skip unknown symbols quietly
+            try:
+                # Add a small delay to be even more gentle on the API
+                await asyncio.sleep(0.5) 
+                raw = await svc.history(conid, period=per, bar=bar)
+                if not raw.get("data"):
+                    return None
+                
+                points = [{"date": r["t"] // 1000, "price": r["c"]} for r in raw["data"]]
+                return {"ticker": symbol, "historical": points}
+                
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code == 500 and b"Chart data unavailable" in exc.response.content:
+                    log.warning(f"Chart data unavailable for {symbol}")
+                    return None
+                # Let other errors propagate up
+                raise
 
-        try:
-            raw = await svc.history(conid, period=per, bar=bar)
-            if not raw.get("data"):
-                continue
-        except httpx.HTTPStatusError as exc:
-            if exc.response.status_code == 500 and b"Chart data unavailable" in exc.response.content:
-                continue
-            raise
+    # Create all tasks and run them concurrently (respecting the semaphore limit)
+    tasks = [fetch_history_for_symbol(symbol) for symbol in req.tickers]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        points = [{"date": r["t"] // 1000, "price": r["c"]} for r in raw["data"]]
-        recs.append({"ticker": symbol, "historical": points})
-
-    return recs
+    # Process results, filtering out None values and raising any unexpected errors
+    final_recs = []
+    for res in results:
+        if isinstance(res, Exception):
+            # You might want to log this error but not fail the entire request
+            log.error(f"Failed to fetch historical data for a ticker: {res}")
+        elif res is not None:
+            final_recs.append(res)
+            
+    return final_recs

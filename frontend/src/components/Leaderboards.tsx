@@ -34,9 +34,7 @@ export default function Leaderboards({ data, width, height}) {
 
   const totalPages = Math.ceil((data.length - 3) / 5) + 1;
 
-  // React.useEffect(() => {
-  //   console.log("leaderboardsData is ", leaderboardsData);
-  // }, [category]);
+
 
   return (
     <Box

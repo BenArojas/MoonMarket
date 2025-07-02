@@ -53,6 +53,7 @@ async def history(
         log.exception("unexpected /history error")
         raise HTTPException(500, "internal error")
 
+    # log.info(raw)
     return [
         {
             "time": row["t"] // 1000,
@@ -89,36 +90,47 @@ def price_delta(snap: list[dict]) -> dict:
     """
     Simplified and enhanced price_delta that works with options and stocks.
     """
-    if not snap:
-        # Handle cases where the snapshot is empty
-        return {"error": "Empty snapshot received"}
+    if not snap or not isinstance(snap, list) or not snap[0]:
+        return {"error": "Invalid or empty snapshot received"}
 
     src = snap[0]
+    
+    # Immediately check if we have any price data. If not, fail fast.
+    if "31" not in src and "7635" not in src:
+         # Log the problematic response for debugging
+        log.warning(f"Snapshot for conid {src.get('conid')} contained no price data: {src}")
+        status_info = has_market_data(src) # Check if there's a status code
+        return {
+            "error": "Market data not found in response. Check subscriptions.",
+            "market_data_status": status_info.get("type", "unknown"),
+            "market_data_code": status_info.get("code")
+        }
+
+    # --- Proceed with parsing if data exists ---
+    
     status_info = has_market_data(src)
 
-    # Use the robust price extraction logic
-    last = _extract_best_price_from_snapshot(src)
+    # Simplified Price Extraction Logic
+    last = safe_float_conversion(src.get("31"))
+    mark = safe_float_conversion(src.get("7635"))
+    
+    # Use the best available price (prioritize Last over Mark)
+    best_price = last if last is not None else mark
 
-    # Extract other fields using the safe conversion helper
-    prev = safe_float_conversion(src.get("7741")) # Previous Close
-    pct = safe_float_conversion(src.get("83"))   # Change %
-    bid = safe_float_conversion(src.get("84"))
-    ask = safe_float_conversion(src.get("86"))
-    mark = safe_float_conversion(src.get("7635")) # Already used in `last` logic, but good to have separately
-
-    # Calculate change amount
-    change_amount = (last - prev) if last is not None and prev is not None else None
+    prev = safe_float_conversion(src.get("7741"))  # Previous Close
+    pct = safe_float_conversion(src.get("83"))     # Change %
+    
+    # Calculate change amount based on the best available price
+    change_amount = (best_price - prev) if best_price is not None and prev is not None else None
 
     return {
         "market_data_status": status_info["type"],
-        "market_data_code": status_info["code"],
-        "last_price": last,
+        "last_price": best_price, 
         "previous_close": prev,
         "change_percent": pct,
         "change_amount": change_amount,
-        "bid": bid,
-        "ask": ask,
-        "mark": mark,
+        "dayHigh": safe_float_conversion(src.get("70")),
+        "dayLow": safe_float_conversion(src.get("71")),
     }
 
 

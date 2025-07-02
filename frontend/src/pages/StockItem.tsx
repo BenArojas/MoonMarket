@@ -17,8 +17,7 @@ import { Suspense, useEffect, useState } from "react";
 import {
   Await,
   useLoaderData,
-  useNavigate,
-  useSearchParams,
+  useSearchParams
 } from "react-router-dom";
 
 
@@ -54,14 +53,12 @@ export async function loader({ params, request }: { params: { stockTicker: strin
 }
 
 function StockItem() {
-  const userData = {};
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const { stock: stockPromise, historicalData: historicalDataPromise } = useLoaderData() as LoaderData;
   const [searchParams, setSearchParams] = useSearchParams();
   const [chartData, setChartData] = useState<TransformedChartData[] | null>(null);
-  const navigate = useNavigate();
 
   const currentRange = searchParams.get("time") || defaultTime;
 
@@ -198,7 +195,7 @@ interface StockHeaderProps {
 }
 
 function StockHeader({ stock, onRangeChange, currentRange, isMobile }: StockHeaderProps) {
-  // const queryClient = useQueryClient(); // Uncomment if using mutations
+  console.log(stock)
 
   // Time ranges should align with backend's PERIOD_BAR_MAPPING keys
   const timeRanges = [
@@ -233,7 +230,7 @@ function StockHeader({ stock, onRangeChange, currentRange, isMobile }: StockHead
           <StockInfoCard label="Last Price" value={stock.last_price} />
           <StockInfoCard label="Previous close" value={stock.previous_close} />
           {/* Ensure changesPercentage is a number from backend */}
-          <StockInfoCard label="Change (24h)" value={`${stock.change_percent.toFixed(2)}%`} /> 
+          <StockInfoCard label="Change (24h)" value={`${stock?.change_percent?.toFixed(2)}%`} /> 
           {!isMobile && (
             <>
               <StockInfoCard label="High (24h)" value={stock.dayHigh} />

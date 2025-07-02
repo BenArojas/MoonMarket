@@ -8,6 +8,7 @@ import ComparisonChart from "@/components/ComparisonChart";
 import ComparisonControls from "@/components/ComparisonControls";
 import PortfolioSummary from "@/components/PortfolioSummary";
 import WatchlistTable from "@/components/WatchlistTable";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useStockStore } from "@/stores/stockStore";
 import {
   Box,
@@ -41,6 +42,13 @@ interface PortfolioPerf {
   totalPercentChange: number;
 }
 
+export function formatDate (unixSeconds: number) {
+  new Date(unixSeconds * 1000).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: '2-digit',
+  });
+}
 
 /* =====================  MAIN PAGE  ========================= */
 
@@ -60,6 +68,7 @@ const WatchlistPage: React.FC = () => {
 
   // This state will hold only the tickers selected for the comparison chart.
   const [comparisonTickers, setComparisonTickers] = useState<string[]>([]);
+  const debouncedComparisonTickers = useDebounce(comparisonTickers, 500); // 500ms delay
 
   /* user edits */
   const handleQuantityChange = (tkr: string, v: string) => {
@@ -114,11 +123,11 @@ const WatchlistPage: React.FC = () => {
    * 3️⃣  fetch historical prices for the tickers + benchmark
    * ========================================================= */
   const { data: stocksData, isLoading: priceLoading } = useQuery<StockData[]>({
-    queryKey: ["prices", comparisonTickers, benchmark, timeRange],
-    enabled: comparisonTickers.length > 0 || !!benchmark,
+    queryKey: ["prices", debouncedComparisonTickers, benchmark, timeRange],
+    enabled: debouncedComparisonTickers.length > 0 || !!benchmark,
     queryFn: async () => {
       const body = {
-        tickers: Array.from(new Set([...comparisonTickers, benchmark])),
+        tickers: Array.from(new Set([...debouncedComparisonTickers, benchmark])),
         timeRange,
         sec_types: secTypes,
         // metrics: ["price"],
@@ -393,7 +402,6 @@ const WatchlistPage: React.FC = () => {
             portfolioChartData={portfolioChartData}
             timeRange={timeRange}
             benchmark={benchmark}
-            watchlistPortfolio={watchlistPortfolio}
           />
         </>
       )}
