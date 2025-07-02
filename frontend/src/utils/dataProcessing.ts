@@ -26,7 +26,6 @@ export function formatNumber(
 }
 
 
-// Updated types to match your data processing function
 export type ProcessedStockData = {
   name: string;
   ticker: string;
@@ -35,10 +34,10 @@ export type ProcessedStockData = {
   quantity: number;
   last_price: number;
   priceChangePercentage: number;
+  dailyChangePercentage?: number; 
   percentageOfPortfolio?: number;
 }
 
-// Updated TreemapData type to be more specific
 export type TreemapData = {
   name: string;
   value: number;
@@ -48,8 +47,12 @@ export type TreemapData = {
     children: ProcessedStockData[] 
   }[];
 }
+
 // Treemap Data Processing
-export function processTreemapData(stocks: { [symbol: string]: StockData }): TreemapData {
+export function processTreemapData(
+  stocks: { [symbol: string]: StockData }, 
+  isDailyView: boolean = false
+): TreemapData {
   
   const positiveStocks: ProcessedStockData[] = [];
   const negativeStocks: ProcessedStockData[] = [];
@@ -60,19 +63,29 @@ export function processTreemapData(stocks: { [symbol: string]: StockData }): Tre
     const value: number = stockData.value;
     sum += value;
 
+    // Calculate total gain/loss percentage
+    const totalChangePercentage = (
+      ((stockData.last_price - stockData.avg_bought_price) / stockData.avg_bought_price) * 100
+    );
+
+    // Use daily change percentage if available and in daily view
+    const displayPercentage = isDailyView && stockData.daily_change_percent !== undefined
+      ? stockData.daily_change_percent
+      : totalChangePercentage;
+
     const processedStock: ProcessedStockData = {
-      name: ticker, // Using ticker as name since we don't have separate name field
+      name: ticker,
       ticker: ticker,
       value,
       avgSharePrice: stockData.avg_bought_price,
       quantity: stockData.quantity,
       last_price: stockData.last_price,
-      priceChangePercentage: (
-        ((stockData.last_price - stockData.avg_bought_price) / stockData.avg_bought_price) * 100
-      ),
+      priceChangePercentage: displayPercentage,
+      dailyChangePercentage: stockData.daily_change_percent,
     };
 
-    if (stockData.last_price > stockData.avg_bought_price) {
+    // Group by the percentage we're displaying
+    if (displayPercentage > 0) {
       positiveStocks.push(processedStock);
     } else {
       negativeStocks.push(processedStock);
@@ -90,11 +103,7 @@ export function processTreemapData(stocks: { [symbol: string]: StockData }): Tre
   calculatePortfolioPercentage(negativeStocks);
 
   // Build the final tree structure
-  const newStocksTree: {
-    name: string;
-    value: number;
-    children: { name: string; value: number; children: ProcessedStockData[] }[];
-  } = {
+  const newStocksTree: TreemapData = {
     name: "Stocks",
     value: 0,
     children: [],

@@ -1,6 +1,4 @@
 import CustomTooltip from "@/components/CustomToolTip";
-import { useStocksDailyData } from "@/hooks/useStocksDailyData";
-import TreeMapSkeleton from "@/Skeletons/TreeMapSkeleton";
 import "@/styles/Treemap.css";
 import { formatNumber, ProcessedStockData, TreemapData } from "@/utils/dataProcessing";
 import { useMediaQuery, useTheme } from "@mui/material";
@@ -8,83 +6,27 @@ import * as d3 from "d3";
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 
-// Updated Treemap component interfaces
-// interface StockData extends ProcessedStockData {
-//   // This interface now extends ProcessedStockData to maintain consistency
-// }
-
-// interface GroupData {
-//   name: string;
-//   value: number;
-//   children: StockData[];
-// }
-
-// Updated TreemapProps to use the corrected TreemapData type
 interface TreemapProps {
   width: number;
   height: number;
   isDailyView: boolean;
-  data: TreemapData; // No need for ExtendedTreemapData anymore
+  data: TreemapData;
 }
 
-// Updated Treemap component with corrected types
 export const Treemap = ({ width, height, data, isDailyView }: TreemapProps) => {
-  const { data: dailyData, isLoading: isDailyDataLoading } = useStocksDailyData(
-    data,
-    isDailyView
-  );
-
-  const processedData = useMemo(() => {
-    // If we're not in daily view or don't have daily data, return original data unchanged
-    if (!isDailyView || !dailyData) return data;
-
-    // Create a complete copy of the original data structure
-    const newData = JSON.parse(JSON.stringify(data)) as TreemapData;
-
-    // First pass: Update the priceChangePercentage values
-    newData.children.forEach((group) => {
-      group.children.forEach((stock) => {
-        // Replace the original priceChangePercentage with daily percentage
-        const dailyPercentage = dailyData[stock.ticker];
-        if (dailyPercentage !== undefined) {
-          stock.priceChangePercentage = dailyPercentage;
-        }
-      });
-    });
-
-    // Get all stocks from both positive and negative groups
-    const allStocks = newData.children.flatMap((group) => group.children);
-
-    // Split stocks into new positive and negative groups based on daily performance
-    const positiveStocks = allStocks.filter(
-      (stock) => stock.priceChangePercentage > 0
-    );
-    const negativeStocks = allStocks.filter(
-      (stock) => stock.priceChangePercentage <= 0
-    );
-
-    // Reconstruct the children array with the same structure
-    newData.children = [
-      { name: "Positive", value: 0, children: positiveStocks },
-      { name: "Negative", value: 0, children: negativeStocks },
-    ];
-
-    return newData;
-  }, [data, dailyData, isDailyView]);
-
   const theme = useTheme();
   const isMobileScreen = useMediaQuery(theme.breakpoints.down("sm"));
 
   const hierarchy = useMemo(() => {
     return d3
-      .hierarchy(processedData)
+      .hierarchy(data)
       .sum((d: any) => d.value || 0)
       .sort((a: d3.HierarchyNode<any>, b: d3.HierarchyNode<any>) => {
         const valueA = a.value ?? 0;
         const valueB = b.value ?? 0;
         return valueB - valueA;
       });
-  }, [processedData]);
+  }, [data]);
 
   // Create a color scale based on priceChangePercentage
   const getColor = (priceChangePercentage: number): string => {
@@ -192,23 +134,8 @@ export const Treemap = ({ width, height, data, isDailyView }: TreemapProps) => {
   });
 
   return (
-    <div>
-      {isDailyDataLoading ? (
-        <div
-          style={{
-            width: width,
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <TreeMapSkeleton />
-        </div>
-      ) : (
-        <svg width={width} height={height} className="container">
-          {allShapes}
-        </svg>
-      )}
-    </div>
+    <svg width={width} height={height} className="container">
+      {allShapes}
+    </svg>
   );
 };

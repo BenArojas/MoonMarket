@@ -414,6 +414,9 @@ class IBKRService:
 
         # ── 2. Extract price from the tick message ────────────────────────────
         last = self._extract_price_from_snapshot(msg)
+        # Extract daily percentage change (field 83)
+        daily_change_pct = safe_float_conversion(msg.get("83"))
+        change_amount = safe_float_conversion(msg.get("82"))
 
         # ─── SOLUTION: GUARD CLAUSE ───────────────────────────────────────────
         # If no price could be extracted from this specific tick message (e.g., it was
@@ -429,6 +432,8 @@ class IBKRService:
             conid=cid,
             symbol=symbol_name,
             last_price=last,
+            daily_change_percent=daily_change_pct,  
+            daily_change_amount=change_amount,     
         )
 
         # ── 4. Enrich with static position data (if we have it) ───────────────
@@ -502,7 +507,7 @@ class IBKRService:
 
                     # —— ③ market-data subscriptions ————————————————
                     for cid in conids:
-                        cmd = f'smd+{cid}+{{"fields":["31","7295","84","86","7635","7741","83"]}}'
+                        cmd = f'smd+{cid}+{{"fields":["31","7635","83","82"]}}'
                         await ws.send(cmd)
                         await asyncio.sleep(0.05)     # throttle
 
@@ -582,7 +587,7 @@ class IBKRService:
 def _extract_best_price_from_snapshot(snapshot_data: dict) -> float | None:
     """
     Extract the best available price from snapshot data in a prioritized order.
-    Priority: Last Price (31) -> Mark Price (7635) -> Mid Price -> Bid Price (84)
+    Priority: Last Price (31) -> Mark Price (7635) 
     """
     # 1. Last Price (highest priority)
     last_price = safe_float_conversion(snapshot_data.get("31"))
@@ -593,17 +598,3 @@ def _extract_best_price_from_snapshot(snapshot_data: dict) -> float | None:
     mark_price = safe_float_conversion(snapshot_data.get("7635"))
     if mark_price is not None:
         return mark_price
-
-    # 3. Mid-price or Bid/Ask
-    bid = safe_float_conversion(snapshot_data.get("84"))
-    ask = safe_float_conversion(snapshot_data.get("86"))
-
-    if bid is not None and ask is not None:
-        return (bid + ask) / 2  # Mid-price
-
-    # 4. Fallback to Bid price if only bid is available
-    if bid is not None:
-        return bid
-
-    # If no price could be determined
-    return None

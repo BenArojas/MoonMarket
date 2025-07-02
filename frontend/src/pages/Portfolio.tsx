@@ -28,6 +28,7 @@ function Portfolio() {
   const [loadingAI, setLoadingAI] = useState(false);
 
   const stocks = useStockStore((state) => state.stocks);
+  console.log({stocks})
   const status = useStockStore((state) => state.connectionStatus);
 
 

@@ -26,6 +26,8 @@ class FrontendMarketDataUpdate(FrontendMessageBase):
 
     # ── dynamic prices ────────────────────────────────────────────
     last_price: float                
+    daily_change_percent: Optional[float] = None
+    daily_change_amount: Optional[float] = None
 
     # ── static / optional position data ───────────────────────────
     quantity: Optional[float] = None

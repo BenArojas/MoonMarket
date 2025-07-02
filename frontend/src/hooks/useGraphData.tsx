@@ -22,7 +22,7 @@ function useGraphData(
 
     switch (selectedGraph) {
       case "Treemap":
-        return processTreemapData(stocks);
+        return processTreemapData(stocks, isDailyView);
       case "DonutChart":
         return allocation
           ? processAllocationData(allocation, allocationView)

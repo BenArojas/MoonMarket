@@ -82,6 +82,8 @@ export interface StockData {
   quantity: number;
   value: number;
   unrealizedPnl: number;
+  daily_change_percent?: number; 
+  daily_change_amount?: number; 
 }
 
 type WatchlistDict = Record<string, string>;
@@ -95,6 +97,8 @@ interface FrontendMarketDataUpdate {
   avg_bought_price?: number;
   value?: number;
   unrealized_pnl?: number;
+  daily_change_percent?: number;  
+  daily_change_amount?: number;  
 }
 
 interface StockState {
@@ -181,7 +185,7 @@ export const useStockStore = create<StockState>((set, get) => ({
   updateStock: (data: FrontendMarketDataUpdate) =>
     set(state => {
       const prev = state.stocks[data.symbol] ?? {};
-      const qty  = data.quantity ?? prev.quantity ?? 0;
+      const qty = data.quantity ?? prev.quantity ?? 0;
   
       return {
         stocks: {
@@ -193,6 +197,8 @@ export const useStockStore = create<StockState>((set, get) => ({
             avg_bought_price: data.avg_bought_price ?? prev.avg_bought_price ?? 0,
             unrealizedPnl: data.unrealized_pnl ?? prev.unrealizedPnl ?? 0,
             value: data.value ?? data.last_price * qty,
+            daily_change_percent: data.daily_change_percent ?? prev.daily_change_percent,
+            daily_change_amount: data.daily_change_amount ?? prev.daily_change_amount,
           },
         },
       };
