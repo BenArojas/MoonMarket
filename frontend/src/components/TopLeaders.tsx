@@ -1,16 +1,22 @@
 import LeaderboardCard from "@/components/LeaderboardCard";
+import { leaderboardsStock } from "@/utils/dataProcessing";
 import { Box } from "@mui/material";
-import * as React from 'react';
 
-function TopLeaders({ leaderboardsData, category }) {
-  const getChangeCount = (data) => {
+
+
+interface TopLeadersProps{
+  category: string;
+  leaderboardsData: leaderboardsStock[]
+}
+function TopLeaders({ leaderboardsData, category }: TopLeadersProps) {
+  const getChangeCount = (data: leaderboardsStock) => {
     switch (category) {
       case "percentage":
-        return `${data.priceChangePercentage}%`;
+        return `${data.priceChangePercentage.toFixed(2)}%`;
       case "positionSize":
-        return `${data.value}$`;
+        return `${data.value.toFixed(2)}$`;
       default:
-        return `${data.gainLoss}$`;
+        return `${data.gainLoss.toFixed(2)}$`;
     }
   };
 

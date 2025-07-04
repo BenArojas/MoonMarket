@@ -370,8 +370,7 @@ export function processCircularData(stocks: { [symbol: string]: StockData }): Ci
   };
 }
 
-// Leaderboards Data Processing
-export function processLeaderboardsData(stocks: { [symbol: string]: StockData }): {
+export type leaderboardsStock ={
   ticker: string;
   name: string;
   value: number;
@@ -382,7 +381,8 @@ export function processLeaderboardsData(stocks: { [symbol: string]: StockData })
   quantity: number;
   percentageOfPortfolio: number;
   gainLoss: number;
-}[] {
+}
+export function processLeaderboardsData(stocks: { [symbol: string]: StockData }): leaderboardsStock[]{
   let totalPortfolioValue: number = 0;
 
   // Calculate total portfolio value first

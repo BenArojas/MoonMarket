@@ -176,7 +176,6 @@ class IBKRService:
         # Wait a moment and make second request for actual data
         await asyncio.sleep(1)
         final_response = await self._req("GET", "/iserver/marketdata/snapshot", params=q)
-        log.info(f"Final response: {final_response}")
         
         return final_response
     

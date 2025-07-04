@@ -50,43 +50,87 @@ export const DonutChart = ({ width, height, data, onSliceClick }: DonutChartProp
   // Calculate chart size and margins for mobile
   const radius: number = Math.min(width - 2 * MARGIN_X, height - 2 * MARGIN_Y) / 2.2;
   const innerRadius: number = radius / 2.5;
-  const verticalOffset: number = 18;
+  const verticalOffset: number = isMobileScreen ? 14 : 18;
+  const fontSize: number = isMobileScreen ? 10 : 14;
+  const labelHeight = verticalOffset + fontSize;
 
-  const pie: d3.PieArcDatum<DonutDatum>[] = useMemo(() => {
+  const pie = useMemo(() => {
     const pieGenerator = d3
       .pie<DonutDatum>()
-      .value((d: DonutDatum) => d.value);
+      .value((d: DonutDatum) => d.value)
+      .sort(null); 
     return pieGenerator(data);
   }, [data]);
 
-  const arcGenerator: d3.Arc<any, d3.PieArcDatum<DonutDatum>> = d3.arc();
+  const arcGenerator = d3.arc();
+
+  // NEW: Pre-calculate all label positions
+  const labelPositions = useMemo(() => {
+    // 1. Calculate initial positions for all labels
+    const allLabels = pie.map((grp) => {
+      const sliceInfo = { innerRadius, outerRadius: radius, startAngle: grp.startAngle, endAngle: grp.endAngle };
+      const inflexionInfo = { innerRadius: radius + INFLEXION_PADDING, outerRadius: radius + INFLEXION_PADDING, startAngle: grp.startAngle, endAngle: grp.endAngle };
+      
+      const centroid = arcGenerator.centroid(sliceInfo);
+      const inflexionPoint = arcGenerator.centroid(inflexionInfo);
+      const isRightLabel = inflexionPoint[0] > 0;
+      const labelPosX = inflexionPoint[0] + 50 * (isRightLabel ? 1 : -1);
+
+      return {
+        ...grp.data,
+        slice: grp, // Keep a reference to the original pie group
+        initialY: inflexionPoint[1],
+        y: inflexionPoint[1], // This 'y' will be adjusted
+        x: labelPosX,
+        isRight: isRightLabel,
+        centroid,
+      };
+    });
+
+    // 2. Separate into left and right, and sort by initial vertical position
+    const leftLabels = allLabels.filter(d => !d.isRight).sort((a, b) => a.initialY - b.initialY);
+    const rightLabels = allLabels.filter(d => d.isRight).sort((a, b) => a.initialY - b.initialY);
+
+    // 3. Resolve overlaps for each side (two passes: top-down then bottom-up)
+    [leftLabels, rightLabels].forEach(labels => {
+        // Top-down pass
+        for (let i = 1; i < labels.length; i++) {
+            if (labels[i].y < labels[i-1].y + labelHeight) {
+                labels[i].y = labels[i-1].y + labelHeight;
+            }
+        }
+        // Bottom-up pass
+        for (let i = labels.length - 2; i >= 0; i--) {
+            if (labels[i].y > labels[i+1].y - labelHeight) {
+                labels[i].y = labels[i+1].y - labelHeight;
+            }
+        }
+    });
+    
+    // 4. Create a map for easy lookup during render
+    const positionsMap = new Map();
+    allLabels.forEach(label => positionsMap.set(label.name, label));
+    
+    return positionsMap;
+  }, [pie, radius, innerRadius, labelHeight]);
 
   const shapes: JSX.Element[] = pie.map((grp, i) => {
+
+    const finalLabel = labelPositions.get(grp.data.name);
+    if (!finalLabel) return null;
+
     const sliceInfo = {
       innerRadius,
       outerRadius: radius,
       startAngle: grp.startAngle,
       endAngle: grp.endAngle,
     };
-    const centroid: [number, number] = arcGenerator.centroid(sliceInfo);
+
     const slicePath: string | null = arcGenerator(sliceInfo);
 
-    const inflexionInfo = {
-      innerRadius: radius + INFLEXION_PADDING,
-      outerRadius: radius + INFLEXION_PADDING,
-      startAngle: grp.startAngle,
-      endAngle: grp.endAngle,
-    };
-    const inflexionPoint: [number, number] = arcGenerator.centroid(inflexionInfo);
+    const textAnchor: string = finalLabel.isRight ? "start" : "end";
+    const labelText: string = `${finalLabel.name} ($${finalLabel.value.toLocaleString("en-US")})`;
 
-    const isRightLabel: boolean = inflexionPoint[0] > 0;
-    const labelPosX: number = inflexionPoint[0] + 50 * (isRightLabel ? 1 : -1);
-    const textAnchor: string = isRightLabel ? "start" : "end";
-    const name: string = grp.data.name;
-    const label: string = `${name} ($${grp.data.value.toLocaleString("en-US")})`;
-    const percentageOfPortfolio: number = grp.data.percentageOfPortfolio;
-
-    // Scale font size for mobile screens
     const fontSize: number = isMobileScreen ? 10 : 14;
 
     return (
@@ -136,45 +180,37 @@ export const DonutChart = ({ width, height, data, onSliceClick }: DonutChartProp
             strokeWidth="1"
           />
           <line
-            x1={centroid[0]}
-            y1={centroid[1]}
-            x2={inflexionPoint[0]}
-            y2={inflexionPoint[1]}
-            stroke={theme.palette.text.primary}
-            strokeWidth="1"
-          />
-          <line
-            x1={inflexionPoint[0]}
-            y1={inflexionPoint[1]}
-            x2={labelPosX}
-            y2={inflexionPoint[1]}
+            x1={finalLabel.centroid[0]}
+            y1={finalLabel.centroid[1]}
+            x2={finalLabel.x}
+            y2={finalLabel.y} // Use the final adjusted 'y'
             stroke={theme.palette.text.primary}
             strokeWidth="1"
           />
           <text
-            x={labelPosX + (isRightLabel ? 2 : -2)}
-            y={inflexionPoint[1]}
+            x={finalLabel.x + (finalLabel.isRight ? 2 : -2)}
+            y={finalLabel.y} // Use the final adjusted 'y'
             textAnchor={textAnchor}
             dominantBaseline="middle"
             fontSize={fontSize}
             fill={theme.palette.text.primary}
           >
-            {label}
+            {labelText}
           </text>
           <text
-            x={labelPosX + (isRightLabel ? 2 : -2)}
-            y={inflexionPoint[1] + verticalOffset}
+            x={finalLabel.x + (finalLabel.isRight ? 2 : -2)}
+            y={finalLabel.y + verticalOffset} // Position percentage below the main label
             textAnchor={textAnchor}
             dominantBaseline="middle"
             fontSize={fontSize}
             fill={theme.palette.text.primary}
           >
-            {percentageOfPortfolio}%
+            {finalLabel.percentageOfPortfolio}%
           </text>
         </g>
       </g>
     );
-  });
+  }).filter(Boolean);;
 
   return (
     <Box sx={{ 

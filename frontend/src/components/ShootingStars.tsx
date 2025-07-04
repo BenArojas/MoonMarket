@@ -6,8 +6,8 @@ const ShootingStars = () => {
   // Determine the background color based on the current theme mode
   const backgroundColor =
     theme.palette.mode === "dark"
-      ? "linear-gradient(to bottom, #151515, #0b0b0b)"
-      : "linear-gradient(to bottom, #bfbfbf ,#efefef)"; // Light to medium gray gradient
+      ? "linear-gradient(to bottom, #2A2A2A, #1A1A1A)"
+      : "linear-gradient(to bottom, #bfbfbf ,#efefef)"; 
 
   const spans = [
     { top: 0, right: 0, animationDuration: "1s" },

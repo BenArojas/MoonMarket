@@ -16,7 +16,8 @@ const darkThemeOptions: ThemeOptions = {
   },
   palette: {
     background: {
-      default: "#0b0b0b",
+      default: "#1C1C1C",
+      paper: "#1A1A1A",
     },
     primary: {
       light: teal[500],

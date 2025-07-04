@@ -7,24 +7,14 @@ import ShowChartSharpIcon from "@mui/icons-material/ShowChartSharp";
 import FolderIcon from "@mui/icons-material/Folder";
 import AlertDialogSlide from "@/components/stockDialog/StockDialog";
 import { useTheme } from "@mui/material";
+import { leaderboardsStock } from "@/utils/dataProcessing";
 
-export interface Stock {
-  ticker: string;
-  earnings: string;
-  percentageOfPortfolio: string;
-  gainLoss: string;
-  name: string;
-  priceChange: number;
-  value: string;
-  sharePrice: number;
-  quantity: number;
-//   [key: string]: any;
-}
+
 
 interface LeaderboardCardProps {
   Number: number;
-  stock: Stock;
-  changeCount: string | number;
+  stock: leaderboardsStock;
+  changeCount: string;
 }
 
 const LeaderboardCard: React.FC<LeaderboardCardProps> = ({ Number, stock, changeCount }) => {

@@ -6,26 +6,17 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import { useTheme } from "@mui/material";
+import { leaderboardsStock } from "@/utils/dataProcessing";
 
-type LeaderBoardsTableData = {
-  earnings: string
-  gainLoss: string
-  name: string
-  percentageOfPortfolio: string
-  priceChangePercentage: string
-  ticker: string
-  value: string
-  quantity : number
-  priceChange: number
-  sharePrice: number
+
+interface LeaderBoardsTableProps {
+  data: leaderboardsStock[];
 }
-interface LeaderBoardsTableProps{
-  data: LeaderBoardsTableData[]
-}
+
 export default function LeaderBoardsTable({ data }: LeaderBoardsTableProps) {
   const theme = useTheme();
 
-  const formatPriceChange = (change: number, percentage: string) => {
+  const formatPriceChange = (change: number, percentage: number) => {
     const isPositive = change >= 0;
     const color = isPositive ? "green" : "red";
     const sign = isPositive ? "+" : "";
@@ -44,16 +35,15 @@ export default function LeaderBoardsTable({ data }: LeaderBoardsTableProps) {
     return `${month} ${day}`;
   };
 
-  const formatValue = (value: string, gainLoss: string) => {
-    const gainLossNumber = parseFloat(gainLoss).toFixed(2); // Convert gainLoss to a number
-    const isPositive = gainLossNumber >= 0;
+  const formatValue = (value: number, gainLoss: number) => {
+    const isPositive = gainLoss >= 0;
     const color = isPositive ? "green" : "red";
     const sign = isPositive ? "+" : "";
     
     return (
       <span>
         <span style={{ color }}>
-          {`${sign}${gainLossNumber}$`}
+          {`${sign}${gainLoss.toFixed(2)}$`}
         </span>
         {` (${value}$)`}
       </span>

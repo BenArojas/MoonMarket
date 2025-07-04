@@ -1,5 +1,6 @@
 import LeaderBoardsTable from "@/components/LeaderboardTable";
 import TopLeaders from "@/components/TopLeaders";
+import { leaderboardsStock } from "@/utils/dataProcessing";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { Box } from "@mui/material";
@@ -8,33 +9,42 @@ import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Pagination from "@mui/material/Pagination";
 import PaginationItem from "@mui/material/PaginationItem";
-import Select from "@mui/material/Select";
+import Select, { SelectChangeEvent } from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import * as React from "react";
 
-export default function Leaderboards({ data, width, height}) {
-  const [category, setCategory] = React.useState("positionSize");
-  const [page, setPage] = React.useState(1);
-  const leadersCount = 3;
-  const rowsPerPage = 5;
-  const leaderboardsData =
+interface LeaderboardsProps {
+  data: leaderboardsStock[];
+  width: number;
+  height: number;
+}
+type CategoryType = "positionSize" | "total" | "default";
+
+export default function Leaderboards({
+  data,
+  width,
+  height,
+}: LeaderboardsProps) {
+  const [category, setCategory] = React.useState<CategoryType>("positionSize");
+  const [page, setPage] = React.useState<number>(1);
+  const leadersCount: number = 3;
+  const rowsPerPage: number = 5;
+  const leaderboardsData: leaderboardsStock[] =
     category === "total"
       ? [...data].sort((a, b) => b.gainLoss - a.gainLoss)
       : category === "positionSize"
       ? [...data].sort((a, b) => b.value - a.value)
       : data;
 
-  const handleChange = (event, value) => {
+  const handleChange = (event: React.ChangeEvent<unknown>, value: number) => {
     setPage(value);
   };
 
-  const handleCategoryChange = (event) => {
-    setCategory(event.target.value);
+  const handleCategoryChange = (event: SelectChangeEvent<CategoryType>) => {
+    setCategory(event.target.value as CategoryType);
   };
 
   const totalPages = Math.ceil((data.length - 3) / 5) + 1;
-
-
 
   return (
     <Box
@@ -46,7 +56,7 @@ export default function Leaderboards({ data, width, height}) {
         justifyContent: "flex-end", // Changed from "center"
         alignItems: "center",
         gap: page === 1 ? 1 : 5,
-        position: "relative"
+        position: "relative",
       }}
     >
       <Stack
@@ -75,12 +85,14 @@ export default function Leaderboards({ data, width, height}) {
           }}
         />
       </Stack>
-      <Box sx={{
-        position: "absolute",
-        top: 0,
-        right: 0,
-        zIndex:2
-      }}>
+      <Box
+        sx={{
+          position: "absolute",
+          top: 0,
+          right: 0,
+          zIndex: 2,
+        }}
+      >
         <Box sx={{ minWidth: 120 }}>
           <FormControl fullWidth>
             <InputLabel id="demo-simple-select-label">Sort By</InputLabel>

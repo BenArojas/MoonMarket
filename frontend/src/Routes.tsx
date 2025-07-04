@@ -69,6 +69,16 @@ const router = createBrowserRouter([
             },
           },
           {
+            path: "/scanner",
+            async lazy(): Promise<LazyRouteComponent> {
+              const { default: Space } = await import("@/pages/Scanner");
+              return {
+                Component: Space,
+                ErrorBoundary: (await import("@/components/ErrorFallBack")).default,
+              };
+            },
+          },
+          {
             path: "/global",
             async lazy(): Promise<LazyRouteComponent> {
               const { default: Global } = await import("@/pages/Global");

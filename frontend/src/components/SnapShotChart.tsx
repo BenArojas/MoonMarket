@@ -6,6 +6,7 @@ import PortfolioStats from "@/components/PortfolioStats";
 import NavChartLW from "./NavChartLW";
 import CumulativeChartLW from "./CumulativeChartLW";
 import MonthlyBarChartLW from "./MonthlyBarChartLW";
+import GraphSkeleton from "@/Skeletons/GraphSkeleton";
 
 /* ─── helper types ─────────────────────────────────────────────── */
 type CardId = "main" | "left" | "right";
@@ -72,11 +73,12 @@ const SnapshotChart = React.memo(
 
     // 1️⃣ ─ Loading / error gating first ---------------------------------
     if (isLoading) {
-      return (
-        <div className="grid w-full place-items-center" style={{ height: 380 }}>
-          <Skeleton variant="rectangular" width="80%" height="90%" />
-        </div>
-      );
+      // return (
+      //   <div className="grid w-full place-items-center" style={{ height: 380 }}>
+      //     <Skeleton variant="rectangular" width="80%" height="90%" />
+      //   </div>
+      // );
+      return <GraphSkeleton height={350}/>
     }
     if (error) {
       return <p className="text-red-600">Error: {error.message}</p>;

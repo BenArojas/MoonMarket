@@ -12,7 +12,6 @@ export default function CumulativeChartLW({ dates, values }: Props) {
     <PerformanceChart
       data={toSeries(dates, values)}
       height={240}
-      // The baseline prop is no longer needed as the component handles it correctly
     />
   );
 }
