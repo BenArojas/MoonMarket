@@ -261,7 +261,7 @@ const ScannerFilters: React.FC<Props> = ({
                             {activeFilters.map(filter => {
                                 const metadata = getFilterMetadata(filter.code);
                                 return (
-                                    <Card key={filter.code} variant="outlined" sx={{ p: 2, minWidth: 300 }}>
+                                    <Card key={filter.code} variant="outlined" sx={{ p: 2, width: '100%'}}>
                                         <Box display="flex" alignItems="center" justifyContent="space-between" gap={2}>
                                             <Box flex={1}>
                                                 <Box display="flex" alignItems="center" mb={1}>

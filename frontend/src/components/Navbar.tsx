@@ -2,14 +2,19 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useThemeHook } from "@/contexts/ThemeContext";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
-import { Box, Divider, IconButton, Stack, useMediaQuery, useTheme } from "@mui/material";
 import {
-  ArrowLeftRight,
-  BriefcaseBusiness,
-  Globe,
-  ListPlus,
+  Box,
+  Divider,
+  IconButton,
+  Stack,
+  useMediaQuery,
+  useTheme,
+} from "@mui/material";
+import {
+  ArrowLeftRight,BriefcaseBusiness,Globe,ListPlus,
   LogOut,
-  User
+  User,
+  ScanSearch,
 } from "lucide-react";
 import { FC } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -31,7 +36,11 @@ interface NavItemProps {
   isActive?: boolean;
 }
 
-const NavItem: FC<NavItemProps> = ({ item, isMainNav = false, isActive = false }) => {
+const NavItem: FC<NavItemProps> = ({
+  item,
+  isMainNav = false,
+  isActive = false,
+}) => {
   const theme = useTheme();
   const { icon: Icon, text, onClick, disabled } = item;
 
@@ -92,8 +101,6 @@ const NavItem: FC<NavItemProps> = ({ item, isMainNav = false, isActive = false }
   );
 };
 
-
-
 const Navbar = () => {
   const theme = useTheme();
   const { toggleTheme, mode } = useThemeHook();
@@ -101,11 +108,10 @@ const Navbar = () => {
   const isMobileScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const isSpacePage = pathname === "/space";
 
-  const {logout} = useAuth();
-  
+  const { logout } = useAuth();
+
   const handleLogout = async () => {
     await logout();
-    
   };
 
   const mainNavItems: NavItem[] = [
@@ -113,6 +119,7 @@ const Navbar = () => {
     { icon: ArrowLeftRight, text: "transactions" },
     { icon: BriefcaseBusiness, text: "home" },
     { icon: ListPlus, text: "watchlist" },
+    {icon: ScanSearch, text: "scanner"},
     ...(isMobileScreen ? [] : [{ icon: Globe, text: "global" }]),
   ];
 
@@ -122,7 +129,7 @@ const Navbar = () => {
       onClick: isSpacePage ? undefined : toggleTheme,
       disabled: isSpacePage,
     },
-    { icon: User, text: "profile"},
+    { icon: User, text: "profile" },
     { icon: LogOut, text: "logout", onClick: handleLogout },
   ];
 
@@ -134,7 +141,12 @@ const Navbar = () => {
     >
       {isMobileScreen ? (
         <>
-          <Stack direction="row" gap={3} alignItems="center" justifyContent="center">
+          <Stack
+            direction="row"
+            gap={3}
+            alignItems="center"
+            justifyContent="center"
+          >
             {rightNavItems.map((item, index) => (
               <NavItem
                 key={item.text || index}
@@ -144,7 +156,12 @@ const Navbar = () => {
             ))}
           </Stack>
           <Divider />
-          <Stack direction="row" gap={3} alignItems="center" justifyContent="center">
+          <Stack
+            direction="row"
+            gap={3}
+            alignItems="center"
+            justifyContent="center"
+          >
             {mainNavItems.map((item, index) => (
               <NavItem
                 key={item.text || index}

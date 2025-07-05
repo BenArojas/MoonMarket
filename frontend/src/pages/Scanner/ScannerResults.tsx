@@ -26,7 +26,7 @@ const ScannerResults: React.FC<Props> = ({ results }) => {
     };
     
     return (
-        <Card sx={{ mt: 2, maxHeight: '45vh', overflowY: 'auto' }}>
+        <Card sx={{ mt: 2,  }}>
             <CardContent>
                 <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
                     <Typography variant="h5" fontWeight="bold">

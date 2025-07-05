@@ -2,7 +2,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import React, { useState } from 'react';
 import { scannerApi, ScannerFilter, ScannerParams, ScannerRequest, ScannerResponse } from '@/api/scanner';
-import { Alert, Box, Button, Card, CardContent, CircularProgress, Container, Divider, Typography } from '@mui/material';
+import { Alert, Box, Button, Card, CardContent, CircularProgress, Container, Divider, Typography, Grid } from '@mui/material';
 import { PlayArrow, Search } from '@mui/icons-material';
 import ScannerConfiguration from './ScannerConfiguration';
 import ScannerFilters from './ScannerFilters';
@@ -52,7 +52,7 @@ const Scanner: React.FC = () => {
     // --- RENDER LOGIC ---
     if (paramsLoading) {
         return (
-            <Container maxWidth="lg" sx={{ py: 4, textAlign: 'center' }}>
+            <Container maxWidth="xl" sx={{ py: 4, textAlign: 'center' }}>
                 <CircularProgress />
                 <Typography>Loading scanner parameters...</Typography>
             </Container>
@@ -61,7 +61,7 @@ const Scanner: React.FC = () => {
 
     if (paramsError || !scannerParams) {
         return (
-            <Container maxWidth="lg" sx={{ py: 4 }}>
+            <Container maxWidth="xl" sx={{ py: 4 }}>
                 <Alert severity="error">Error loading scanner parameters.</Alert>
             </Container>
         );
@@ -70,64 +70,117 @@ const Scanner: React.FC = () => {
     const canRunScanner = selectedInstrument && selectedScanType && selectedLocation;
 
     return (
-        <Container maxWidth="lg" sx={{ py: 2 }}>
-            <Box display="flex" alignItems="center" mb={2}>
+        <Container maxWidth="xl" sx={{ py: 2 }}>
+            {/* Header */}
+            <Box display="flex" alignItems="center" mb={3}>
                 <Search sx={{ fontSize: 32, color: 'primary.main', mr: 2 }} />
                 <Typography variant="h3" component="h1" fontWeight="bold">
                     Market Scanner
                 </Typography>
             </Box>
 
-            <Card sx={{ mb: 2}}>
-                <CardContent sx={{ p: 3 }}>
-                    <ScannerConfiguration
-                        params={scannerParams}
-                        scanTypesData={scanTypesData}
-                        scanTypesLoading={scanTypesLoading}
-                        selectedInstrument={selectedInstrument}
-                        onInstrumentChange={(value) => {
-                            setSelectedInstrument(value);
-                            setSelectedScanType(''); // Reset scan type when instrument changes
-                        }}
-                        selectedScanType={selectedScanType}
-                        onScanTypeChange={setSelectedScanType}
-                        selectedLocation={selectedLocation}
-                        onLocationChange={setSelectedLocation}
-                    />
+            <Grid container spacing={3} sx={{ height: 'calc(90vh - 200px)' }}>
+                {/* Left Column - Configuration */}
+                <Grid item xs={12} md={4}>
+                    <Card sx={{ maxHeight: '70vh', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+                        <CardContent sx={{ p: 3, flex: 1 }}>
+                            <Typography variant="h6" gutterBottom fontWeight="bold">
+                                Scanner Configuration
+                            </Typography>
+                            
+                            <ScannerConfiguration
+                                params={scannerParams}
+                                scanTypesData={scanTypesData}
+                                scanTypesLoading={scanTypesLoading}
+                                selectedInstrument={selectedInstrument}
+                                onInstrumentChange={(value) => {
+                                    setSelectedInstrument(value);
+                                    setSelectedScanType(''); 
+                                }}
+                                selectedScanType={selectedScanType}
+                                onScanTypeChange={setSelectedScanType}
+                                selectedLocation={selectedLocation}
+                                onLocationChange={setSelectedLocation}
+                            />
 
-                    <Divider sx={{ my: 1 }} />
+                            <Divider sx={{ my: 3 }} />
+                            
+                            <ScannerFilters
+                                activeFilters={activeFilters}
+                                setActiveFilters={setActiveFilters}
+                                availableFilters={instrumentFilters?.filters || []}
+                                allFilterInfo={scannerParams.filter_list}
+                            />
 
-                    <ScannerFilters
-                        activeFilters={activeFilters}
-                        setActiveFilters={setActiveFilters}
-                        availableFilters={instrumentFilters?.filters || []}
-                        allFilterInfo={scannerParams.filter_list}
-                    />
+                            <Box sx={{ mt: 'auto', pt: 3 }}>
+                                <Button
+                                    onClick={handleRunScanner}
+                                    disabled={!canRunScanner || scannerMutation.isPending}
+                                    variant="contained"
+                                    size="large"
+                                    fullWidth
+                                    startIcon={scannerMutation.isPending ? <CircularProgress size={20} color="inherit" /> : <PlayArrow />}
+                                    sx={{ py: 1.5 }}
+                                >
+                                    Run Scanner
+                                </Button>
+                            </Box>
+                        </CardContent>
+                    </Card>
+                </Grid>
 
-                    <Divider sx={{ my: 1 }} />
+                {/* Right Column - Results */}
+                <Grid item xs={12} md={8}>
+                    <Card sx={{  display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+                        <CardContent sx={{ p: 3, flex: 1, overflow: 'hidden' }}>
+                            <Typography variant="h6" gutterBottom fontWeight="bold">
+                                Scan Results
+                            </Typography>
+                            
+                            {scannerMutation.error && (
+                                <Alert severity="error" sx={{ mb: 2 }}>
+                                    Error running scanner: {scannerMutation.error.message}
+                                </Alert>
+                            )}
 
-                    <Box display="flex" justifyContent="center">
-                        <Button
-                            onClick={handleRunScanner}
-                            disabled={!canRunScanner || scannerMutation.isPending}
-                            variant="contained"
-                            size="large"
-                            startIcon={scannerMutation.isPending ? <CircularProgress size={20} color="inherit" /> : <PlayArrow />}
-                            sx={{ px: 4, py: 1.5 }}
-                        >
-                            Run Scanner
-                        </Button>
-                    </Box>
-                </CardContent>
-            </Card>
+                            {scannerMutation.isPending && (
+                                <Box display="flex" justifyContent="center" alignItems="center" sx={{ height: '200px' }}>
+                                    <CircularProgress />
+                                    <Typography sx={{ ml: 2 }}>Running scanner...</Typography>
+                                </Box>
+                            )}
 
-            {scannerMutation.error && (
-                <Alert severity="error" sx={{ mt: 2 }}>
-                    Error running scanner: {scannerMutation.error.message}
-                </Alert>
-            )}
+                            {!scannerMutation.data && !scannerMutation.isPending && (
+                                <Box 
+                                    display="flex" 
+                                    justifyContent="center" 
+                                    alignItems="center" 
+                                    sx={{ 
+                                        height: '200px', 
+                                        // bgcolor: 'grey.50', 
+                                        borderRadius: 1,
+                                        border: '2px dashed',
+                                        borderColor: 'grey.300'
+                                    }}
+                                >
+                                    <Typography >
+                                        Configure scanner and click "Run Scanner" to see results
+                                    </Typography>
+                                </Box>
+                            )}
 
-            {scannerMutation.data && <ScannerResults results={scannerMutation.data} />}
+                            {scannerMutation.data && (
+                                <Box sx={{
+                                    maxHeight: '70vh',
+                                    overflowY:'auto'
+                                }}>
+                                    <ScannerResults results={scannerMutation.data} />
+                                </Box>
+                            )}
+                        </CardContent>
+                    </Card>
+                </Grid>
+            </Grid>
         </Container>
     );
 };

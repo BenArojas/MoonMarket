@@ -44,25 +44,29 @@ const ScannerConfiguration: React.FC<Props> = ({
     onLocationChange,
 }) => {
     const locationOptions = React.useMemo(() => {
-        if (!selectedInstrument) return [];
-        
-        // Get all locations
-        const allLocations = getAllLocations(params.location_tree);
-        
-        // Filter locations that match the selected instrument
-        // and are leaf nodes (no child locations)
-        const relevantLocations = allLocations.filter(loc => {
-            // Check if this location is relevant to the selected instrument
-            const isRelevant = loc.type.startsWith(selectedInstrument) || 
-                              loc.type === selectedInstrument;
-            
-            // Only include leaf locations (ones without child locations)
-            const isLeaf = !loc.locations || loc.locations.length === 0;
-            
-            return isRelevant && isLeaf;
-        });
-        
-        return relevantLocations;
+        if (!selectedInstrument) {
+            return [];
+        }
+
+        // 1. Find the specific location tree for the selected instrument
+        const instrumentLocationTree = params.location_tree.find(
+            (tree) => tree.type === selectedInstrument
+        );
+
+        // If no tree is found for this instrument, there are no locations
+        if (!instrumentLocationTree || !instrumentLocationTree.locations) {
+            return [];
+        }
+
+        // 2. Flatten all locations *only within* that specific instrument's tree
+        const allSubLocations = getAllLocations(instrumentLocationTree.locations);
+
+        // 3. Filter for leaf nodes (the actual selectable locations)
+        const leafLocations = allSubLocations.filter(
+            (loc) => !loc.locations || loc.locations.length === 0
+        );
+
+        return leafLocations;
     }, [params.location_tree, selectedInstrument]);
     
     // Reset location when instrument changes and current location is not valid
