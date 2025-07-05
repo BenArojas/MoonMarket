@@ -59,12 +59,13 @@ async def run_market_scanner(
         log.info(f"Running scanner with params: {scanner_request.dict()}")
         
         # Convert pydantic model to dict for IBKR API
-        scanner_payload = {
-            "instrument": scanner_request.instrument,
-            "type": scanner_request.type,
-            "location": scanner_request.location,
-            "filter": [{"code": f.code, "value": f.value} for f in scanner_request.filter]
-        }
+        # scanner_payload = {
+        #     "instrument": scanner_request.instrument,
+        #     "type": scanner_request.type,
+        #     "location": scanner_request.location,
+        #     "filter": [{"code": f.code, "value": f.value} for f in scanner_request.filter]
+        # }
+        scanner_payload = scanner_request.model_dump(exclude_unset=True)
         
         result = await ibkr_service.run_scanner(scanner_payload)
         return ScannerResponse(**result)
