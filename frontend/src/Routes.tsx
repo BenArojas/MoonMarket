@@ -5,11 +5,7 @@ import Layout from "@/pages/Layout";
 import NotFoundPage from "@/pages/NotFoundPage";
 import { AuthProvider } from "@/contexts/AuthContext";
 
-interface LazyRouteComponent {
-  Component: React.ComponentType;
-  loader?: () => Promise<any>;
-  ErrorBoundary?: React.ComponentType<{ error: Error }>;
-}
+
 
 const router = createBrowserRouter([
   {
@@ -26,73 +22,73 @@ const router = createBrowserRouter([
         children: [
           {
             path: "/home",
-            async lazy(): Promise<LazyRouteComponent> {
+            async lazy() {
               const { default: Portfolio } = await import("@/pages/Portfolio");
               return {
                 Component: Portfolio,
-                ErrorBoundary: (await import("@/components/ErrorFallBack")).default,
+                ErrorBoundary: (await import("@/components/ErrorFallBack")),
               };
             },
           },
           {
             path: "/profile",
-            async lazy(): Promise<LazyRouteComponent> {
+            async lazy() {
               const { default: Profile } = await import("@/pages/Profile");
               return { Component: Profile };
             },
           },
           {
             path: "/watchlist",
-            async lazy(): Promise<LazyRouteComponent> {
+            async lazy() {
               const { default: Watchlist } = await import("@/pages/Watchlist");
               return { Component: Watchlist };
             },
           },
           {
             path: "/transactions",
-            async lazy(): Promise<LazyRouteComponent> {
+            async lazy() {
               const { default: Transactions } = await import("@/pages/Transactions");
               return {
                 Component: Transactions,
-                ErrorBoundary: (await import("@/components/ErrorFallBack")).default,
+                ErrorBoundary: (await import("@/components/ErrorFallBack")),
               };
             },
           },
           {
             path: "/space",
-            async lazy(): Promise<LazyRouteComponent> {
+            async lazy() {
               const { default: Space } = await import("@/pages/Space");
               return {
                 Component: Space,
-                ErrorBoundary: (await import("@/components/ErrorFallBack")).default,
+                ErrorBoundary: (await import("@/components/ErrorFallBack")),
               };
             },
           },
           {
             path: "/scanner",
-            async lazy(): Promise<LazyRouteComponent> {
+            async lazy() {
               const { default: Space } = await import("@/pages/Scanner/Scanner");
               return {
                 Component: Space,
-                ErrorBoundary: (await import("@/components/ErrorFallBack")).default,
+                ErrorBoundary: (await import("@/components/ErrorFallBack")),
               };
             },
           },
           {
             path: "/global",
-            async lazy(): Promise<LazyRouteComponent> {
+            async lazy() {
               const { default: Global } = await import("@/pages/Global");
               return { Component: Global };
             },
           },
           {
             path: "/stock/:stockTicker",
-            async lazy(): Promise<LazyRouteComponent> {
+            async lazy() {
               const { default: StockItem, loader } = await import("@/pages/StockItem");
               return {
                 Component: StockItem,
                 loader,
-                ErrorBoundary: (await import("@/components/ErrorFallBack")).default,
+                ErrorBoundary: (await import("@/components/ErrorFallBack")),
               };
             },
           },

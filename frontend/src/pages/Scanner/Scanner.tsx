@@ -157,7 +157,6 @@ const Scanner: React.FC = () => {
                                     alignItems="center" 
                                     sx={{ 
                                         height: '200px', 
-                                        // bgcolor: 'grey.50', 
                                         borderRadius: 1,
                                         border: '2px dashed',
                                         borderColor: 'grey.300'
@@ -171,7 +170,7 @@ const Scanner: React.FC = () => {
 
                             {scannerMutation.data && (
                                 <Box sx={{
-                                    maxHeight: '70vh',
+                                    maxHeight: '60vh',
                                     overflowY:'auto'
                                 }}>
                                     <ScannerResults results={scannerMutation.data} />

@@ -121,7 +121,7 @@ const ScannerConfiguration: React.FC<Props> = ({
             {/* Location Selection */}
             <Grid item xs={12} md={4}>
                 <FormControl fullWidth disabled={!selectedInstrument}>
-                    <InputLabel id="location-select-label">Location</InputLabel>
+                    <InputLabel id="location-select-label">Exchange</InputLabel>
                     <Select
                         labelId="location-select-label"
                         value={selectedLocation}

@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect } from "react"; // 1. Impor
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchAuthStatus, logout as apiLogout, AuthDTO } from "@/api/auth"; // Renamed to avoid conflict
 import { useStockStore } from "@/stores/stockStore"; // 2. Import your Zustand store
+import { useNavigate } from "react-router-dom";
 
 interface AuthContextType {
   isAuth: boolean | undefined;
@@ -18,6 +19,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   // 3. Get connect/disconnect actions from the Zustand store
   const connectWebSocket = useStockStore((state) => state.connect);
@@ -61,6 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       await apiLogout(); // Use the renamed import // Invalidate all queries and clear cache
       queryClient.clear();
+      navigate('/');
     } catch (error) {
       console.error("Logout failed:", error); // Even if server logout fails, clear local cache to log the user out on the frontend
       queryClient.clear();
