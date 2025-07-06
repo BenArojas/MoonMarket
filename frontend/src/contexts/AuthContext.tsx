@@ -19,7 +19,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
 
   // 3. Get connect/disconnect actions from the Zustand store
   const connectWebSocket = useStockStore((state) => state.connect);
@@ -63,7 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       await apiLogout(); // Use the renamed import // Invalidate all queries and clear cache
       queryClient.clear();
-      navigate('/');
+      // navigate('/');
     } catch (error) {
       console.error("Logout failed:", error); // Even if server logout fails, clear local cache to log the user out on the frontend
       queryClient.clear();

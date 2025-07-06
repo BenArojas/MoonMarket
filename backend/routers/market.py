@@ -53,7 +53,6 @@ async def history(
         log.exception("unexpected /history error")
         raise HTTPException(500, "internal error")
 
-    # log.info(raw)
     return [
         {
             "time": row["t"] // 1000,

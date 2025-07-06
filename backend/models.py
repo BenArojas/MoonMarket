@@ -42,7 +42,6 @@ class FrontendMarketDataUpdate(FrontendMessageBase):
         Build a *snapshot* object from the IBKR /portfolio/positions row.
         This fills all optional fields so the front end starts fully hydrated.
         """
-        # log.info(row)
 
         return cls(
             conid             = row["conid"],

@@ -56,7 +56,7 @@ const Global: React.FC = () => {
                         width: '100%',
                         mb: 2
                     }}>
-                        <TechnicalAnalysis mode={mode} />
+                        <TechnicalAnalysis mode={mode} symbol='AAPL'/>
                     </Box>
                 </Box>
                 <Box sx={{

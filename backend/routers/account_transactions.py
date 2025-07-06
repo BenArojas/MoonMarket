@@ -45,7 +45,6 @@ async def get_transactions(
         pos = ibkr_service.state.positions or await ibkr_service.positions(acct_id)
         
         conids_set = {p["conid"] for p in pos if p.get("conid") and isinstance(p["conid"], int)}
-        log.info(f"conids are + {conids_set}")
         
         if not conids_set:
             return {"transactions": [], "pnl": []}

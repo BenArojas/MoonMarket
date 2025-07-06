@@ -1,7 +1,10 @@
 import React, { useEffect, useRef, memo } from 'react';
-import { ThemeModeProps } from './CryptoHeatMapTradingView';
 
-const TradingViewWidget: React.FC<ThemeModeProps> = ({ mode }) => {
+interface TradingViewWidgetProps{
+  mode: 'light' | 'dark';
+  symbol: string
+}
+const TradingViewWidget: React.FC<TradingViewWidgetProps> = ({ mode, symbol }) => {
   const container = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -11,7 +14,7 @@ const TradingViewWidget: React.FC<ThemeModeProps> = ({ mode }) => {
     script.async = true;
 
     const widgetConfig: Record<string, string | boolean | string[]> = {
-      symbol: "NASDAQ:AAPL",
+      symbol: symbol,
       interval: "D",
       timezone: "Etc/UTC",
       theme: mode === 'dark' ? 'dark' : 'light',

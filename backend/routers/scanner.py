@@ -39,7 +39,6 @@ async def get_scanner_parameters(ibkr_service : IBKRService = Depends(get_ibkr_s
     filters, and locations.
     """
     try:
-        log.info("Fetching scanner parameters...")
         params = await ibkr_service.get_scanner_params()
         return ScannerParamsResponse(**params)
     except Exception as e:
@@ -56,7 +55,6 @@ async def run_market_scanner(
     Returns up to 50 contracts matching the criteria.
     """
     try:
-        log.info(f"Running scanner with params: {scanner_request.dict()}")
         
         # Convert pydantic model to dict for IBKR API
         # scanner_payload = {
