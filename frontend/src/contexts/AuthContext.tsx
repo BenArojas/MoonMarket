@@ -57,20 +57,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [isAuth, connectWebSocket, disconnectWebSocket]); // 5. UPDATE THE LOGOUT HANDLER
 
   const handleLogout = async () => {
-    // First, immediately disconnect the WebSocket
     disconnectWebSocket();
-
+  
     try {
-      await apiLogout(); // Use the renamed import // Invalidate all queries and clear cache
-      queryClient.clear();
-      // navigate('/');
+      await apiLogout();
+      // Remove all queries except auth, then invalidate auth
+      queryClient.removeQueries({ 
+        predicate: (query) => query.queryKey[0] !== "authStatus" 
+      });
+      queryClient.invalidateQueries({ queryKey: ["authStatus"] });
     } catch (error) {
-      console.error("Logout failed:", error); // Even if server logout fails, clear local cache to log the user out on the frontend
-      queryClient.clear();
+      console.error("Logout failed:", error);
+      queryClient.removeQueries({ 
+        predicate: (query) => query.queryKey[0] !== "authStatus" 
+      });
+      queryClient.invalidateQueries({ queryKey: ["authStatus"] });
     }
-    // No need to invalidate queries after clearing, as `clear` removes everything.
-    // The component will re-render, useQuery will be in its initial state,
-    // and your routing logic will redirect the user.
   };
 
   return (
