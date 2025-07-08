@@ -1,5 +1,5 @@
 import api from "@/api/axios";
-import { ChartDataPoint } from "@/components/LwAreaChart";
+import { ChartDataPoint } from "@/components/charts/AreaChartLw";
 import { AccountDetailsDTO, LedgerDTO } from "@/stores/stockStore";
 import { Dayjs } from "dayjs";
 import { Time } from "lightweight-charts";

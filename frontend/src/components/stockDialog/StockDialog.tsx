@@ -7,7 +7,7 @@ import * as React from "react";
 import dayjs from "dayjs";
 import styles from "./stockDialog.module.css";
 import { useTheme } from "@mui/material";
-import { Stock } from "../LeaderboardCard";
+import { Stock } from "../leaderboards/LeaderboardCard";
 import { TransitionProps } from "@mui/material/transitions";
 
 const Transition = React.forwardRef(function Transition(

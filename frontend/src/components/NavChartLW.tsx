@@ -1,5 +1,5 @@
 // components/charts/NavChartLW.tsx
-import { AreaChart } from '@/components/LwAreaChart';
+import { AreaChart } from '@/components/charts/AreaChartLw';
 import { toSeries } from '@/utils/lwHelpers';
 
 interface Props {
