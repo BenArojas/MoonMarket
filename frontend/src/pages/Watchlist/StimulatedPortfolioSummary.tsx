@@ -19,7 +19,9 @@ const PortfolioSummary = ({
 }: PortfolioSummaryProps) => {
   const theme = useTheme();
 
-
+console.log({
+  portfolioPerformance, portfolioChartData, benchmark
+})
   return (
     <div
       className="p-4 rounded shadow mb-6"

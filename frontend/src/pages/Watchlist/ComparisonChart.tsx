@@ -1,113 +1,74 @@
-import { useTheme } from '@mui/material/styles';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import {   StockData } from '@/pages/Watchlist/Watchlist';
-import { formatDate } from '@/utils/dataProcessing';
+// src/pages/Watchlist/ComparisonChart.tsx
 
+import { formatDate } from '@/utils/dataProcessing';
+import { useTheme } from '@mui/material/styles';
+import { useMemo } from 'react';
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 
 interface ComparisonChartProps {
-  chartData: { [key: string]: number }[];
-  watchlist: string[];
+  chartData: { [key: string]: number | null }[]; // Allow null for gaps
   benchmark: string;
-  comparisonMetric: string;
-  stocksData: StockData[] | undefined;
-  stocksLoading: boolean;
 }
 
-
-
-const ComparisonChart = ({ 
-  chartData, 
-  watchlist, 
-  benchmark, 
-  comparisonMetric, 
-  stocksData, 
-  stocksLoading 
-}: ComparisonChartProps) => {
+const ComparisonChart = ({ chartData, benchmark }: ComparisonChartProps) => {
   const theme = useTheme();
   
+  // Helper to get all ticker keys from the data, excluding the 'date' key.
+  const dataKeys = useMemo(() => {
+    if (chartData.length === 0) return [];
+    return Object.keys(chartData[0]).filter(key => key !== 'date' && key !== benchmark);
+  }, [chartData, benchmark]);
+
   const generateColor = (index: number) => {
-    const hue = (index * 137) % 360; // Use a prime number like 137
-    return `hsl(${hue}, 70%, 60%)`; // Adjusted lightness slightly too
+    const hue = (index * 137) % 360;
+    return `hsl(${hue}, 70%, 60%)`;
   };
 
-  
-  if (stocksLoading && !stocksData) {
-    return null; // Or return a loading state specific to this component
-  }
-
-  if ((watchlist.length === 0 && !benchmark) || chartData.length === 0) {
+  if (dataKeys.length === 0 && !benchmark) {
     return (
-      <div
-        className="p-4 rounded shadow mb-6 text-center"
-        style={{ backgroundColor: theme.palette.background.paper }}
-      >
+      <div className="p-4 rounded shadow mb-6 text-center" style={{ backgroundColor: theme.palette.background.paper }}>
         <p style={{ color: theme.palette.text.secondary }}>
-          {watchlist.length === 0 ? "Add stocks to your watchlist to see comparison." : "No historical data available for the selected range/metric."}
+          Select tickers from the dropdown to see a comparison.
         </p>
       </div>
     );
   }
 
   return (
-    <div
-      className="p-4 rounded shadow mb-6"
-      style={{ backgroundColor: theme.palette.background.paper }}
-    >
+    <div className="p-4 rounded shadow mb-6" style={{ backgroundColor: theme.palette.background.paper }}>
       <h2 className="text-lg font-semibold mb-4" style={{ color: theme.palette.text.primary }}>
-        {watchlist.length > 0 ? 'Watchlist' : 'Benchmark'} vs Benchmark Comparison ({comparisonMetric === 'price' ? 'Price' : '% Change'})
+        Performance Comparison
       </h2>
       <div className="h-80">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
-            <XAxis
-              dataKey="date"
-              tick={{ fontSize: 11, fill: theme.palette.text.secondary }}
-              stroke={theme.palette.divider}
-              tickFormatter={formatDate}
-            />
-            <YAxis
-              tick={{ fontSize: 11, fill: theme.palette.text.secondary }}
-              stroke={theme.palette.divider}
-              tickFormatter={(value) => comparisonMetric === 'percent_change' ? `${value?.toFixed(0)}%` : value?.toFixed(0)}
-              domain={['auto', 'auto']}
-            />
+            <XAxis dataKey="date" tick={{ fontSize: 11, fill: theme.palette.text.secondary }} stroke={theme.palette.divider} tickFormatter={formatDate} />
+            <YAxis tick={{ fontSize: 11, fill: theme.palette.text.secondary }} stroke={theme.palette.divider} tickFormatter={(value) => `${Number(value).toFixed(0)}%`} domain={['auto', 'auto']} />
             <Tooltip
-              contentStyle={{
-                backgroundColor: theme.palette.background.paper,
-                color: theme.palette.text.primary,
-                border: `1px solid ${theme.palette.divider}`,
-                borderRadius: '4px',
-                fontSize: '0.8rem',
-              }}
-              itemStyle={{ color: theme.palette.text.primary }}
-              labelStyle={{ color: theme.palette.text.secondary, marginBottom: '5px' }}
-              formatter={(value, name) => [`${comparisonMetric === 'percent_change' ? (value as number).toFixed(2) + '%' : '$' + (value as number).toFixed(2)}`, name]}
+              contentStyle={{ backgroundColor: theme.palette.background.paper, border: `1px solid ${theme.palette.divider}` }}
+              formatter={(value: number, name) => [`${value.toFixed(2)}%`, name]}
               labelFormatter={formatDate}
             />
-            <Legend wrapperStyle={{ color: theme.palette.text.primary, fontSize: '0.8rem', paddingTop: '10px' }} />
-            {watchlist.map((ticker, index) => (
-              <Line
-                key={ticker}
-                type="monotone"
-                dataKey={ticker}
-                stroke={generateColor(index)}
-                strokeWidth={2}
-                dot={false}
-                connectNulls={false}
-              />
+            <Legend wrapperStyle={{ fontSize: '0.8rem', paddingTop: '10px' }} />
+            
+            {/* Render lines based on keys found in the data */}
+            {dataKeys.map((ticker, index) => (
+              <Line key={ticker} type="monotone" dataKey={ticker} name={ticker} stroke={generateColor(index)} strokeWidth={2} dot={false} connectNulls={true} />
             ))}
-            {benchmark && stocksData?.some(s => s.ticker === benchmark) && (
-              <Line
-                type="monotone"
-                dataKey={benchmark}
-                name={`${benchmark} (Benchmark)`}
-                stroke={theme.palette.text.secondary}
-                strokeWidth={2}
-                strokeDasharray="5 5"
-                dot={false}
-                connectNulls={false}
-              />
+
+            {/* Render benchmark line if it exists in the data */}
+            {benchmark && chartData[0]?.[benchmark] !== undefined && (
+              <Line type="monotone" dataKey={benchmark} name={`${benchmark} (Benchmark)`} stroke={theme.palette.text.secondary} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls={true} />
             )}
           </LineChart>
         </ResponsiveContainer>

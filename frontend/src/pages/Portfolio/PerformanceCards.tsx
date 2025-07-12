@@ -3,7 +3,7 @@ import PortfolioStats from "@/pages/Portfolio/PortfolioStats";
 import GraphSkeleton from "@/Skeletons/GraphSkeleton";
 import { Card, useMediaQuery, useTheme } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import CumulativeChartLW from "../../components/CumulativeChartLW";
 import MonthlyBarChartLW from "../../components/charts/MonthlyBarChartLW";
 import MultiSeriesLineLw from "../../components/MultiSeriesLineLw";
@@ -79,7 +79,7 @@ const PerformanceCards = React.memo(
     }
 
     /* 2️⃣  Chart configurations */
-    const chartConfigs = [
+    const chartConfigs = useMemo(() => [
       {
         title: "Portfolio Performance",
         chart: <CumulativeChartLW dates={data.cps.dates} values={data.cps.returns} />,
@@ -94,9 +94,9 @@ const PerformanceCards = React.memo(
       },
       {
         title: "Additional Analytics",
-        chart: <NavChartLW  dates={data.nav.dates}  values={data.nav.navs} />,
+        chart: <NavChartLW dates={data.nav.dates} values={data.nav.navs} />,
       },
-    ];
+    ], [data, selectedPeriod]); // Dependencies for the memoization
 
     const handleCardClick = (index: number) => {
       if (index !== activeCardIndex) {

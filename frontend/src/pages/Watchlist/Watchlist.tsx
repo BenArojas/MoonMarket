@@ -1,16 +1,13 @@
-/* -----------------------------------------------------------
-   New watchlist page – chooses a watch-list first, then shows
-   the comparison chart, simulation table and portfolio snapshot
-   ----------------------------------------------------------- */
+// src/pages/Watchlist/Watchlist.tsx
 
 import api from "@/api/axios";
 import ComparisonChart from "@/pages/Watchlist/ComparisonChart";
 import ComparisonControls from "@/pages/Watchlist/ComparisonControls";
-import PortfolioSummary from "@/pages/Watchlist/StimulatedPortfolioSummary";
 import WatchlistTable from "@/pages/Watchlist/WatchlistTable";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useStockStore } from "@/stores/stockStore";
 import {
+  Alert,
   Box,
   CircularProgress,
   FormControl,
@@ -20,6 +17,7 @@ import {
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import PortfolioSummary from "./StimulatedPortfolioSummary";
 
 /* --------------------- Helper types ------------------------ */
 
@@ -42,87 +40,68 @@ interface PortfolioPerf {
   totalPercentChange: number;
 }
 
-export function formatDate (unixSeconds: number) {
-  new Date(unixSeconds * 1000).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: '2-digit',
-  });
-}
-
 /* =====================  MAIN PAGE  ========================= */
 
 const WatchlistPage: React.FC = () => {
-  // const theme = useTheme();
   const { watchlists, setWatchlists } = useStockStore();
 
   /* ------- page-level state ------- */
-  const [selectedId, setSelectedId] = useState<string | "">("");
+  const [selectedId, setSelectedId] = useState<string>("");
   const [benchmark, setBenchmark] = useState("SPY");
-  const [timeRange, setTimeRange] = useState<
-    "1D" | "7D" | "1M" | "3M" | "6M" | "1Y"
-  >("1M");
-  const [localQuantities, setLocalQuantities] = useState<
-    Record<string, number>
-  >({});
-
-  // This state will hold only the tickers selected for the comparison chart.
+  const [timeRange, setTimeRange] = useState<"1D" | "7D" | "1M" | "3M" | "6M" | "1Y">("1M");
+  const [localQuantities, setLocalQuantities] = useState<Record<string, number>>({});
   const [comparisonTickers, setComparisonTickers] = useState<string[]>([]);
-  const debouncedComparisonTickers = useDebounce(comparisonTickers, 500); // 500ms delay
+  const debouncedComparisonTickers = useDebounce(comparisonTickers, 500);
 
-  /* user edits */
   const handleQuantityChange = (tkr: string, v: string) => {
     const q = parseInt(v, 10);
     setLocalQuantities((prev) => ({ ...prev, [tkr]: isNaN(q) ? 0 : q }));
   };
 
-  /* =============================================
-   * 1️⃣  fetch list of user watch-lists once
-   * ============================================= */
-  const { isLoading: listLoading } = useQuery({
+  /* --- 1. Fetch Watchlist IDs --- */
+  const { data: fetchedWatchlists, isPending: listIsPending } = useQuery({
     queryKey: ["watchlists"],
-    queryFn: async () => {
-      const { data } = await api.get("/watchlists");
-      /* data comes back as { "123":"Tech Growth", "456":"Dividend"} */
-      setWatchlists(data);
-      /* select the first list automatically (optional) */
-      if (!selectedId) setSelectedId(Object.keys(data)[0] ?? "");
-      return data;
-    },
+    queryFn: async () => (await api.get("/watchlists")).data,
   });
 
-  /* ==================================================
-   * 2️⃣  fetch ONE watch-list (contracts & tickers)
-   * ================================================== */
-  const { data: watchlistDetail, isLoading: detailLoading } = useQuery({
+  useEffect(() => {
+    if (fetchedWatchlists) {
+      setWatchlists(fetchedWatchlists);
+      if (!selectedId) {
+        setSelectedId(Object.keys(fetchedWatchlists)[0] ?? "");
+      }
+    }
+  }, [fetchedWatchlists, setWatchlists]);
+
+   /* --- 2. Fetch Watchlist Details --- */
+  const { data: watchlistDetail, isPending: detailIsPending } = useQuery({
     queryKey: ["watchlist", selectedId],
     enabled: !!selectedId,
-    queryFn: async () => {
-      const { data } = await api.get("/watchlists/detail", {
-        params: { id: selectedId },
-      });
-      /* instruments → ['AAPL','MSFT', …] */
-      return data;
-    },
+    queryFn: async () => (await api.get("/watchlists/detail", { params: { id: selectedId } })).data,
   });
 
-  const tickers: string[] = useMemo(
+  // Ideal list of tickers from the selected watchlist
+  const idealTickers = useMemo(
     () => watchlistDetail?.instruments?.map((i: any) => i.ticker) ?? [],
     [watchlistDetail]
   );
-
+  
   const secTypes = useMemo(() => {
     const map: Record<string, string> = {};
-    watchlistDetail?.instruments?.forEach((i) => {
-      if (i.assetClass) map[i.ticker] = i.assetClass; // e.g. 'FUT', 'STK'
+    watchlistDetail?.instruments?.forEach((i: any) => {
+      if (i.assetClass) map[i.ticker] = i.assetClass;
     });
     return map;
   }, [watchlistDetail]);
 
-  /* =========================================================
-   * 3️⃣  fetch historical prices for the tickers + benchmark
-   * ========================================================= */
-  const { data: stocksData, isLoading: priceLoading } = useQuery<StockData[]>({
+  /* --- 3. Fetch Historical Data --- */
+  const {
+    data: stocksData,
+    isPending: pricesPending,
+    isError: pricesHaveError,
+    error: pricesError,
+    fetchStatus,
+  } = useQuery<StockData[]>({
     queryKey: ["prices", debouncedComparisonTickers, benchmark, timeRange],
     enabled: debouncedComparisonTickers.length > 0 || !!benchmark,
     queryFn: async () => {
@@ -130,273 +109,199 @@ const WatchlistPage: React.FC = () => {
         tickers: Array.from(new Set([...debouncedComparisonTickers, benchmark])),
         timeRange,
         sec_types: secTypes,
-        // metrics: ["price"],
       };
-      const { data } = await api.post("/watchlists/historical", body);
-      return data;
+      return (await api.post("/watchlists/historical", body)).data;
     },
   });
 
-  // When the watchlist changes, reset the selected comparison tickers.
-  useEffect(() => {
-    setComparisonTickers([]);
-  }, [selectedId]);
+   /* --- 4. Data Reliability & Sync Logic --- */
 
-  /* reset quantities whenever the watch-list changes */
-  useEffect(() => {
-    const init: Record<string, number> = {};
-    tickers.forEach((t) => (init[t] = localQuantities[t] ?? 0));
-    setLocalQuantities(init);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tickers.join(",")]);
+   const availableTickers = useMemo(() => stocksData?.filter(stock => stock.historical?.length > 0).map(stock => stock.ticker) ?? [], [stocksData]);
+   const reliableStocksData = useMemo(() => stocksData?.filter(stock => availableTickers.includes(stock.ticker)) ?? [], [stocksData, availableTickers]);
+   const failedTickers = useMemo(() => pricesPending || fetchStatus !== 'idle' ? [] : debouncedComparisonTickers.filter(t => !availableTickers.includes(t)), [debouncedComparisonTickers, availableTickers, pricesPending, fetchStatus]);
+   useEffect(() => { if (availableTickers.length > 0) setComparisonTickers(prev => prev.filter(ticker => availableTickers.includes(ticker))); }, [availableTickers]);
+   useEffect(() => { const init: Record<string, number> = {}; idealTickers.forEach((t) => (init[t] = 0)); setLocalQuantities(init); }, [idealTickers.join(",")]);
 
-  /* ------------ derived helpers (same logic as before) --------------- */
-  const calcPct = (s: number, e: number) => (s ? ((e - s) / s) * 100 : 0);
 
-  const chartData = useMemo(() => {
-    if (!stocksData?.length) return [];
-    const reference = stocksData[0].historical.map((p) => p.date);
-    return reference.map((date) => {
-      const pt: any = { date };
-      stocksData.forEach((stk) => {
-        const first = stk.historical[0]?.price ?? 0;
-        const cur = stk.historical.find((p) => p.date === date)?.price ?? null;
-        pt[stk.ticker] = cur === null ? null : calcPct(first, cur);
-      });
-      return pt;
+  //* --- 5. Derived State for Child Components --- */
+
+  const comparisonChartData = useMemo(() => {
+    if (!reliableStocksData.length) return [];
+    
+    // Use the benchmark's dates as the reference timeline
+    const benchmarkData = reliableStocksData.find(s => s.ticker === benchmark);
+    if (!benchmarkData) return [];
+
+    const referenceDates = benchmarkData.historical.map(p => p.date);
+    const priceMap = new Map(reliableStocksData.map(stock => [
+        stock.ticker,
+        new Map(stock.historical.map(p => [p.date, p.price]))
+    ]));
+
+    return referenceDates.map(date => {
+      const point: { [key: string]: number | null } = { date: Number(date) };
+      
+      for (const stock of reliableStocksData) {
+        const firstPrice = stock.historical[0]?.price;
+        if (!firstPrice) {
+          point[stock.ticker] = null;
+          continue;
+        }
+        const currentPrice = priceMap.get(stock.ticker)?.get(date);
+        point[stock.ticker] = currentPrice ? ((currentPrice - firstPrice) / firstPrice) * 100 : null;
+      }
+      return point;
     });
-  }, [stocksData]);
+  }, [reliableStocksData, benchmark]);
 
-  /* ----------- dummy portfolio simulation (same as old) -------------- */
+  const watchlistPortfolio: PortfolioItem[] = useMemo(
+    () => Object.entries(localQuantities)
+      .filter(([_, qty]) => qty > 0)
+      .map(([ticker, quantity]) => ({ ticker, quantity })),
+    [localQuantities]
+  );
 
-  // Helper to calculate % change
-  const calculatePercentChange = (
-    startValue: number,
-    endValue: number
-  ): number => {
-    if (!startValue || startValue === 0) return 0;
-    return ((endValue - startValue) / startValue) * 100;
-  };
+  const portfolioPerf: PortfolioPerf = useMemo(() => {
+    if (!reliableStocksData.length || !watchlistPortfolio.length) return { totalValue: 0, totalChange: 0, totalPercentChange: 0 };
+    let initialValue = 0, currentValue = 0;
+    
+    watchlistPortfolio.forEach((p) => {
+      const stockData = reliableStocksData.find((s) => s.ticker === p.ticker);
+      if (stockData?.historical?.length) {
+        initialValue += stockData.historical[0].price * p.quantity;
+        currentValue += stockData.historical.at(-1)!.price * p.quantity;
+      }
+    });
 
-  // In WatchlistPage.tsx
+    const totalChange = currentValue - initialValue;
+    const totalPercentChange = initialValue ? (totalChange / initialValue) * 100 : 0;
+    return { totalValue: currentValue, totalChange, totalPercentChange };
+  }, [reliableStocksData, watchlistPortfolio]);
 
   const processPortfolioPerformanceChartData = useCallback(
-    (
-      data: StockData[] | undefined,
-      portfolio: PortfolioItem[],
-      benchmarkTicker: string
-    ) => {
-      // ... (initial checks and priceMap creation are the same)
-      if (!data || data.length === 0 || portfolio.length === 0) return [];
+    (data: StockData[], portfolio: PortfolioItem[], benchmarkTicker: string) => {
+      // --- 1. Initial validation ---
+      if (!data.length || !portfolio.length) return [];
+      
+      const benchmarkData = data.find(s => s.ticker === benchmarkTicker);
+      if (!benchmarkData?.historical?.length) return []; // Cannot proceed without a benchmark timeline
 
-      const benchmarkData = data.find(
-        (stock) => stock.ticker === benchmarkTicker
-      );
-      const portfolioStockData = data.filter((stock) =>
-        portfolio.some((p) => p.ticker === stock.ticker)
-      );
+      // --- 2. Create a fast lookup map for all prices ---
+      const priceMap = new Map(data.map(stock => [
+          stock.ticker,
+          new Map(stock.historical.map(p => [p.date, p.price]))
+      ]));
 
-      if (!benchmarkData || portfolioStockData.length === 0) return [];
+      const referenceDates = benchmarkData.historical.map(p => p.date);
+      const firstDate = referenceDates[0];
 
-      const referenceSeries =
-        benchmarkData.historical || portfolioStockData[0]?.historical || [];
-      if (referenceSeries.length < 2) return [];
-      const dates = referenceSeries.map((point) => point.date);
+      // --- 3. Determine the reliable portfolio and calculate a stable initial value ---
+      // A portfolio item is "reliable" only if it has a valid price on the VERY FIRST day.
+      const reliablePortfolio = portfolio.filter(item => priceMap.get(item.ticker)?.has(firstDate));
+      if (reliablePortfolio.length === 0) return []; // No items to simulate
 
-      const priceMap: Record<string, Record<string, number>> = {};
-      data.forEach((stock) => {
-        if (!stock.historical) return;
-        priceMap[stock.ticker] = {};
-        stock.historical.forEach((point) => {
-          priceMap[stock.ticker][point.date] = point.price;
-        });
-      });
+      const initialPortfolioValue = reliablePortfolio.reduce((total, item) => {
+        const initialPrice = priceMap.get(item.ticker)!.get(firstDate)!;
+        return total + (initialPrice * item.quantity);
+      }, 0);
 
-      let initialPortfolioValue = 0;
-      const initialBenchmarkPrice = priceMap[benchmarkTicker]?.[dates[0]];
+      const initialBenchmarkPrice = priceMap.get(benchmarkTicker)!.get(firstDate)!;
 
-      portfolio.forEach((item) => {
-        const initialPrice = priceMap[item.ticker]?.[dates[0]];
-        if (initialPrice !== undefined && item.quantity > 0) {
-          initialPortfolioValue += initialPrice * item.quantity;
-        }
-      });
+      if (initialPortfolioValue === 0) return []; // Avoid division by zero
 
-      if (initialPortfolioValue === 0 || initialBenchmarkPrice === undefined) {
-        return [];
-      }
-
-      return dates.map((date) => {
+      // --- 4. Map over the timeline to calculate daily performance ---
+      return referenceDates.map(date => {
         let currentPortfolioValue = 0;
-        // --- FIX STARTS HERE ---
-        let isDataPointIncomplete = false;
+        let isPortfolioDataPointComplete = true;
 
-        for (const item of portfolio) {
-          if (item.quantity <= 0) continue;
-
-          const currentPrice = priceMap[item.ticker]?.[date];
-          if (currentPrice !== undefined) {
-            currentPortfolioValue += currentPrice * item.quantity;
-          } else {
-            // If a price is missing for an active item, flag this data point.
-            isDataPointIncomplete = true;
-            break; // No need to check other items for this date
+        // Calculate portfolio value for the current date using ONLY reliable items
+        for (const item of reliablePortfolio) {
+          const currentPrice = priceMap.get(item.ticker)?.get(date);
+          if (currentPrice === undefined) {
+            isPortfolioDataPointComplete = false;
+            break; // If one price is missing, we can't calculate the total for this day
           }
+          currentPortfolioValue += currentPrice * item.quantity;
         }
 
-        const currentBenchmarkPrice = priceMap[benchmarkTicker]?.[date];
+        const currentBenchmarkPrice = priceMap.get(benchmarkTicker)?.get(date);
 
-        // If the data was incomplete, return null for the portfolio.
-        // The chart will then know to skip this point.
-        const portfolioPercentChange = isDataPointIncomplete
-          ? null
-          : calculatePercentChange(
-              initialPortfolioValue,
-              currentPortfolioValue
-            );
-        // --- FIX ENDS HERE ---
+        // If data was missing, this point is null. The chart will connect across the gap.
+        const portfolioPercentChange = isPortfolioDataPointComplete
+          ? ((currentPortfolioValue - initialPortfolioValue) / initialPortfolioValue) * 100
+          : null;
 
-        const benchmarkPercentChange =
-          currentBenchmarkPrice !== undefined
-            ? calculatePercentChange(
-                initialBenchmarkPrice,
-                currentBenchmarkPrice
-              )
-            : null;
+        const benchmarkPercentChange = currentBenchmarkPrice !== undefined
+          ? ((currentBenchmarkPrice - initialBenchmarkPrice) / initialBenchmarkPrice) * 100
+          : null;
 
         return {
-          date,
+          date: Number(date),
           portfolio: portfolioPercentChange,
           benchmark: benchmarkPercentChange,
         };
       });
     },
-    [] // Removed calculatePercentChange from deps as it's a stable local function
+    [] // This function has no external dependencies
   );
-
-  const watchlistPortfolio: PortfolioItem[] = useMemo(
-    () =>
-      Object.entries(localQuantities) // {AAPL: 10, MSFT: 0, ...}
-        .filter(([_, qty]) => qty > 0) // keep only positions &gt; 0
-        .map(([ticker, qty]) => ({ ticker, quantity: qty })),
-    [localQuantities]
-  );
-
-  const portfolioPerf: PortfolioPerf = useMemo(() => {
-    if (!stocksData)
-      return { totalValue: 0, totalChange: 0, totalPercentChange: 0 };
-    let iv = 0,
-      cv = 0;
-    watchlistPortfolio.forEach((p) => {
-      const sd = stocksData.find((s) => s.ticker === p.ticker);
-      if (!sd) return;
-      const first = sd.historical[0].price;
-      const last = sd.historical.at(-1)!.price;
-      iv += first * p.quantity;
-      cv += last * p.quantity;
-    });
-    const ch = cv - iv;
-    const pct = iv ? (ch / iv) * 100 : 0;
-    return { totalValue: cv, totalChange: ch, totalPercentChange: pct };
-  }, [stocksData, watchlistPortfolio]);
 
   const portfolioChartData = useMemo(() => {
-    if (!stocksData || watchlistPortfolio.length === 0) return [];
-    return processPortfolioPerformanceChartData(
-      stocksData,
-      watchlistPortfolio,
-      benchmark
-    );
-  }, [stocksData, watchlistPortfolio, benchmark]);
-  /* ------------------------- render ------------------------- */
-  if (listLoading || detailLoading) {
-    return (
-      <CenteredBox>
-        <CircularProgress />
-      </CenteredBox>
-    );
+    return processPortfolioPerformanceChartData(reliableStocksData, watchlistPortfolio, benchmark);
+  }, [reliableStocksData, watchlistPortfolio, benchmark, processPortfolioPerformanceChartData]);
+
+
+  /* =========================================================
+   * RENDER LOGIC
+   * ========================================================= */
+
+  if (listIsPending || detailIsPending) {
+    return <CenteredBox><CircularProgress /></CenteredBox>;
   }
 
   return (
-    <Box
-      sx={{
-        height: "calc(90vh - 90px)",
-        overflow: "auto",
-        paddingX: 15,
-        paddingY: 5,
-      }}
-    >
-      {/*  ======  choose watch-list  ====== */}
+    <Box sx={{ height: "calc(90vh - 90px)", overflow: "auto", paddingX: 15, paddingY: 5 }}>
+      {/* --- Watchlist and Ticker Selectors --- */}
       <FormControl sx={{ minWidth: 240, mb: 2 }}>
-        <InputLabel id="wl-label">Select watch-list</InputLabel>
-        <Select
-          labelId="wl-label"
-          value={selectedId}
-          label="Select watch-list"
-          onChange={(e) => setSelectedId(e.target.value as string)}
-        >
-          {Object.entries(watchlists).map(([id, name]) => (
-            <MenuItem key={id} value={id}>
-              {name}
-            </MenuItem>
-          ))}
+        <InputLabel id="wl-label">Select Watchlist</InputLabel>
+        <Select labelId="wl-label" value={selectedId} label="Select Watchlist" onChange={(e) => setSelectedId(e.target.value as string)}>
+          {Object.entries(watchlists).map(([id, name]) => (<MenuItem key={id} value={id}>{name}</MenuItem>))}
         </Select>
       </FormControl>
 
-      <ComparisonControls
-        timeRange={timeRange}
-        setTimeRange={setTimeRange}
-        comparisonMetric="percent_change"
-        /* keep benchmark selection */
-        benchmark={benchmark}
-        setBenchmark={setBenchmark}
-      />
+      <ComparisonControls timeRange={timeRange} setTimeRange={setTimeRange} benchmark={benchmark} setBenchmark={setBenchmark} comparisonMetric="percent_change" />
 
-      {/* This is the multi-select for choosing chart tickers */}
       <FormControl sx={{ minWidth: 240, my: 2 }}>
         <InputLabel id="tickers-select-label">Add Tickers to Chart</InputLabel>
-        <Select
-          labelId="tickers-select-label"
-          multiple
-          value={comparisonTickers}
-          onChange={(e) => setComparisonTickers(e.target.value as string[])}
-          label="Add Tickers to Chart"
-        >
-          {tickers.map((ticker) => (
-            <MenuItem key={ticker} value={ticker}>
-              {ticker}
-            </MenuItem>
-          ))}
+        <Select labelId="tickers-select-label" multiple value={comparisonTickers} onChange={(e) => setComparisonTickers(e.target.value as string[])} label="Add Tickers to Chart">
+          {idealTickers.map((ticker) => (<MenuItem key={ticker} value={ticker}>{ticker}</MenuItem>))}
         </Select>
       </FormControl>
-      {/* ------------------------------------------------- */}
+      
+      {/* --- NEW: Non-blocking alert for failed tickers --- */}
+      {failedTickers.length > 0 && (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+              Could not load data for the following tickers: {failedTickers.join(', ')}. They have been excluded from charts and calculations.
+          </Alert>
+      )}
 
-      {priceLoading && !stocksData ? (
-        <CenteredBox>
-          {" "}
-          <CircularProgress />{" "}
-        </CenteredBox>
-      ) : (
+      {/* --- Main Content Rendering --- */}
+      {pricesPending && <CenteredBox><CircularProgress /></CenteredBox>}
+      
+      {pricesHaveError && <CenteredBox><Alert severity="error">Error fetching market data: {pricesError?.message}</Alert></CenteredBox>}
+
+      {!pricesPending && !pricesHaveError && (
         <>
           <ComparisonChart
-            chartData={chartData}
-            watchlist={comparisonTickers}
+            chartData={comparisonChartData}
             benchmark={benchmark}
-            comparisonMetric="percent_change"
-            stocksData={stocksData}
-            stocksLoading={priceLoading}
           />
-
-          {/* ----- simulation table – no delete / add buttons ------ */}
           <WatchlistTable
-            watchlist={tickers}
-            stocksData={stocksData}
+            watchlist={idealTickers}
+            stocksData={reliableStocksData}
             timeRange={timeRange}
             localQuantities={localQuantities}
             handleQuantityChange={handleQuantityChange}
-            /* remove all props related to “add / delete” */
           />
-
           <PortfolioSummary
             portfolioPerformance={portfolioPerf}
             portfolioChartData={portfolioChartData}
@@ -409,18 +314,8 @@ const WatchlistPage: React.FC = () => {
   );
 };
 
-export default WatchlistPage;
-
-/* ------------- tiny utility to centre loaders -------------- */
 const CenteredBox: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <Box
-    sx={{
-      height: "70vh",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-    }}
-  >
-    {children}
-  </Box>
+  <Box sx={{ height: "70vh", display: "flex", justifyContent: "center", alignItems: "center" }}>{children}</Box>
 );
+
+export default WatchlistPage;
