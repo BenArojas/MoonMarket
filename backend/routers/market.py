@@ -4,25 +4,12 @@ import re
 from fastapi import APIRouter, Depends, HTTPException
 import httpx
 from utils import safe_float_conversion
-from ibkr_service import IBKRService, _extract_best_price_from_snapshot
+from ibkr_service import IBKRService
 from models import ChartDataBars
-from typing import List
 from deps import get_ibkr_service 
 from constants import CRYPTO_SYMBOLS, PERIOD_BAR 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/market", tags=["Market"])
-
-
-# # Define the period to IBKR parameters mapping
-# # Frontend Period -> { IBKR API period, Default IBKR API bar }
-# PERIOD_BAR_MAPPING = {
-#     "1D": {"period_ibkr": "1d", "bar_ibkr": "2min"},  
-#     "7D": {"period_ibkr": "1w", "bar_ibkr": "15min"},  
-#     "1M": {"period_ibkr": "1m", "bar_ibkr": "1h"},    
-#     "3M": {"period_ibkr": "3m", "bar_ibkr": "3h"},    
-#     "6M": {"period_ibkr": "6m", "bar_ibkr": "1d"},    
-#     "1Y": {"period_ibkr": "1y", "bar_ibkr": "1d"},     
-# }
 
 
 @router.get("/history", response_model=list[ChartDataBars])

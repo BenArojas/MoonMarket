@@ -6,3 +6,4 @@ aiolimiter==1.0.0
 aiocache[redis]==0.12.2   # optional, falls back to in-mem
 python-dotenv>=1.0
 aiomcache
+vaderSentiment

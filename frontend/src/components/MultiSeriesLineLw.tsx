@@ -1,6 +1,7 @@
 // components/charts/MultiSeriesLineLw.tsx
 
-import { fetchHistoricalStockData, ReturnSeries } from '@/api/user'; // Assuming ReturnSeries is exported
+import {  ReturnSeries } from '@/api/user'; 
+import { fetchHistoricalStockData } from '@/api/stock'; 
 import { toSeries } from '@/utils/lwHelpers';
 import { Skeleton, useTheme } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';

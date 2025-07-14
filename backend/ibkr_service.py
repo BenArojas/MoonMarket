@@ -7,6 +7,7 @@ import logging
 import math
 import re
 import ssl
+from fastapi import HTTPException
 import httpx
 from pydantic import BaseModel, Field
 from typing import Awaitable, Callable, Optional, List, Dict, Any
@@ -58,13 +59,39 @@ class IBKRService:
         self._broadcast = cb
 
     # ---------- low-level helpers ----------
-    @paced("dynamic")  
+    @paced("dynamic")
     async def _req(self, method: str, ep: str, **kw):
-        r = await self.http.request(method, ep, **kw)
-        if r.status_code >= 400:
-            log.error("IBKR %s %s → %s", method, ep, r.text)
-        r.raise_for_status()
-        return r.json()
+        max_retries = 3
+        retry_delay = 2  # seconds
+
+        for attempt in range(max_retries):
+            try:
+                r = await self.http.request(method, ep, **kw)
+                
+                # Check for 503 specifically on the history endpoint
+                if r.status_code == 503 and "/iserver/marketdata/history" in ep:
+                    if attempt < max_retries - 1:
+                        log.warning(f"Received 503 for {ep}. Retrying in {retry_delay}s... ({attempt + 1}/{max_retries})")
+                        await asyncio.sleep(retry_delay)
+                        continue # Go to the next iteration of the loop to retry
+                    else:
+                        log.error(f"Failed to fetch {ep} after {max_retries} attempts due to 503 error.")
+
+                if r.status_code >= 400:
+                    log.error("IBKR %s %s → %s", method, ep, r.text)
+                
+                r.raise_for_status()
+                return r.json()
+
+            except httpx.ConnectError as e:
+                log.error(f"Connection error on attempt {attempt + 1}: {e}")
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(retry_delay)
+                else:
+                    raise # Re-raise the exception if all retries fail
+        
+        # This part will be reached if all retries fail with 503
+        raise HTTPException(status_code=503, detail="The data provider is temporarily unavailable.")
 
     # ---------- auth flow ----------
     async def sso_validate(self) -> bool:

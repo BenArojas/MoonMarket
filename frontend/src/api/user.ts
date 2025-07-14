@@ -1,32 +1,7 @@
 import api from "@/api/axios";
-import { ChartDataPoint } from "@/components/charts/AreaChartLw";
 import { AccountDetailsDTO, LedgerDTO } from "@/stores/stockStore";
-import { Dayjs } from "dayjs";
-import { Time } from "lightweight-charts";
-import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-export async function getUserInsights() {
-  try {
-    const response = await api.get("/user/ai/insights");
-    return response;
-  } catch (error) {
-    console.error("API Error in getUserInsights:", error);
-    throw error; // Re-throw to handle in fetchInsights
-  }
-}
-
-export async function getStockSentiment(ticker: string) {
-  try {
-    const response = await api.get(
-      `/user/ai/sentiment/${ticker.toUpperCase()}`
-    );
-    return response;
-  } catch (error) {
-    console.error("Error fetching sentiment:", error);
-    throw error; // Re-throw to handle in fetchInsights
-  }
-}
 
 export interface NAVSeries {
   dates: string[];
@@ -62,54 +37,6 @@ export const fetchPerformance = async (
   return data;
 };
 
-export type ChartDataBars = {
-  time: number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-};
-
-export const fetchHistoricalStockDataBars = async (
-  ticker: string,
-  period: string
-): Promise<ChartDataBars[]> => {
-  try {
-    const response = await api.get("/market/history", {
-      params: {
-        ticker,
-        period,
-      },
-    });
-    return response.data as ChartDataBars[];
-  } catch (error) {
-    console.error("Error fetching historical stock data:", error);
-    // Re-throw the error so react-query can catch it and set the error state
-    throw error;
-  }
-};
-/**
- * Fetches historical stock data from the backend API.
- * @param ticker The stock ticker symbol (e.g., "BTC", "AAPL").
- * @param period The period for which to fetch data (e.g., "7D", "1M").
- * @returns A promise that resolves to an array of ChartDataPoint.
- * @throws Will throw an error if the API request fails.
- */
-export const fetchHistoricalStockData = async (
-  ticker: string,
-  period: string
-): Promise<ChartDataPoint[]> => {
-  const { data } = await api.get<ChartDataBars[]>("/market/history", {
-    params: { ticker, period },
-  });
-
-  // Pick the field you want to plot – here I’m using `close`
-  return data.map(({ time, close }) => ({
-    time: time as unknown as Time, // or convert to the exact Time type you need
-    value: close,
-  }));
-};
 
 /**
  * Fetches consolidated account details from the backend.
@@ -148,3 +75,49 @@ export async function fetchBalances(
   });
   return data;
 }
+
+/**
+ * Checks if the AI features are available on the server.
+ * We'll use the market-report endpoint as a lightweight check.
+ */
+export const checkAiFeatures = async (): Promise<{ enabled: boolean }> => {
+  try {
+    await api.get("/api/ai/market-report");
+    // If the request succeeds (doesn't throw), features are enabled
+    return { enabled: true };
+  } catch (error: any) {
+    // A 412 status means the API keys are not set, which is an expected state.
+    if (error.response && error.response.status === 412) {
+      console.log("AI features disabled on server (API keys missing).");
+      return { enabled: false };
+    }
+    // For other errors, we can re-throw or handle them as needed
+    throw error;
+  }
+};
+
+
+/**
+ * Fetches the AI-powered analysis for a given portfolio.
+ * @param portfolioData - Array of objects like [{ ticker: "AAPL", value: 5000 }, ...]
+ */
+export const fetchPortfolioAnalysis = async (portfolioData: any[]) => {
+  const { data } = await api.post("/api/ai/portfolio/analysis", portfolioData);
+  return data; // { analysis: "..." }
+};
+
+/**
+ * Fetches the general AI-powered market report.
+ */
+export const fetchMarketReport = async () => {
+  const { data } = await api.get("/api/ai/market-report");
+  return data; // { report: "..." }
+};
+
+/**
+ * Fetches the Twitter sentiment for a specific stock ticker.
+ */
+export const fetchStockSentiment = async (ticker: string) => {
+  const { data } = await api.get(`/api/ai/stock/${ticker}/sentiment`);
+  return data; // { sentiment: "positive", score: 0.8, ... }
+};

@@ -1,4 +1,5 @@
 // src/stores/stockStore.ts
+import { Enabled } from "@tanstack/react-query";
 import { create } from "zustand";
 
 /* -------------------------------- AllocationDTO ------------------------- */
@@ -125,9 +126,11 @@ interface StockState {
   };
   allAccounts: BriefAccountInfo[];
   selectedAccountId: string | null;
+  areAiFeaturesEnabled: boolean| null;
 
   // Actions
   setPnl: (rows: Record<string, PnlRow>) => void;
+  setAreAiFeaturesEnabled: (enabled:boolean) => void
   setAllocation: (a: AllocationDTO) => void;
   setAllocationView: (v: AllocationView) => void;
   setAccountDetails: (details: AccountDetailsDTO) => void;
@@ -166,6 +169,7 @@ export const useStockStore = create<StockState>((set, get) => ({
   balances: null,
   allAccounts: [],
   selectedAccountId: null,
+  areAiFeaturesEnabled: null,
 
   // Actions
   
@@ -185,6 +189,7 @@ export const useStockStore = create<StockState>((set, get) => ({
         : { dailyRealized: 0, unrealized: 0, netLiq: 0 },
     });
   },
+  setAreAiFeaturesEnabled: (enabled) => set({ areAiFeaturesEnabled: enabled }),
   setAccountDetails: (details) => set({ accountDetails: details }),
   setBalances: (balances) => set({ balances }),
   setAllAccounts: (accounts) => set({ allAccounts: accounts }),

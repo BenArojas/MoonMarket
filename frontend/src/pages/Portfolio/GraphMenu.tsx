@@ -1,18 +1,21 @@
 // src/components/GraphMenu.tsx
-import { Box, Button } from "@mui/material";
+import SearchBar from "@/components/SearchBar.tsx";
 import AutoAwesomeMosaicIcon from "@mui/icons-material/AutoAwesomeMosaic";
+import BlurCircularIcon from "@mui/icons-material/BlurCircular";
 import DonutLargeIcon from "@mui/icons-material/DonutLarge";
+import SchemaIcon from "@mui/icons-material/Schema";
 import TocSharpIcon from "@mui/icons-material/TocSharp";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import { Box, Button, ListItemButton, ListItemIcon } from "@mui/material";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
-import { PremiumListItemButton } from '@/components/PremiumListItemButton';
-import BlurCircularIcon from "@mui/icons-material/BlurCircular";
-import SearchBar from "@/components/SearchBar.tsx";
-import SchemaIcon from "@mui/icons-material/Schema";
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import { ListItemButton, ListItemIcon } from '@mui/material';
 
-export type GraphType = "Treemap" | "DonutChart" | "Circular" | "Leaderboards" | "Sankey";
+export type GraphType =
+  | "Treemap"
+  | "DonutChart"
+  | "Circular"
+  | "Leaderboards"
+  | "Sankey";
 
 interface GraphMenuProps {
   selectedGraph: GraphType;
@@ -22,7 +25,13 @@ interface GraphMenuProps {
   setIsDailyView: (isDaily: boolean) => void;
 }
 
-function GraphMenu({ selectedGraph, setSelectedGraph, isMobileScreen, isDailyView, setIsDailyView }: GraphMenuProps) {
+function GraphMenu({
+  selectedGraph,
+  setSelectedGraph,
+  isMobileScreen,
+  isDailyView,
+  setIsDailyView,
+}: GraphMenuProps) {
   const handleListItemClick = (graph: GraphType) => {
     if (graph !== "Treemap" && isDailyView) {
       setIsDailyView(false);
@@ -75,38 +84,50 @@ function GraphMenu({ selectedGraph, setSelectedGraph, isMobileScreen, isDailyVie
 
             {/* DonutChart - Premium only */}
             <ListItem disablePadding>
-              <PremiumListItemButton
+              <ListItemButton
                 selected={selectedGraph === "DonutChart"}
                 onClick={() => handleListItemClick("DonutChart")}
-                icon={<DonutLargeIcon />}
-              />
+              >
+                <ListItemIcon sx={{ justifyContent: "center" }}>
+                  <DonutLargeIcon />
+                </ListItemIcon>
+              </ListItemButton>
             </ListItem>
 
             {/* Other graph options - Premium only, hidden on mobile */}
             {!isMobileScreen && (
               <>
                 <ListItem disablePadding>
-                  <PremiumListItemButton
+                  <ListItemButton
                     selected={selectedGraph === "Circular"}
                     onClick={() => handleListItemClick("Circular")}
-                    icon={<BlurCircularIcon />}
-                  />
+                  >
+                    <ListItemIcon sx={{ justifyContent: "center" }}>
+                      <BlurCircularIcon />
+                    </ListItemIcon>
+                  </ListItemButton>
                 </ListItem>
 
                 <ListItem disablePadding>
-                  <PremiumListItemButton
+                  <ListItemButton
                     selected={selectedGraph === "Leaderboards"}
                     onClick={() => handleListItemClick("Leaderboards")}
-                    icon={<TocSharpIcon />}
-                  />
+                  >
+                    <ListItemIcon sx={{ justifyContent: "center" }}>
+                      <TocSharpIcon />
+                    </ListItemIcon>
+                  </ListItemButton>
                 </ListItem>
 
                 <ListItem disablePadding>
-                  <PremiumListItemButton
+                  <ListItemButton
                     selected={selectedGraph === "Sankey"}
                     onClick={() => handleListItemClick("Sankey")}
-                    icon={<SchemaIcon />}
-                  />
+                  >
+                    <ListItemIcon sx={{ justifyContent: "center" }}>
+                      <SchemaIcon />
+                    </ListItemIcon>
+                  </ListItemButton>
                 </ListItem>
               </>
             )}

@@ -1,5 +1,3 @@
-import { getUserInsights } from "@/api/user";
-import AiDialog from "@/components/AiDialog";
 import DataGraph from "@/pages/Portfolio/DataGraph";
 import { ErrorFallback } from "@/components/ErrorFallBack";
 import GraphMenu, { GraphType } from "@/pages/Portfolio/GraphMenu";
@@ -19,13 +17,6 @@ function Portfolio() {
   const isMediumScreen = useMediaQuery(
     "(min-width:1550px) and (max-width:1800px)"
   );
-  const [openInsights, setOpenInsights] = useState(false);
-  const [aiData, setAiData] = useState({
-    portfolio_insights: "",
-    sentiments: {},
-    citations: [],
-  });
-  const [loadingAI, setLoadingAI] = useState(false);
 
   const stocks = useStockStore((state) => state.stocks);
   const status = useStockStore((state) => state.connectionStatus);
@@ -36,26 +27,7 @@ function Portfolio() {
     return <div>Connecting to live data...</div>;
   }
 
-  const fetchInsights = async () => {
-    setLoadingAI(true);
-    try {
-      const response = await getUserInsights();
-      const data = response.data;
-      setAiData({
-        portfolio_insights: data.portfolio_insights || "",
-        citations: data.citations || [],
-        sentiments: {},
-      });
-      setOpenInsights(true);
-    } catch (error) {
-      throw error;
-    } finally {
-      setLoadingAI(false);
-    }
-  };
-  // return(
-  //   <div>hey</div>
-  // )
+  
 
   return (
     <Box
@@ -82,16 +54,6 @@ function Portfolio() {
         />
       </ErrorBoundary>
 
-      {openInsights && (
-        <ErrorBoundary FallbackComponent={ErrorFallback}>
-          <AiDialog
-            aiData={aiData}
-            openInsights={openInsights}
-            setOpenInsights={setOpenInsights}
-          />
-        </ErrorBoundary>
-      )}
-
       <Box
         sx={{
           width: isSmallScreen ? "100%" : isMediumScreen ? 500 : 600,
@@ -104,10 +66,7 @@ function Portfolio() {
           sx={{ height: "100%" }}
         >
           <ErrorBoundary FallbackComponent={ErrorFallback}>
-            <StackedCardsWrapper
-              fetchInsights={fetchInsights}
-              loadingAI={loadingAI}
-            />
+            <StackedCardsWrapper/>
           </ErrorBoundary>
           <HistoricalDataCard />
         </Stack>
@@ -181,15 +140,9 @@ function PortfolioContent({
   );
 }
 
-interface StackedCardsWrapperProps {
-  loadingAI: boolean;
-  fetchInsights: () => void;
-}
-const StackedCardsWrapper = ({
-  fetchInsights,
-  loadingAI,
-}: StackedCardsWrapperProps) => {
-  return <PerformanceCards fetchInsights={fetchInsights} loadingAI={loadingAI} />;
+
+const StackedCardsWrapper = () => {
+  return <PerformanceCards/>;
 };
 
 export default Portfolio;

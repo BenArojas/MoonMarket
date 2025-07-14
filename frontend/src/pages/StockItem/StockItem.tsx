@@ -1,5 +1,5 @@
 import { getStockData, StockData } from "@/api/stock";
-import { ChartDataBars, fetchHistoricalStockDataBars } from "@/api/user";
+import { ChartDataBars, fetchHistoricalStockDataBars } from "@/api/stock";
 import CandleStickChart from "@/components/charts/CandleSticksChart";
 import SearchBar from "@/components/SearchBar.tsx";
 import StockInfoCard from "@/pages/StockItem/StockInfoCard";

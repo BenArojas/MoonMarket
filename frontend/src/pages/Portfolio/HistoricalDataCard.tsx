@@ -1,4 +1,4 @@
-import { fetchHistoricalStockData } from "@/api/user";
+import { fetchHistoricalStockData } from '@/api/stock'; 
 import { AreaChart, ChartDataPoint } from "@/components/charts/AreaChartLw";
 import { ErrorFallback } from "@/components/ErrorFallBack";
 import GraphSkeleton from "@/Skeletons/GraphSkeleton";

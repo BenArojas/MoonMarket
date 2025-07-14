@@ -19,6 +19,7 @@ from routers.account import router as account_router
 from routers.watchlist import router as watchlist_router
 from routers.account_transactions import router as transactions_router
 from routers.scanner import router as scanner_router
+from routers.ai_service import router as ai_router
 # --- Global instances and config loading ---
 from deps import get_ibkr_service
 
@@ -57,7 +58,7 @@ app.include_router(account_router)
 app.include_router(watchlist_router)
 app.include_router(transactions_router)
 app.include_router(scanner_router)
-
+app.include_router(ai_router)
 
 
 @app.get("/auth/status", response_model=AuthStatusDTO)

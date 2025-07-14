@@ -7,7 +7,6 @@ import * as React from "react";
 import dayjs from "dayjs";
 import styles from "./stockDialog.module.css";
 import { useTheme } from "@mui/material";
-import { Stock } from "../leaderboards/LeaderboardCard";
 import { TransitionProps } from "@mui/material/transitions";
 
 const Transition = React.forwardRef(function Transition(
@@ -45,6 +44,7 @@ interface AlertDialogSlideProps{
 }
 
 export default function AlertDialogSlide({ dialogOpen, setDialogOpen, stock }: AlertDialogSlideProps) {
+  console.log({stock})
   const theme = useTheme();
   const infoBoxText = [
     {

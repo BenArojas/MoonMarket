@@ -12,14 +12,9 @@ export interface AuthDTO {
 export const fetchAuthStatus = async () => {
   const { data } = await authCheckApi.get<AuthDTO>("/auth/status");
   if (!data.authenticated) toast.error(data.message);
-  return data;                               // return entire object
+  return data;                               
 };
 
-export const logout = async () => {
-  const response = await authCheckApi.post("/auth/logout");
-  console.log({response})
-  return response.data.message;
-};
 
 export const disconnectWebSocket = async (): Promise<void> => {
   // Assuming you have a configured axios instance named 'api'

@@ -45,7 +45,7 @@ export default function LeaderBoardsTable({ data }: LeaderBoardsTableProps) {
         <span style={{ color }}>
           {`${sign}${gainLoss.toFixed(2)}$`}
         </span>
-        {` (${value}$)`}
+        {` (${value.toFixed(2)}$)`}
       </span>
     );
   };
