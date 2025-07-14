@@ -1,103 +1,68 @@
-import { RouterProvider, createBrowserRouter, Navigate } from "react-router-dom";
+import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import { ProtectedRoute } from "@/pages/ProtectedRoute";
 import { PublicRoute } from "@/pages/PublicRoute";
 import Layout from "@/pages/Layout/Layout";
 import NotFoundPage from "@/pages/NotFoundPage";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { lazy } from "react";
+import { Paths } from "@/constants/paths";
 
+// Lazy-load pages for better performance
+const Portfolio = lazy(() => import("@/pages/Portfolio/Portfolio"));
+const AccountSelectionPage = lazy(() => import("@/pages/AccountSelection/AccountSelectionPage"));
+const Profile = lazy(() => import("@/pages/Profile/Profile"));
+const Global = lazy(() =>  import("@/pages/Global/Global"))
+const Scanner = lazy(() =>  import("@/pages/Scanner/Scanner"))
+const Transactions = lazy(() =>  import("@/pages/Transactions/Transactions"))
+const Watchlist = lazy(() =>  import("@/pages/Watchlist/Watchlist"))
 
 
 const router = createBrowserRouter([
+  // --- PUBLIC ZONE ---
   {
+    path: Paths.public.login,
     element: <PublicRoute />,
-    path: "/",
-    index: true, // Public route at root
   },
+
+  // --- PROTECTED ZONE ---
   {
     element: <ProtectedRoute />,
     children: [
+      // Route A: Main application with Layout
       {
         element: <Layout />,
-        path: "/",
         children: [
+          { path: Paths.protected.app.home, element: <Portfolio /> },
+          { path: Paths.protected.app.profile, element: <Profile /> },
+          { path: Paths.protected.app.global, element: <Global /> },
+          { path: Paths.protected.app.scanner, element: <Scanner /> },
+          { path: Paths.protected.app.transactions, element: <Transactions /> },
+          { path: Paths.protected.app.watchlist, element: <Watchlist /> },
           {
-            path: "/home",
-            async lazy() {
-              const { default: Portfolio } = await import("@/pages/Portfolio/Portfolio");
-              return {
-                Component: Portfolio,
-                ErrorBoundary: (await import("@/components/ErrorFallBack")),
-              };
-            },
-          },
-          {
-            path: "/profile",
-            async lazy() {
-              const { default: Profile } = await import("@/pages/Profile/Profile");
-              return { Component: Profile };
-            },
-          },
-          {
-            path: "/watchlist",
-            async lazy() {
-              const { default: Watchlist } = await import("@/pages/Watchlist/Watchlist");
-              return { Component: Watchlist };
-            },
-          },
-          {
-            path: "/transactions",
-            async lazy() {
-              const { default: Transactions } = await import("@/pages/Transactions/Transactions");
-              return {
-                Component: Transactions,
-                ErrorBoundary: (await import("@/components/ErrorFallBack")),
-              };
-            },
-          },
-          {
-            path: "/space",
-            async lazy() {
-              const { default: Space } = await import("@/pages/Space");
-              return {
-                Component: Space,
-                ErrorBoundary: (await import("@/components/ErrorFallBack")),
-              };
-            },
-          },
-          {
-            path: "/scanner",
-            async lazy() {
-              const { default: Space } = await import("@/pages/Scanner/Scanner");
-              return {
-                Component: Space,
-                ErrorBoundary: (await import("@/components/ErrorFallBack")),
-              };
-            },
-          },
-          {
-            path: "/global",
-            async lazy() {
-              const { default: Global } = await import("@/pages/Global/Global");
-              return { Component: Global };
-            },
-          },
-          {
-            path: "/stock/:stockTicker",
+            path: Paths.protected.app.stockBase, // Use the base definition
             async lazy() {
               const { default: StockItem, loader } = await import("@/pages/StockItem/StockItem");
+              const { ErrorFallback } = await import("@/components/ErrorFallBack");
               return {
                 Component: StockItem,
-                loader,
-                ErrorBoundary: (await import("@/components/ErrorFallBack")),
+                loader: loader,
+                ErrorBoundary: ErrorFallback,
               };
             },
           },
         ],
       },
+      // Route B: Account Selection page without Layout
+      {
+        path: Paths.protected.accountSelection,
+        element: <AccountSelectionPage />,
+      },
     ],
   },
+
+  // --- FALLBACK ---
   {
-    path: "*",
+    path: Paths.notFound,
     element: <NotFoundPage />,
   },
 ]);

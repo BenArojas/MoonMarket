@@ -12,6 +12,7 @@ import React, { useState } from "react";
 import { AccountDetailsTabContent } from "./profileTabs/AccountTab";
 import { BalancesTabContent } from "./profileTabs/BalancesTab";
 import { DashboardTabContent } from "./profileTabs/DashboardTab";
+import { useStockStore } from "@/stores/stockStore";
 
 // --- TabPanel Component (unchanged) ---
 interface TabPanelProps {
@@ -37,112 +38,25 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-// --- Mock Data (Simulating API Responses) ---
-
-// const mockDashboardData = {
-//   pnl: {
-//     dailyPnl: 1845.7,
-//     unrealizedPnl: 28607.5,
-//     realizedPnl: 1230.0,
-//   },
-//   liquidity: {
-//     netLiquidity: 215721776.0,
-//     excessLiquidity: 210000000.0,
-//     buyingPower: 431443552.0,
-//   },
-//   cash: {
-//     totalCash: 215100080.0,
-//     settledCash: 215100080.0,
-//   },
-// };
-
-// const mockBalancesData = {
-//   baseCurrency: "USD",
-//   ledgers: [
-//     {
-//       currency: "BASE",
-//       cashBalance: 215100080.0,
-//       settledCash: 215100080.0,
-//       unrealizedPnl: 39907.37,
-//       dividends: 150.25,
-//       exchangeRate: 1,
-//     },
-//     {
-//       currency: "USD",
-//       cashBalance: 214716688.0,
-//       settledCash: 214716688.0,
-//       unrealizedPnl: 39695.82,
-//       dividends: 150.25,
-//       exchangeRate: 1,
-//     },
-//     {
-//       currency: "EUR",
-//       cashBalance: 354681.0,
-//       settledCash: 354681.0,
-//       unrealizedPnl: 211.55,
-//       dividends: 0,
-//       exchangeRate: 1.08,
-//     },
-//     {
-//       currency: "CAD",
-//       cashBalance: 25000.0,
-//       settledCash: 20000.0,
-//       unrealizedPnl: 0,
-//       dividends: 0,
-//       exchangeRate: 0.73,
-//     },
-//   ],
-// };
-
-// const mockAccountDetailsData = {
-//   owner: {
-//     userName: "user1234",
-//     entityName: "John Smith",
-//     roleId: "OWNER",
-//   },
-//   account: {
-//     accountId: "U1234567",
-//     accountTitle: "Primary Margin",
-//     accountType: "DEMO",
-//     tradingType: "PMRGN",
-//     baseCurrency: "USD",
-//     ibEntity: "IBLLC-US",
-//     clearingStatus: "O",
-//     isPaper: true,
-//   },
-//   permissions: {
-//     allowFXConv: true,
-//     allowCrypto: false,
-//     allowEventTrading: true,
-//     supportsFractions: true,
-//   },
-// };
-
 
 export const ProfileTabs = () => {
   const theme = useTheme();
   const isMobileScreen = useMediaQuery(theme.breakpoints.down("md"));
   const [activeTab, setActiveTab] = useState(0);
+  const selectedAccountId = useStockStore((state) => state.selectedAccountId);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
   };
 
-  // const primaryAccountId = useStockStore(
-  //   (state) =>
-  //     Object.keys(state.pnl)
-  //       .find((k) => k.endsWith(".Core"))
-  //       ?.split(".")[0]
-  // );
-
-  // --- Data Fetching with useQuery ---
   const {
     data: accountDetailsData,
     isLoading: isDetailsLoading,
     error: detailsError,
   } = useQuery({
-    queryKey: ["accountDetails"],
-    queryFn: () => fetchAccountDetails(),
+    queryKey: ["accountDetails", selectedAccountId],
+    queryFn: () => fetchAccountDetails(selectedAccountId),
+    enabled: !!selectedAccountId,
   });
 
 
@@ -152,8 +66,8 @@ export const ProfileTabs = () => {
     error: balancesError,
   } = useQuery({
     queryKey: ["balances"],
-    queryFn: () => fetchBalances(),
-    // enabled: !!primaryAccountId,
+    queryFn: () => fetchBalances(selectedAccountId),
+    enabled: !!selectedAccountId,
     refetchOnWindowFocus: false, // Optional: prevent refetching on window focus
     staleTime: 5 * 60 * 1000, // Data is considered fresh for 5 minutes
   });

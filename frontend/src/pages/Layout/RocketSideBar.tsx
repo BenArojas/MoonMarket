@@ -5,6 +5,7 @@ import spaceship from "/spaceship.png";
 import { Link } from "react-router-dom";
 import { PercentageChange } from "@/contexts/PercentageChangeContext";
 import ShootingStars from "@/pages/Layout/ShootingStars";
+import { Paths } from "@/constants/paths";
 
 interface RocketSideBarProps{
   isMobileScreen: boolean
@@ -40,7 +41,7 @@ const calculateSpaceshipPosition = () => {
           zIndex: 1,
         }}
       >
-        <Link draggable={false} to="/home" className="logo">
+        <Link draggable={false} to={Paths.protected.app.home} className="logo">
           <img draggable={false} src={mainlogo} style={{ height: isMobileScreen ? "80px" : "120px", width: isMobileScreen ? '50px' : "70px" }} />
         </Link>
       </Box>

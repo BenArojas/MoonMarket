@@ -3,49 +3,14 @@ import PortfolioStats from "@/pages/Portfolio/PortfolioStats";
 import GraphSkeleton from "@/Skeletons/GraphSkeleton";
 import { Card, useMediaQuery, useTheme } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
-import React, { useMemo, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import CumulativeChartLW from "../../components/CumulativeChartLW";
 import MonthlyBarChartLW from "../../components/charts/MonthlyBarChartLW";
 import MultiSeriesLineLw from "../../components/MultiSeriesLineLw";
 import NavChartLW from "../../components/NavChartLW";
+import { useStockStore } from "@/stores/stockStore";
+import { PercentageChange } from "@/contexts/PercentageChangeContext";
 
-/* ─── helper functions ─────────────────────────────────────────────── */
-export const fmtDate = (raw: string) => {
-  // raw "20230512" ▸ "12 May 23"
-  if (raw.length === 8) {
-    const d = new Date(
-      Number(raw.slice(0, 4)),
-      Number(raw.slice(4, 6)) - 1,
-      Number(raw.slice(6, 8))
-    );
-    return d.toLocaleDateString("en-US", {
-      day: "2-digit",
-      month: "short",
-      year: "2-digit",
-    });
-  }
-  // raw "202305" ▸ "May 23"
-  if (raw.length === 6) {
-    const d = new Date(Number(raw.slice(0, 4)), Number(raw.slice(4, 6)) - 1);
-    return d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
-  }
-  return raw;
-};
-
-export const fmtMoney = (v: number) =>
-  new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(v);
-
-export const fmtPct = (v: number) => `${(v * 100).toFixed(2)} %`;
-
-export const palette = {
-  pos: "#4caf50",
-  neg: "#e53935",
-  line: "#1976d2",
-};
 
 /* ─── component ────────────────────────────────────────────────── */
 interface PerformanceCardsProps {
@@ -61,13 +26,62 @@ const PerformanceCards = React.memo(
     const [selectedPeriod, setSelectedPeriod] = useState("1Y");
     const [activeCardIndex, setActiveCardIndex] = useState(0);
     const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+    const selectedAccountId = useStockStore((state) => state.selectedAccountId);
 
     const { data, isLoading, error } = useQuery({
-      queryKey: ["performance", selectedPeriod],
-      queryFn: () => fetchPerformance(selectedPeriod),
+      queryKey: ["performance", selectedPeriod, selectedAccountId],
+      queryFn: () => fetchPerformance(selectedAccountId,selectedPeriod),
+      enabled: !!selectedAccountId,
     });
+    const { setPercentageChange } = useContext(PercentageChange);
+    
+    useEffect(() => {
+      // Check if data and the specific returns array exist and are not empty
+      if (data?.cps?.returns && data.cps.returns.length > 0) {
+        // Get the last value from the cumulative returns array
+        const lastReturn = data.cps.returns[data.cps.returns.length - 1];
+        
+        // Convert the value (e.g., 0.26) to a percentage (e.g., 26)
+        const finalPercentage = lastReturn * 100;
+        
+        // Update the context, which will trigger the rocket animation
+        setPercentageChange(finalPercentage);
+      }
+    }, [data, setPercentageChange]); // Rerun this effect if data or the setter changes
 
-    // 1️⃣ ─ Loading / error gating is now simpler
+
+
+    const chartConfigs = useMemo(() => {
+      // If there's no data yet, return an empty array to avoid errors.
+      if (!data) return [];
+      
+      return [
+        {
+          title: "Portfolio Performance",
+          chart: <CumulativeChartLW dates={data.cps.dates} values={data.cps.returns} />,
+        },
+        {
+          title: "Multi-Series Analysis",
+          chart: <MultiSeriesLineLw portfolioSeries={data.cps} period={selectedPeriod} />,
+        },
+        {
+          title: "Monthly Returns",
+          chart: <MonthlyBarChartLW dates={data.tpps.dates} values={data.tpps.returns} />,
+        },
+        {
+          title: "Additional Analytics",
+          chart: <NavChartLW dates={data.nav.dates} values={data.nav.navs} />,
+        },
+      ];
+    }, [data, selectedPeriod]);
+
+
+    const handleCardClick = (index: number) => {
+      if (index !== activeCardIndex) {
+        setActiveCardIndex(index);
+      }
+    };
+
     if (isLoading) {
       return <GraphSkeleton height={350} />;
     }
@@ -78,33 +92,6 @@ const PerformanceCards = React.memo(
       return <p>No performance data.</p>;
     }
 
-    /* 2️⃣  Chart configurations */
-    const chartConfigs = useMemo(() => [
-      {
-        title: "Portfolio Performance",
-        chart: <CumulativeChartLW dates={data.cps.dates} values={data.cps.returns} />,
-      },
-      {
-        title: "Multi-Series Analysis",
-        chart: <MultiSeriesLineLw portfolioSeries={data.cps} period={selectedPeriod} />,
-      },
-      {
-        title: "Monthly Returns",
-        chart: <MonthlyBarChartLW dates={data.tpps.dates} values={data.tpps.returns} />,
-      },
-      {
-        title: "Additional Analytics",
-        chart: <NavChartLW dates={data.nav.dates} values={data.nav.navs} />,
-      },
-    ], [data, selectedPeriod]); // Dependencies for the memoization
-
-    const handleCardClick = (index: number) => {
-      if (index !== activeCardIndex) {
-        setActiveCardIndex(index);
-      }
-    };
-
-    /* 3️⃣  render */
     return (
       <div className="relative w-full overflow-hidden" style={{ height: 370 }}>
         {chartConfigs.map((config, index) => {

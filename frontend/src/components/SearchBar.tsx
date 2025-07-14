@@ -5,6 +5,7 @@ import InputAdornment from "@mui/material/InputAdornment";
 import { useEffect, useState, FormEvent, ChangeEvent } from "react";
 import { useNavigate, useLocation, useNavigation } from "react-router-dom";
 import { styled } from "@mui/material/styles";
+import { Paths } from "@/constants/paths";
 
 const StyledTextField = styled(TextField)({
   "& .MuiInputBase-input": {
@@ -36,8 +37,8 @@ const SearchBar: React.FC = () => {
   const isBusy = isLoading || navState === "submitting" || navState === "loading";
 
   const navigateToStockPage = (ticker: string): void => {
-    setIsLoading(true); // Set loading state on navigation start
-    navigate(`/stock/${ticker}`);
+    setIsLoading(true); 
+    navigate(Paths.protected.app.stock(ticker));
   };
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>): void => {

@@ -11,40 +11,49 @@ import {
   useTheme,
 } from "@mui/material";
 import {
-  ArrowLeftRight,BriefcaseBusiness,Globe,ListPlus,
+  ArrowLeftRight,
+  BriefcaseBusiness,
+  Globe,
+  ListPlus,
   LogOut,
   User,
   ScanSearch,
 } from "lucide-react";
 import { FC } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { Paths } from "@/constants/paths";
 
 function capitalizeFirstLetter(string: string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
-interface NavItem {
+// --- 1. The NavItem interface is updated for clarity ---
+// It now separates the navigation `path` from the display `label`.
+interface NavItemType {
   icon: React.ElementType;
-  text?: string;
+  label: string;
+  path?: string; // The absolute path for navigation
   onClick?: () => void;
   disabled?: boolean;
 }
 
 interface NavItemProps {
-  item: NavItem;
+  item: NavItemType;
   isMainNav?: boolean;
   isActive?: boolean;
 }
 
+// --- 2. The NavItem component is updated to use `path` and `label` ---
 const NavItem: FC<NavItemProps> = ({
   item,
   isMainNav = false,
   isActive = false,
 }) => {
   const theme = useTheme();
-  const { icon: Icon, text, onClick, disabled } = item;
+  const { icon: Icon, label, path, onClick, disabled } = item;
 
-  if (!text) {
+  // Handle items that are just buttons (like theme toggle)
+  if (!path && onClick) {
     return (
       <IconButton onClick={onClick} color="inherit" disabled={disabled}>
         <Icon />
@@ -55,8 +64,8 @@ const NavItem: FC<NavItemProps> = ({
   return (
     <Box
       component={Link}
-      to={text === "logout" ? "" : text}
-      onClick={text === "logout" ? onClick : undefined}
+      to={path || ""} // Use the `path` for the `to` prop
+      onClick={onClick}
       sx={{
         color: isActive ? theme.palette.primary.main : "inherit",
         display: "flex",
@@ -67,6 +76,7 @@ const NavItem: FC<NavItemProps> = ({
         borderRadius: "8px",
         p: 1,
         transition: "all 0.3s ease",
+        textDecoration: "none", // Ensure link has no underline
         ...(isMainNav && {
           "&:hover": {
             backgroundColor: "rgba(255, 255, 255, 0.1)",
@@ -80,23 +90,20 @@ const NavItem: FC<NavItemProps> = ({
       }}
     >
       <Icon color={isActive ? theme.palette.primary.main : "currentColor"} />
-      {isMainNav ? (
-        <Box
-          className="nav-text"
-          sx={{
-            opacity: 0,
-            width: 0,
-            overflow: "hidden",
-            whiteSpace: "nowrap",
-            transition: "all 0.3s ease",
-            marginLeft: 1,
-          }}
-        >
-          {capitalizeFirstLetter(text)}
-        </Box>
-      ) : (
-        capitalizeFirstLetter(text)
-      )}
+      {/* The display text now comes from the `label` property */}
+      <Box
+        className="nav-text"
+        sx={{
+          opacity: isMainNav ? 0 : 1,
+          width: isMainNav ? 0 : "auto",
+          overflow: "hidden",
+          whiteSpace: "nowrap",
+          transition: "all 0.3s ease",
+          marginLeft: isMainNav ? 1 : 0,
+        }}
+      >
+        {capitalizeFirstLetter(label)}
+      </Box>
     </Box>
   );
 };
@@ -106,33 +113,33 @@ const Navbar = () => {
   const { toggleTheme, mode } = useThemeHook();
   const { pathname } = useLocation();
   const isMobileScreen = useMediaQuery(theme.breakpoints.down("sm"));
-  const isSpacePage = pathname === "/space";
-
   const { logout } = useAuth();
 
   const handleLogout = async () => {
     await logout();
   };
 
-  const mainNavItems: NavItem[] = [
-    // { icon: Orbit, text: "space" },
-    { icon: ArrowLeftRight, text: "transactions" },
-    { icon: BriefcaseBusiness, text: "home" },
-    { icon: ListPlus, text: "watchlist" },
-    {icon: ScanSearch, text: "scanner"},
-    ...(isMobileScreen ? [] : [{ icon: Globe, text: "global" }]),
+  // --- 3. The item arrays now use the new `NavItemType` structure ---
+  const mainNavItems: NavItemType[] = [
+    { icon: BriefcaseBusiness, label: "Home", path: Paths.protected.app.home },
+    { icon: ArrowLeftRight, label: "Transactions", path: Paths.protected.app.transactions, },
+    { icon: ListPlus, label: "Watchlist", path: Paths.protected.app.watchlist },
+    { icon: ScanSearch, label: "Scanner", path: Paths.protected.app.scanner },
+    ...(!isMobileScreen ? [{ icon: Globe, label: "Global", path: Paths.protected.app.global }] : []),
   ];
 
-  const rightNavItems: NavItem[] = [
+  const rightNavItems: NavItemType[] = [
     {
       icon: mode === "dark" ? LightModeIcon : DarkModeIcon,
-      onClick: isSpacePage ? undefined : toggleTheme,
-      disabled: isSpacePage,
+      label: "Toggle Theme", // A label is good for accessibility
+      onClick: toggleTheme,
     },
-    { icon: User, text: "profile" },
-    { icon: LogOut, text: "logout", onClick: handleLogout },
+    { icon: User, label: "Profile", path: Paths.protected.app.profile },
+    { icon: LogOut, label: "Logout", onClick: handleLogout },
   ];
 
+  // --- 4. The rendering logic is simplified ---
+  // No more `getFullPath` or complex `renderNavItem` function needed.
   return (
     <Stack
       direction={isMobileScreen ? "column" : "row"}
@@ -141,33 +148,24 @@ const Navbar = () => {
     >
       {isMobileScreen ? (
         <>
-          <Stack
-            direction="row"
-            gap={3}
-            alignItems="center"
-            justifyContent="center"
-          >
-            {rightNavItems.map((item, index) => (
+          <Stack direction="row" gap={3} alignItems="center" justifyContent="center">
+            {rightNavItems.map((item) => (
               <NavItem
-                key={item.text || index}
+                key={item.label}
                 item={item}
-                isActive={item.text ? pathname === `/${item.text}` : false}
+                // The `isActive` check is now a simple, direct comparison
+                isActive={!!item.path && pathname === item.path}
               />
             ))}
           </Stack>
           <Divider />
-          <Stack
-            direction="row"
-            gap={3}
-            alignItems="center"
-            justifyContent="center"
-          >
-            {mainNavItems.map((item, index) => (
+          <Stack direction="row" gap={3} alignItems="center" justifyContent="center">
+            {mainNavItems.map((item) => (
               <NavItem
-                key={item.text || index}
+                key={item.label}
                 item={item}
                 isMainNav
-                isActive={pathname === `/${item.text}`}
+                isActive={!!item.path && pathname === item.path}
               />
             ))}
           </Stack>
@@ -175,21 +173,21 @@ const Navbar = () => {
       ) : (
         <>
           <Stack direction="row" gap={3} alignItems="center">
-            {mainNavItems.map((item, index) => (
+            {mainNavItems.map((item) => (
               <NavItem
-                key={item.text || index}
+                key={item.label}
                 item={item}
                 isMainNav
-                isActive={pathname === `/${item.text}`}
+                isActive={!!item.path && pathname === item.path}
               />
             ))}
           </Stack>
           <Stack direction="row" gap={3} alignItems="center">
-            {rightNavItems.map((item, index) => (
+            {rightNavItems.map((item) => (
               <NavItem
-                key={item.text || index}
+                key={item.label}
                 item={item}
-                isActive={item.text ? pathname === `/${item.text}` : false}
+                isActive={!!item.path && pathname === item.path}
               />
             ))}
           </Stack>

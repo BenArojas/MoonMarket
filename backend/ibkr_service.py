@@ -1,17 +1,19 @@
 # models.py  – pydantic versions
 import asyncio
 import contextlib
+from datetime import datetime
 import json
 import logging
 import math
+import re
 import ssl
 import httpx
 from pydantic import BaseModel, Field
 from typing import Awaitable, Callable, Optional, List, Dict, Any
 import websockets
 from utils import safe_float_conversion
-from models import AccountDetailsDTO, AccountInfoDTO, AccountSummaryData, FrontendMarketDataUpdate, LedgerDTO, LedgerEntryDTO, OwnerInfoDTO, PermissionsDTO, PnlRow, PnlUpdate
-from cache import cached
+from models import AccountDetailsDTO, AccountInfoDTO, AccountSummaryData, BriefAccountInfoDTO, FrontendMarketDataUpdate, LedgerDTO, LedgerEntryDTO, OwnerInfoDTO, PermissionsDTO, PnlRow, PnlUpdate
+from cache import account_specific_key_builder, cached, history_cache_key_builder
 from rate_control import paced
 
 
@@ -21,23 +23,21 @@ log = logging.getLogger("ibkr.ws")   # dedicate a channel for WS payloads
 class IBKRConfig(BaseModel):
     host: str                  = Field(..., examples=["127.0.0.1"])
     port: int                  = Field(..., examples=[4002])
-    client_id: int             = Field(..., examples=[1])
-    tls: bool                  = False
-    auth_token: Optional[str]  = None   # if you ever need OAuth
 
 class IBKRState(BaseModel):
+    
     ibkr_authenticated: bool = False
     ibkr_session_token: Optional[str] = None
     ws_connected: bool = False
     account_id: Optional[str] = None
-    positions: List[Dict[str, Any]] = Field(default_factory=list)
+    positions: Dict[str, List[Dict[str, Any]]] = Field(default_factory=dict)
     accounts_fetched: bool = False
     accounts_cache: List[Dict[str, Any]] = Field(default_factory=list)
-    allocation: Optional[dict] = None         # assetClass/sector/group
-    ledger: Optional[dict] = None             # raw PER-CURRENCY map
+    allocation: Dict[str, Optional[dict]] = Field(default_factory=dict)
+    ledger: Dict[str, Optional[dict]] = Field(default_factory=dict)
     combo_positions: list[dict] = Field(default_factory=list)
     watchlists: list[dict] = Field(default_factory=list)
-    pnl: Dict[str, PnlRow] = Field(default_factory=dict)
+    pnl: Dict[str, Dict[str, PnlRow]] = Field(default_factory=dict) # PnL is often per-account already
 
 class AuthStatusDTO(BaseModel):
     authenticated: bool
@@ -52,6 +52,7 @@ class IBKRService:
                                       timeout=httpx.Timeout(30.0),
                                       headers={"Host": "api.ibkr.com"})
         self._ws_task: asyncio.Task | None = None
+        self._current_ws_account: str | None = None
     
     def set_broadcast(self, cb: Callable[[str], Awaitable[None]]) -> None:
         self._broadcast = cb
@@ -87,36 +88,68 @@ class IBKRService:
         self.state.accounts_cache = await self._req("GET", "/iserver/accounts")
         self.state.accounts_fetched = True
 
+    async def auth_status(self) -> dict:
+        """Calls the official /iserver/auth/status endpoint to get the true session status."""
+        try:
+            # This is the dedicated endpoint for checking authentication status.
+            return await self._req("POST", "/iserver/auth/status")
+        except Exception as e:
+            log.warning(f"Could not retrieve auth status from IBKR: {e}")
+            # If the call itself fails (e.g., network error, 401),
+            # return a default "not authenticated" structure.
+            return {"authenticated": False, "connected": False, "message": "Failed to contact auth server."}
+    
     async def check_and_authenticate(self) -> AuthStatusDTO:
         """
-        Called from the /auth/status endpoint.
-        Returns AuthStatusDTO; if authenticated for the
-        first time it also spins up the WebSocket task.
+        Checks auth status using the official /iserver/auth/status endpoint.
+        This is the most reliable and direct method.
         """
-        if not await self.sso_validate():
-            log.info("[SVC]  ➜  not validated – ask user to login")
-            return AuthStatusDTO(authenticated=False, websocket_ready=False, message= "Please log in via https://localhost:5000")
+        # 1. Get the official status from the new method.
+        status = await self.auth_status()
+        
+        # 2. The official endpoint tells us everything we need.
+        is_authenticated = status.get("authenticated", False)
+        is_connected = status.get("connected", False)
 
-        log.info("[SVC]  SSO validated – tickling session …")
-        await self.tickle()
-        await self._prime_caches()
+        # A session is only truly usable if it's both authenticated AND connected.
+        is_session_valid = is_authenticated and is_connected
+        
+        # 3. Update our internal state to match the ground truth.
+        self.state.ibkr_authenticated = is_session_valid
+        if not is_session_valid:
+            self.state.ibkr_session_token = None
 
-        if self.state.ibkr_authenticated and not self.state.ws_connected:
-            # first time we’re authenticated → launch WS
-            log.info("[SVC]  first-time auth – launching WS task")
-            self._ws_task = asyncio.create_task(self._websocket_loop())
-        self.state.ws_connected = True
-        log.info("IBKR WS task started.")
-
-        return AuthStatusDTO(authenticated=True, websocket_ready=self.state.ws_connected,
-                             message="Authenticated & session active")
+        # 4. Return the status to the frontend.
+        return AuthStatusDTO(
+            authenticated=is_session_valid,
+            websocket_ready=self.state.ws_connected,
+            message=status.get("message", "Status checked.")
+        )
         
     async def logout(self):
-        return await self._req("POST", "/logout")
+        """
+        Logs out from the IBKR session and clears the local service state.
+        """
+        try:
+            log.info("Calling IBKR API to terminate session...")
+            # Your existing API call to IBKR
+            response = await self._req("POST", "/logout")
+            log.info("Successfully logged out from IBKR API.")
+            return response
+        except Exception as e:
+            log.error(f"Error during IBKR API logout call: {e}")
+            # We still proceed to the finally block to ensure local state is cleared
+            raise
+        finally:
+            # This block runs NO MATTER WHAT, guaranteeing a clean state.
+            log.info("Clearing local IBKR session state.")
+            self.state.ibkr_authenticated = False
+            self.state.ibkr_session_token = None
+            self.state.accounts_cache.clear()
     
     # scanner ----------------------------------------------------------
 
-    @cached(ttl=3600) # Params don't change often, cache for an hour
+    @cached(ttl=3600)
     async def get_scanner_params(self):
         """Fetches the available parameters for the market scanner."""
         log.info("Fetching IServer scanner parameters...")
@@ -130,7 +163,7 @@ class IBKRService:
         log.info("Running IServer scanner with payload: %s", scanner_payload)
         return await self._req("POST", "/iserver/scanner/run", json=scanner_payload)
     # market ----------------------------------------------------------
-    @cached(ttl=3600)
+    @cached(ttl=3600, key_builder=account_specific_key_builder)
     async def get_conid(self, symbol: str, sec_type: str = "STK") -> str | None:
         try:
             res = await self._req(
@@ -153,7 +186,7 @@ class IBKRService:
             return availability
         return None
 
-    @cached(ttl=150)
+    @cached(ttl=150, key_builder=account_specific_key_builder)
     async def snapshot(self, conids, fields="31,84,86,7635,7741,83,70,71"):
         """
         Get market data snapshot for given contract IDs.
@@ -171,7 +204,6 @@ class IBKRService:
         
         # First request - often returns minimal data
         initial_response = await self._req("GET", "/iserver/marketdata/snapshot", params=q)
-        log.info(f"Initial response: {initial_response}")
         
         # Wait a moment and make second request for actual data
         await asyncio.sleep(1)
@@ -187,7 +219,7 @@ class IBKRService:
         price = _extract_best_price_from_snapshot(snapshot_data)
         return price if price is not None else float('nan')
 
-    @cached(ttl=150)
+    @cached(ttl=150, key_builder=history_cache_key_builder)
     async def history(self, conid, period="1w", bar="15min"):
         await self.ensure_accounts()
         q = {"conid": conid, "period": period, "bar": bar, "outsideRth": "true"}
@@ -195,13 +227,12 @@ class IBKRService:
 
     # positions -------------------------------------------------------
     # @cached(ttl=30)
-    async def positions(self, acct: str | None = None):
-        acct = acct or await self._primary_account()
+    async def positions(self, account_id: str):
         all_positions = []
         page_id = 0
         while True:
             # The API uses pageId as a path parameter
-            pos_page = await self._req("GET", f"/portfolio/{acct}/positions/{page_id}")
+            pos_page = await self._req("GET", f"/portfolio/{account_id}/positions/{page_id}")
             if not pos_page:
                 # No more positions on this page, we're done.
                 break 
@@ -211,74 +242,99 @@ class IBKRService:
         return all_positions
 
     # account ---------------------------------------------------------
-    async def _primary_account(self) -> str | None:
-        if self.state.account_id:
-            return self.state.account_id
-        data = await self._req("GET", "/portfolio/accounts")
-        self.state.account_id = data[0]["accountId"]
-        return self.state.account_id
+    
+    async def get_available_accounts(self) -> List[BriefAccountInfoDTO]:
+        """
+        Calls the /portfolio/accounts endpoint and formats the response
+        into a simple list for the UI.
+        """
+        raw_accounts = await self._req("GET", "/portfolio/accounts")
+        
+        # Ensure raw_accounts is a list before proceeding
+        if not isinstance(raw_accounts, list):
+            log.warning(f"Expected a list from /portfolio/accounts, but got {type(raw_accounts)}")
+            return []
+            
+        accounts_list = []
+        for acc in raw_accounts:
+            accounts_list.append(BriefAccountInfoDTO(
+                accountId=acc.get("accountId", ""),
+                accountTitle=acc.get("accountTitle", "Untitled Account"),
+                displayName=acc.get("displayName", "")
+            ))
+            
+        return accounts_list
+
     
     async def get_account_details(self, acct: str | None = None) -> AccountDetailsDTO:
         """Fetch complete account details from multiple endpoints"""
-        acct = acct or await self._primary_account()
+        # Run all three API calls concurrently
+        results = await asyncio.gather(
+            self._req("GET", f"/acesws/{acct}/signatures-and-owners"),
+            self._req("GET", "/portfolio/accounts"),
+            self._req("GET", "/iserver/accounts"),
+            return_exceptions=True # Prevents one failure from stopping others
+        )
+
+        owner_resp, portfolio_resp, accounts_resp = results
         
-        # 1. Get owner info from signatures-and-owners
-        try:
-            owner_resp = await self._req("GET", f"/acesws/{acct}/signatures-and-owners")
-            owner_data = owner_resp.get("owners", [{}])[0] if owner_resp.get("owners") else {}
+        # --- Process owner_resp ---
+        if isinstance(owner_resp, Exception):
+            log.error(f"Failed to fetch owner info: {owner_resp}")
+            owner_info = OwnerInfoDTO(userName="", entityName="", roleId="")
+        else:
+            owner_data = {}
+            if owner_resp.get("users"):
+                user = owner_resp["users"][0]
+                entity = user.get("entity", {})
+                owner_data = {
+                    "userName": user.get("userName"),
+                    "entityName": entity.get("entityName"),
+                    "roleId": user.get("roleId")
+                }
+
             owner_info = OwnerInfoDTO(
                 userName=owner_data.get("userName", ""),
                 entityName=owner_data.get("entityName", ""),
                 roleId=owner_data.get("roleId", "")
             )
-        except Exception as e:
-            log.error(f"Failed to fetch owner info: {e}")
-            owner_info = OwnerInfoDTO(userName="", entityName="", roleId="")
-
-        # 2. Get account info from portfolio/accounts
-        try:
-            portfolio_resp = await self._req("GET", "/portfolio/accounts")
-            account_data = {}
-            if isinstance(portfolio_resp, list):
-                account_data = next((acc for acc in portfolio_resp if acc.get("accountId") == acct), {})
-            elif isinstance(portfolio_resp, dict):
-                account_data = portfolio_resp
-                
-            account_info = AccountInfoDTO(
-                accountId=account_data.get("accountId", acct),
-                accountTitle=account_data.get("accountTitle", ""),
-                accountType=account_data.get("accountType", ""),
-                tradingType=account_data.get("tradingType", ""),
-                baseCurrency=account_data.get("baseCurrency", "USD"),
-                ibEntity=account_data.get("ibEntity", ""),
-                clearingStatus=account_data.get("clearingStatus", ""),
-                isPaper=account_data.get("isPaper", False)
-            )
-        except Exception as e:
-            log.error(f"Failed to fetch account info: {e}")
+            
+        # --- Process portfolio_resp ---
+        if isinstance(portfolio_resp, Exception):
+            log.error(f"Failed to fetch account info: {portfolio_resp}")
             account_info = AccountInfoDTO(
                 accountId=acct, accountTitle="", accountType="", 
                 tradingType="", baseCurrency="USD", ibEntity="", 
                 clearingStatus="", isPaper=False
             )
+        else:
+            account_data = next((acc for acc in portfolio_resp if acc.get("accountId") == acct), {})
+            account_info = AccountInfoDTO(
+                accountId=account_data.get("accountId", acct),
+                accountTitle=account_data.get("accountTitle", ""),
+                accountType=account_data.get("type", ""),
+                tradingType=account_data.get("tradingType", ""),
+                baseCurrency=account_data.get("currency", "USD"),
+                ibEntity=account_data.get("ibEntity", ""),
+                clearingStatus=account_data.get("clearingStatus", ""),
+                isPaper=account_data.get("isPaper", False)
+            )
 
-        # 3. Get permissions from iserver/accounts
-        try:
-            accounts_resp = await self._req("GET", "/iserver/accounts")
+        # --- Process accounts_resp ---
+        if isinstance(accounts_resp, Exception):
+            log.error(f"Failed to fetch permissions: {accounts_resp}")
+            permissions = PermissionsDTO(
+                allowFXConv=False, allowCrypto=False, 
+                allowEventTrading=False, supportsFractions=False
+            )
+        else:
             permissions_data = accounts_resp.get("allowFeatures", {})
             acct_props = accounts_resp.get("acctProps", {}).get(acct, {})
-
             permissions = PermissionsDTO(
                 allowFXConv=permissions_data.get("allowFXConv", False),
                 allowCrypto=permissions_data.get("allowCrypto", False),
                 allowEventTrading=permissions_data.get("allowEventTrading", False),
                 supportsFractions=acct_props.get("supportsFractions", False)
-            )
-        except Exception as e:
-            log.error(f"Failed to fetch permissions: {e}")
-            permissions = PermissionsDTO(
-                allowFXConv=False, allowCrypto=False, 
-                allowEventTrading=False, supportsFractions=False
             )
 
         return AccountDetailsDTO(
@@ -287,20 +343,7 @@ class IBKRService:
             permissions=permissions
         )
     
-    async def _prime_caches(self):
-        # await self.ensure_accounts()
-        acct = await self._primary_account()
-        await self.ensure_accounts()
-        # ① positions
-        self.state.positions = await self.positions(acct)
-        
-        self.state.allocation = await self.account_allocation(acct)
-
-        # ③ initial P&L
-        pnl_raw = await self._req("GET", "/iserver/account/pnl/partitioned")
-        self.state.pnl = pnl_raw.get("upnl", {})
-    
-    async def account_performance(self, period: str = "1Y", acct: str | None = None) -> list[dict]:
+    async def account_performance(self,accountId: str, period: str = "1Y") -> list[dict]:
         """
         Fetches historical account NAV data from /pa/performance for the primary account
         and transforms it into the format required by the frontend chart.
@@ -309,11 +352,10 @@ class IBKRService:
         :return: A list of dictionaries, e.g., [{'time': 1609459200, 'value': 100500.75}, ...]
         """
         
-        acct = acct or await self._primary_account()
 
         # Use the primary account ID fetched and stored in app_state
         payload = {
-            "acctIds": [acct], 
+            "acctIds": [accountId], 
             "period": period
         }
         headers = {"Content-Type": "application/json"}
@@ -325,9 +367,7 @@ class IBKRService:
             headers=headers
             )
         
-    async def account_watchlists(self, acct: str | None = None):
-        acct = acct or await self._primary_account()
-        if not acct: return None
+    async def account_watchlists(self):
         params ={
             "SC": "USER_WATCHLIST"
         }
@@ -342,30 +382,27 @@ class IBKRService:
         return watchlists
     
     # ---------------------------------------------------------------- asset alloc
-    @cached(ttl=300)
-    async def account_allocation(self, acct: str | None = None):
-        acct = acct or await self._primary_account()
-        data = await self._req("GET", f"/portfolio/{acct}/allocation")
+    @cached(ttl=300, key_builder=account_specific_key_builder)
+    async def account_allocation(self, account_id: str ):
+        data = await self._req("GET", f"/portfolio/{account_id}/allocation")
         self.state.allocation = data        # keep latest for WS/REST reuse
         return data
 
     # ------------------------------------------------------------- combo pos
-    @cached(ttl=300)
+    @cached(ttl=300, key_builder=account_specific_key_builder)
     async def combo_positions(self, acct: str | None = None, nocache: bool = False):
-        acct = acct or await self._primary_account()
         params = {"nocache": str(nocache).lower()}
         data = await self._req("GET", f"/portfolio/{acct}/combo/positions", params=params)
         self.state.combo_positions = data
         return data
 
     # --------------------------------------------------------------- ledger
-    @cached(ttl=300)
-    async def ledger(self, account_id: str | None = None) -> LedgerDTO:
+    @cached(ttl=300, key_builder=account_specific_key_builder)
+    async def ledger(self, account_id: str) -> LedgerDTO:
         """
         Fetches the complete ledger for a given account.
         The response format is massaged into our LedgerDTO.
         """
-        account_id = account_id or await self._primary_account()
         # The raw ledger data from IBKR is a dict with currency keys
         raw_data = await self._req("GET", f"/portfolio/{account_id}/ledger")
         
@@ -390,6 +427,51 @@ class IBKRService:
 
 
     # ---------- WebSocket handling ----------
+    
+    def _parse_option_symbol(self, description: str) -> str:
+        """
+        Parses a long IBKR option description into a clean, readable format.
+        Example In: 'IBIT   JUL2025 65 C [IBIT  250731C00065000 100]'
+        Example Out: 'IBIT JUL2025 $65.00 C'
+        """
+        # This new, simpler regex parses the readable part of the string.
+        # It captures: 1:Underlying, 2:Expiry, 3:Strike, 4:Type(C/P)
+        match = re.search(r"^([A-Z]+)\s+([A-Z]{3}\d{4})\s+([\d\.]+)\s+([CP])", description)
+
+        if match:
+            try:
+                underlying = match.group(1)
+                expiry = match.group(2)  # This is already "JUL2025"
+                strike = float(match.group(3))
+                option_type = match.group(4)
+                
+                return f"{underlying} {expiry} ${strike:.2f} {option_type}"
+            except (ValueError, IndexError):
+                # If parsing fails for any reason, fall back to the original
+                return description
+        
+        # If the regex doesn't match at all, return the original string
+        return description
+    
+    async def stop_websocket(self):
+        """Stops the currently running WebSocket task."""
+        if self._ws_task and not self._ws_task.done():
+            self._ws_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._ws_task
+            log.info(f"WebSocket task for account {self._current_ws_account} stopped.")
+        self._ws_task = None
+        self._current_ws_account = None
+
+    async def start_websocket_for_account(self, account_id: str):
+        """Stops any existing WS task and starts a new one for the given account."""
+        await self.stop_websocket() # Ensure any old connection is closed
+
+        log.info(f"Starting WebSocket task for account: {account_id}")
+        self._current_ws_account = account_id
+        # The _websocket_loop now needs to receive the account_id
+        self._ws_task = asyncio.create_task(self._websocket_loop(account_id))
+        
     async def _dispatch_pnl(self, msg: dict) -> None:
         """
         Convert an 'spl' frame (either list- or dict-style) into Frontend PnL payload.
@@ -398,21 +480,24 @@ class IBKRService:
 
         rows: dict[str, PnlRow] = {}
 
-        # — shape A: dict keyed by rowKey ————————————————
         if isinstance(args, dict):
             for k, v in args.items():
                 if isinstance(v, dict):
-                    rows[k] = PnlRow(**v)
+                    # --- ADD THIS CHECK ---
+                    # Only try to parse if a key data point exists
+                    if "dpl" in v: 
+                        rows[k] = PnlRow(**v)
 
-        # — shape B: legacy list of dicts ————————————————
         elif isinstance(args, list):
             for v in args:
                 if isinstance(v, dict):
-                    key = v.get("key") or v.get("acctId")   # fallback
-                    if key:
-                        rows[key] = PnlRow(**v)
+                    # --- AND ADD THIS CHECK ---
+                    if "dpl" in v:
+                        key = v.get("key") or v.get("acctId")
+                        if key:
+                            rows[key] = PnlRow(**v)
 
-        if rows:                                           # only broadcast if we parsed something
+        if rows:
             await self._broadcast(
                 PnlUpdate(type="pnl", data=rows).model_dump_json()
             )
@@ -423,72 +508,56 @@ class IBKRService:
     msg: Dict[str, Any],
     conid_to_pos: Dict[int, Dict[str, Any]],
 ) -> None:
-        """
-        Convert a raw `smd+…` frame from IBKR into FrontendMarketDataUpdate
-        and broadcast it to connected WebSocket clients.
-        
-        This version is robust: it ignores ticks without price data.
-        """
-        # ── 1. identify the contract ──────────────────────────────────────────
-        topic: str = msg["topic"]
-        cid: int = int(topic.split("+", 1)[1])
-
-        # ── 2. Extract price from the tick message ────────────────────────────
-        last = self._extract_price_from_snapshot(msg)
-        # Extract daily percentage change (field 83)
-        daily_change_pct = safe_float_conversion(msg.get("83"))
-        change_amount = safe_float_conversion(msg.get("82"))
-
-        # ─── SOLUTION: GUARD CLAUSE ───────────────────────────────────────────
-        # If no price could be extracted from this specific tick message (e.g., it was
-        # just a volume update), stop processing and do not broadcast anything.
-        if math.isnan(last):
+        # 1. Get the price from the real-time message. If there's no price, ignore it.
+        last_price = self._extract_price_from_snapshot(msg)
+        if math.isnan(last_price):
             return
-        # ──────────────────────────────────────────────────────────────────────
 
-        # ── 3. Create the base update object ──────────────────────────────────
-        symbol_name = conid_to_pos.get(cid, {}).get("fullName", str(cid))
-        
-        update = FrontendMarketDataUpdate(
-            conid=cid,
-            symbol=symbol_name,
-            last_price=last,
-            daily_change_percent=daily_change_pct,  
-            daily_change_amount=change_amount,     
-        )
+        # 2. Get the contract ID (conid) from the message
+        cid = int(msg["topic"].split("+", 1)[1])
 
-        # ── 4. Enrich with static position data (if we have it) ───────────────
+        # 3. Make sure we have the full position details for this conid
         if (pos := conid_to_pos.get(cid)):
-            # log.info(pos)
+            
+            # 4. Now that we have the details, figure out the correct name
+            asset_class = pos.get("assetClass", "STK")
+            raw_description = pos.get("contractDesc") or str(cid)
+
+            if asset_class == 'OPT':
+                # If it's an option, parse it
+                symbol_name = self._parse_option_symbol(raw_description)
+            else:
+                # Otherwise, just use the stock ticker
+                symbol_name = raw_description
+
+            # 5. Get the rest of the data
             qty = pos.get("position")
             cost = pos.get("avgPrice")
+            daily_change_pct = safe_float_conversion(msg.get("83"))
+            change_amount = safe_float_conversion(msg.get("82"))
+            multiplier = 100 if asset_class == "OPT" else 1
             
-            asst_cls = pos.get("assetClass")
-            if asst_cls == "OPT":
-                multiplier = 100
-            else:
-                multiplier = 1
-
-            update.quantity = qty
-            update.avg_bought_price = cost
-
-            # Calculate PnL - this code now only runs if `last` is a valid number
+            # 6. Build the final update object with the correct name
+            update = FrontendMarketDataUpdate(
+                conid=cid,
+                symbol=symbol_name,
+                last_price=last_price,
+                quantity=qty,
+                avg_bought_price=cost,
+                daily_change_percent=daily_change_pct,
+                daily_change_amount=change_amount,
+            )
+            
             if qty is not None and cost is not None:
-                # The core change is to always use the multiplier.
-                calc_value = last * qty * multiplier
-                
-                # This is the correct PnL calculation for both stocks and options
-                calc_pnl_correct = (last - cost) * qty * multiplier
+                update.value = last_price * qty * multiplier
+                update.unrealized_pnl = (last_price - cost) * qty * multiplier
 
-                update.value = calc_value
-                update.unrealized_pnl = calc_pnl_correct
-        
-        # ── 5. Ship it to the front-end ───────────────────────────────────────
-        await self._broadcast(update.model_dump_json())
+            # 7. Send the update to the frontend
+            await self._broadcast(update.model_dump_json())
         
     
     
-    async def _websocket_loop(self) -> None:
+    async def _websocket_loop(self, account_id: str) -> None:
         uri = "wss://localhost:5000/v1/api/ws"
         cookie  = f'api={{"session":"{self.state.ibkr_session_token}"}}'
 
@@ -498,12 +567,12 @@ class IBKRService:
 
         while True:                           # reconnect forever
             try:
-                acct_id = self.state.account_id or await self._primary_account()
-                if not self.state.positions:
-                    self.state.positions = await self.positions(acct_id)
-
-                conids   = [str(p["conid"]) for p in self.state.positions]
-                conid_to_pos: dict[int, dict] = {p["conid"]: p for p in self.state.positions}
+                # Fetch fresh positions for this account every time the WS connects/reconnects
+                log.info(f"Fetching positions for WebSocket stream: {account_id}")
+                account_positions = await self.positions(account_id)
+                self.state.positions[account_id] = account_positions # Update the state
+                conids = [str(p["conid"]) for p in account_positions]
+                conid_to_pos: dict[int, dict] = {p["conid"]: p for p in account_positions}
 
                 async with websockets.connect(
                     uri,
@@ -519,11 +588,11 @@ class IBKRService:
                     await asyncio.sleep(2)
 
                     # —— ② account-level streams (optional) ————————————
-                    await ws.send(f"ssd+{acct_id}")
+                    await ws.send(f"ssd+{account_id}")
                     await asyncio.sleep(0.05)
-                    await ws.send(f"sld+{acct_id}")
+                    await ws.send(f"sld+{account_id}")
                     await asyncio.sleep(0.05)
-                    await ws.send(f"spl+{acct_id}")
+                    await ws.send(f"spl+{account_id}")
                     await asyncio.sleep(0.05)
 
                     # —— ③ market-data subscriptions ————————————————
@@ -545,27 +614,37 @@ class IBKRService:
                             # Connection died unexpectedly, exit gracefully
                             pass
                     
-                    async def allocation_refresher():
-                        """Periodically re-fetches allocation data and broadcasts it."""
-                        acct_id = self.state.account_id or await self._primary_account()
+                    async def allocation_refresher(account_id: str):
+                        """
+                        Immediately fetches and broadcasts allocation data, then enters
+                        a loop to refresh it periodically.
+                        """
+                        # 1. Fetch and broadcast the data IMMEDIATELY upon startup.
+                        try:
+                            log.info(f"Fetching initial allocation for {account_id}...")
+                            initial_data = await self.account_allocation(account_id)
+                            await self._broadcast(json.dumps({
+                                "type": "allocation",
+                                "data": initial_data
+                            }))
+                        except Exception as e:
+                            log.error(f"Failed to fetch initial allocation data: {e}")
+
+                        # 2. Now, enter the periodic refresh loop.
                         while True:
                             await asyncio.sleep(300) # Refresh every 5 minutes
                             try:
-                                log.info("Refreshing account allocation...")
-                                # This function updates self.state.allocation automatically
-                                fresh_data = await self.account_allocation(acct_id)
-                                
-                                # Now broadcast it to all clients
+                                log.info(f"Refreshing account allocation for {account_id}...")
+                                fresh_data = await self.account_allocation(account_id)
                                 await self._broadcast(json.dumps({
                                     "type": "allocation",
                                     "data": fresh_data
                                 }))
-
                             except Exception as e:
-                                log.error("Failed to refresh allocation data: %s", e)
+                                log.error(f"Failed to refresh allocation data: {e}")
                         
                     hb = asyncio.create_task(heartbeat())
-                    alloc_task = asyncio.create_task(allocation_refresher())
+                    alloc_task = asyncio.create_task(allocation_refresher(account_id))
 
                     # —— ⑤ receive loop ————————————————————————————
                     try:

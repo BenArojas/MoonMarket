@@ -29,7 +29,6 @@ svc.set_broadcast(broadcast)
 async def lifespan(app: FastAPI):
     app.state.ibkr = svc 
     yield
-    # await svc._cancel_all() 
     
 app = FastAPI(lifespan=lifespan)
 @app.exception_handler(RateLimitExceededException)
@@ -69,6 +68,18 @@ async def auth_status(svc: IBKRService = Depends(get_ibkr_service)):
     we become authenticated and the WS starts automatically.
     """
     return await svc.check_and_authenticate()
+
+@app.post("/ws/connect")
+async def connect_ws(accountId: str, svc: IBKRService = Depends(get_ibkr_service)):
+    """Tells the backend to start the WebSocket for a specific account."""
+    await svc.start_websocket_for_account(accountId)
+    return {"status": "WebSocket connection initiated", "accountId": accountId}
+
+@app.post("/ws/disconnect")
+async def disconnect_ws(svc: IBKRService = Depends(get_ibkr_service)):
+    """Tells the backend to stop the current WebSocket connection."""
+    await svc.stop_websocket()
+    return {"status": "WebSocket connection terminated"}
 
 @app.post("/auth/logout")
 async def logout(svc: IBKRService = Depends(get_ibkr_service)):

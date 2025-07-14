@@ -1,24 +1,22 @@
 import Sidebar from "@/pages/Layout/Sidebar";
-import { PercentageChange } from "@/contexts/PercentageChangeContext";
+import { PercentageChange, PercentageChangeProvider } from "@/contexts/PercentageChangeContext";
 import "@/styles/global.css";
 import { Box, useMediaQuery, useTheme } from "@mui/material";
-import { useState } from "react"; // Add useEffect
+import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import Greetings from "./Greetings";
+import { WebSocketManager } from "@/hooks/WebSocketManager";
 
 const Layout: React.FC = () => {
-  const [percentageChange, setPercentageChange] = useState<number>(0);
   const theme = useTheme();
   const isMobileScreen = useMediaQuery(theme.breakpoints.down("sm"));
 
   return (
-    <PercentageChange.Provider
-      value={{
-        percentageChange,
-        setPercentageChange,
-      }}
-    >
+    <PercentageChangeProvider>
       <Box sx={{ display: "flex" }}>
+        {/* 2. Add the WebSocketManager here. It renders no UI. */}
+        <WebSocketManager />
+
         {isMobileScreen ? null : <Sidebar />}
         <Box
           className="layout"
@@ -32,7 +30,7 @@ const Layout: React.FC = () => {
           <Outlet />
         </Box>
       </Box>
-    </PercentageChange.Provider>
+      </PercentageChangeProvider>
   );
 };
 

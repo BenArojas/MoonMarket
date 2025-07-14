@@ -1,6 +1,4 @@
-import { ChartDataPoint } from '@/components/charts/AreaChartLw';
-import {  SankeyInputData, SankeyInputLink, SankeyInputNode } from '@/components/charts/SankeyChart';
-import { Transaction } from '@/hooks/useTransactionSummary';
+import { SankeyInputData, SankeyInputLink, SankeyInputNode } from '@/components/charts/SankeyChart';
 import { AllocationDTO, AllocationView, StockData } from '@/stores/stockStore';
 
 
@@ -129,7 +127,7 @@ export function processTreemapData(
 }
 
 
-import {  DonutDatum } from "@/schemas/allocation";
+import { DonutDatum } from "@/schemas/allocation";
 
 
 export function processAllocationData(
@@ -423,123 +421,6 @@ export function processLeaderboardsData(stocks: { [symbol: string]: StockData })
   return LeaderboardsData;
 }
 
-
-
-export function lastUpdateDate(last_refresh: string | null): string {
-  const date = last_refresh ? new Date(last_refresh) : new Date(); // Fallback to current date
-
-  let formattedDate = date.toLocaleString("en-GB", {
-    timeZone: "Asia/Jerusalem",
-    day: "2-digit",
-    month: "2-digit",
-    year: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-  return formattedDate;
-}
-
-
-type Position =  {
-  transactions: Transaction[];
-  isFullyClosed: boolean;
-  totalQuantity: number;
-  totalCost: number;
-  realizedProfit: number;
-}
-
-type TransactionSummary =  {
-  totalTrades: number;
-  closedTrades: number;
-  moneySpent: number;
-  // totalProfit: number;
-  winRate: number;
-}
-export const calculateTransactionSummary = (
-  transactions: Transaction[],
-  // currentStockPrices: Record<string, number>
-): TransactionSummary => {
-  let totalTrades: number = 0;
-  let closedTrades: number = 0;
-  let profitableTrades: number = 0;
-  let moneySpent: number = 0;
-  // let totalProfit: number = 0;
-
-  // Sort transactions by date
-  const sortedTransactions: Transaction[] = [...transactions].sort(
-    (a: Transaction, b: Transaction) =>
-      new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime()
-  );
-
-  // Group transactions by ticker
-  const positionsByTicker: Record<string, Position> = {};
-
-  sortedTransactions.forEach((transaction: Transaction) => {
-    const { ticker } = transaction;
-
-    if (!positionsByTicker[ticker]) {
-      positionsByTicker[ticker] = {
-        transactions: [],
-        isFullyClosed: false,
-        totalQuantity: 0,
-        totalCost: 0,
-        realizedProfit: 0,
-      };
-      totalTrades++;
-    }
-
-    const position: Position = positionsByTicker[ticker];
-    position.transactions.push(transaction);
-
-    // Update position quantities and costs
-    if (transaction.type === 'purchase') {
-      position.totalQuantity += transaction.quantity;
-      position.totalCost += transaction.price * transaction.quantity;
-      moneySpent += transaction.price * transaction.quantity;
-    } else if (transaction.type === 'sale') {
-      const saleValue: number = transaction.price * transaction.quantity;
-      const avgCost: number = position.totalCost / position.totalQuantity;
-      const costBasis: number = avgCost * transaction.quantity;
-
-      position.realizedProfit += saleValue - costBasis;
-      position.totalQuantity -= transaction.quantity;
-      position.totalCost = avgCost * position.totalQuantity;
-
-      if (position.totalQuantity === 0 || transaction.text.includes("Closed position:")) {
-        position.isFullyClosed = true;
-        closedTrades++;
-
-        // Check if the trade was profitable
-        if (position.realizedProfit > 0) {
-          profitableTrades++;
-        }
-
-      }
-    }
-  });
-
-  // // Calculate unrealized profit for open positions
-  // Object.entries(positionsByTicker).forEach(([ticker, position]: [string, Position]) => {
-  //   if (!position.isFullyClosed && currentStockPrices[ticker] && position.totalQuantity > 0) {
-  //     const currentPrice: number = currentStockPrices[ticker];
-  //     const avgCost: number = position.totalCost / position.totalQuantity;
-  //     const unrealizedProfit: number = (currentPrice - avgCost) * position.totalQuantity;
-  //     totalProfit += unrealizedProfit;
-  //   }
-  // });
-
-  // Calculate win rate: profitable trades divided by closed trades
-  const winRate: number = closedTrades > 0 ? (profitableTrades / closedTrades) * 100 : 0;
-
-  return {
-    totalTrades,
-    closedTrades,
-    moneySpent: Number(moneySpent),
-    winRate: Number(winRate.toFixed(1)),
-  };
-};
-
 // Format currency
 export const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('en-US', {
@@ -548,7 +429,7 @@ export const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
-import { Time, BusinessDay, UTCTimestamp } from 'lightweight-charts';
+import { BusinessDay, Time } from 'lightweight-charts';
 
 export const formatDate = (input: string | Time): string => {
   let date: Date;

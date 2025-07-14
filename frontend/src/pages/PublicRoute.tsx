@@ -6,6 +6,8 @@ import { Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Paths } from "@/constants/paths";
+
 
 
 export const PublicRoute: React.FC = () => {
@@ -22,12 +24,11 @@ export const PublicRoute: React.FC = () => {
   }
 
   if (!isError && isAuth === true) {
-    // If the user is authenticated, redirect to the "from" location or default to "/home"
-    const from = location.state?.from?.pathname || "/home";
+    // If authenticated, redirect. The fallback now uses the Paths object.
+    const from = location.state?.from?.pathname || Paths.protected.accountSelection; 
     return <Navigate to={from} replace />;
   }
 
-  
 
   return (
     <div className="flex flex-col items-center justify-center h-screen">

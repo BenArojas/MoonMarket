@@ -377,7 +377,7 @@ const TransactionsPage: React.FC = () => {
   return (
     <div className="h-[80vh] overflow-y-auto">
       <main className="container mx-auto space-y-6 p-4 md:p-8">
-      <h1 className="text-2xl font-semibold ">Recent Trades</h1>
+      <h1 className="text-2xl font-semibold ">Recent Trades (Last 7 days)</h1>
         <SummaryCards s={summary} />
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
           <SymbolActivityChart trades={trades} /> {/* lg:col-span-2 */}

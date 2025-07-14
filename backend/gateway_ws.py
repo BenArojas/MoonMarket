@@ -28,51 +28,26 @@ async def broadcast(msg: str) -> None:
     for ws in dead:
         _clients.discard(ws)    
 
-async def _initial_snapshot(ws: WebSocket, svc: IBKRService) -> None:
-
-    for p in svc.state.positions:
-        await ws.send_text(
-            FrontendMarketDataUpdate
-            .from_position_row(p)
-            .model_dump_json()
-        )
-    
-    if svc.state.pnl:
-        await ws.send_text(json.dumps({
-            "type": "pnl",
-            "data": svc.state.pnl
-        }))
-
-    # You could continue to send other initial state here, like
-    # allocation, ledger, watchlists, etc. following the same pattern.
-    # For example:
-    if svc.state.allocation:
-        await ws.send_text(json.dumps({
-            "type": "allocation",
-            "data": svc.state.allocation
-        }))
-
-
-
 # ---------- WebSocket endpoint ----------
 @router.websocket("/ws")
 async def ws_endpoint(ws: WebSocket):
     """
-    • Accept FE socket
-    • Push one snapshot
-    • Then just keep it open (you can add ping-pong etc. later)
+    Accepts a WebSocket connection from the frontend and adds it to the
+    pool of clients to receive real-time broadcast updates.
     """
-    app       = ws.scope["app"]          # <-- grab FastAPI instance
+    app = ws.scope["app"]
     svc: "IBKRService" = app.state.ibkr  # type: ignore
     await ws.accept()
     _clients.add(ws)
     log.info("FE socket joined (%d total)", len(_clients))
 
-    await _initial_snapshot(ws, svc)     # send the portfolio once
+    # REMOVED: await _initial_snapshot(ws, svc)
 
     try:
+        # Keep the connection alive to receive broadcasts.
+        # The client does not need to send any messages.
         while True:
-            await ws.receive_text()      # ignore inbound messages for now
+            await ws.receive_text()
     except WebSocketDisconnect:
         pass
     finally:

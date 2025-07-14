@@ -1,9 +1,8 @@
 // AuthContext.tsx
-import React, { createContext, useContext, useEffect } from "react"; // 1. Import useEffect
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchAuthStatus, logout as apiLogout, AuthDTO } from "@/api/auth"; // Renamed to avoid conflict
+import { logout as apiLogout, AuthDTO, fetchAuthStatus, disconnectWebSocket as apiDisconnectWebSocket, } from "@/api/auth"; // Renamed to avoid conflict
 import { useStockStore } from "@/stores/stockStore"; // 2. Import your Zustand store
-import { useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import React, { createContext, useContext, useEffect } from "react"; // 1. Import useEffect
 
 interface AuthContextType {
   isAuth: boolean | undefined;
@@ -19,7 +18,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const queryClient = useQueryClient();
-  // const navigate = useNavigate();
 
   // 3. Get connect/disconnect actions from the Zustand store
   const connectWebSocket = useStockStore((state) => state.connect);
@@ -57,24 +55,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [isAuth, connectWebSocket, disconnectWebSocket]); // 5. UPDATE THE LOGOUT HANDLER
 
   const handleLogout = async () => {
-    disconnectWebSocket();
-  
     try {
+      // Step 1: Gracefully disconnect the backend WebSocket first.
+      await apiDisconnectWebSocket();
+      console.log("Backend WebSocket disconnected.");
+
+      // Step 2: Log out the main IBKR session.
       await apiLogout();
-      // Remove all queries except auth, then invalidate auth
-      queryClient.removeQueries({ 
-        predicate: (query) => query.queryKey[0] !== "authStatus" 
-      });
-      queryClient.invalidateQueries({ queryKey: ["authStatus"] });
+      console.log("IBKR session logout initiated.");
+
     } catch (error) {
-      console.error("Logout failed:", error);
-      queryClient.removeQueries({ 
-        predicate: (query) => query.queryKey[0] !== "authStatus" 
+      console.error("An error occurred during the logout process:", error);
+      // We proceed to the 'finally' block even if APIs fail.
+    } finally {
+      // Step 3: Always clear client-side data and state.
+      // This runs regardless of whether the API calls succeeded or failed,
+      // ensuring the UI doesn't get stuck in a logged-in state.
+      console.log("Clearing client-side data.");
+      queryClient.removeQueries({
+        predicate: (query) => query.queryKey[0] !== "authStatus",
       });
       queryClient.invalidateQueries({ queryKey: ["authStatus"] });
     }
   };
-
+  
   return (
     <AuthContext.Provider
       value={{

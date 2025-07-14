@@ -25,9 +25,6 @@ router = APIRouter(prefix="/market", tags=["Market"])
 # }
 
 
-
-
-
 @router.get("/history", response_model=list[ChartDataBars])
 async def history(
         ticker: str,

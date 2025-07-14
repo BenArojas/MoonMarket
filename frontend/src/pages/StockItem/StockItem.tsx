@@ -14,7 +14,7 @@ import {
   useTheme,
 } from "@mui/material";
 import { Suspense, useEffect, useState } from "react";
-import { Await, useLoaderData, useSearchParams } from "react-router-dom";
+import { Await, LoaderFunctionArgs, useLoaderData, useSearchParams } from "react-router-dom";
 
 const defaultTime = "7D";
 
@@ -32,19 +32,20 @@ interface LoaderData {
   stock: Promise<StockData | null>;
 }
 
-export async function loader({
-  params,
-  request,
-}: {
-  params: { stockTicker: string };
-  request: Request;
-}): Promise<LoaderData> {
-  const ticker = params.stockTicker;
+export async function loader({ params, request }: LoaderFunctionArgs): Promise<LoaderData> {
+  // containing your URL parameters.
+  const { stockTicker } = params;
+
+  if (!stockTicker) {
+    throw new Response("Not Found", { status: 404, statusText: "Stock ticker is required." });
+  }
+
+  // The rest of your code works perfectly.
   const { searchParams } = new URL(request.url);
   const searchTerm = searchParams.get("time") || defaultTime;
 
-  const stock = getStockData(ticker);
-  const intradayData = fetchHistoricalStockDataBars(ticker, searchTerm);
+  const stock = getStockData(stockTicker);
+  const intradayData = fetchHistoricalStockDataBars(stockTicker, searchTerm);
 
   return {
     historicalData: intradayData,
@@ -59,38 +60,10 @@ function StockItem() {
   const { stock: stockPromise, historicalData: historicalDataPromise } =
     useLoaderData() as LoaderData;
   const [searchParams, setSearchParams] = useSearchParams();
-  const [chartData, setChartData] = useState<TransformedChartData[] | null>(
-    null
-  );
+  
 
   const currentRange = searchParams.get("time") || defaultTime;
 
-  useEffect(() => {
-    if (historicalDataPromise) {
-      historicalDataPromise
-        .then((newDataPoints: ChartDataBars[] | null) => {
-          // Fixed type here
-          if (newDataPoints) {
-            const transformedForChart: TransformedChartData[] =
-              newDataPoints.map((point) => ({
-                date: new Date(point.time * 1000).toISOString(), // Now correctly accessing point.time
-                open: point.open,
-                high: point.high,
-                low: point.low,
-                close: point.close,
-                volume: point.volume,
-              }));
-            setChartData(transformedForChart);
-          } else {
-            setChartData(null);
-          }
-        })
-        .catch((error) => {
-          console.error("Error processing historical data:", error);
-          setChartData(null);
-        });
-    }
-  }, [historicalDataPromise]);
 
   const handleRangeChange = (newRange: string) => {
     const newSearchParams = new URLSearchParams(searchParams);
@@ -123,18 +96,29 @@ function StockItem() {
                   isMobile={isMobile}
                 />
                 <Suspense fallback={<ChartLoadingFallback />}>
-                  {/* Await for historicalDataPromise to resolve before rendering chart or its loader */}
+                  {/* 3. Await the historical data promise */}
                   <Await resolve={historicalDataPromise}>
-                    {() =>
-                      chartData ? ( // Check chartData which is set after transformation
+                    {/* 4. Process the data right here when it resolves */}
+                    {(resolvedHistoricalData: ChartDataBars[]) => {
+                      // Perform the transformation logic inside the render prop
+                      const transformedForChart = resolvedHistoricalData.map(
+                        (point) => ({
+                          date: new Date(point.time * 1000).toISOString(),
+                          open: point.open,
+                          high: point.high,
+                          low: point.low,
+                          close: point.close,
+                          volume: point.volume,
+                        })
+                      );
+
+                      return (
                         <CandleStickChart
-                          data={chartData} // chartData is now HistoricalDataForChart[]
+                          data={transformedForChart}
                           isMobile={isMobile}
                         />
-                      ) : (
-                        <ChartLoadingFallback /> // Show loading if chartData is not ready
-                      )
-                    }
+                      );
+                    }}
                   </Await>
                 </Suspense>
               </>

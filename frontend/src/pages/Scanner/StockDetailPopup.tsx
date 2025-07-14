@@ -5,6 +5,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import TechnicalAnalysis from "@/components/tradingView/TechnicalAnalysisTradingView";
 import { useNavigate } from "react-router-dom";
+import { Paths } from "@/constants/paths";
 
 interface Props {
   open: boolean;
@@ -22,8 +23,11 @@ const StockDetailPopup: React.FC<Props> = ({
   conId, // Destructured conId
 }) => {
   const navigate = useNavigate();
+  
   const handleNavigate = () => {
-    navigate(`/stock/${symbol}`);
+    if(symbol!= null){
+      navigate(Paths.protected.app.stock(symbol));
+    }
   };
   // This check correctly prevents rendering if the essential symbol is missing
   if (!symbol) return null;

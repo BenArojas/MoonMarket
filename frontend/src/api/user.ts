@@ -6,8 +6,6 @@ import { Time } from "lightweight-charts";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-
-
 export async function getUserInsights() {
   try {
     const response = await api.get("/user/ai/insights");
@@ -30,41 +28,55 @@ export async function getStockSentiment(ticker: string) {
   }
 }
 
-
-
-
-export interface NAVSeries   { dates: string[]; navs: number[] }
-export interface ReturnSeries{ dates: string[]; returns: number[] }
+export interface NAVSeries {
+  dates: string[];
+  navs: number[];
+}
+export interface ReturnSeries {
+  dates: string[];
+  returns: number[];
+}
 
 export interface Performance {
-  nav:  NAVSeries;
-  cps:  ReturnSeries;
+  nav: NAVSeries;
+  cps: ReturnSeries;
   tpps: ReturnSeries;
 }
 
-export async function fetchPerformance(period = "1Y"): Promise<Performance> {
-  const { data } = await api.get<Performance>("/account/performance", {
-    params: { period },
+export const fetchPerformance = async (
+  accountId: string | null,
+  period: string
+) => {
+  // Don't fetch if the ID is null (the 'enabled' option should prevent this anyway)
+  if (!accountId) {
+    return null;
+  }
+
+  // Add the accountId to the request as a query parameter
+  const { data } = await api.get(`/account/performance`, {
+    params: {
+      accountId: accountId,
+      period: period,
+    },
   });
   return data;
-}
-
+};
 
 export type ChartDataBars = {
   time: number;
-  open: number
-  high: number
-  low: number
-  close: number
-  volume: number 
-}
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+};
 
 export const fetchHistoricalStockDataBars = async (
   ticker: string,
   period: string
 ): Promise<ChartDataBars[]> => {
   try {
-    const response = await api.get('/market/history', {
+    const response = await api.get("/market/history", {
       params: {
         ticker,
         period,
@@ -88,13 +100,13 @@ export const fetchHistoricalStockData = async (
   ticker: string,
   period: string
 ): Promise<ChartDataPoint[]> => {
-  const { data } = await api.get<ChartDataBars[]>('/market/history', {
+  const { data } = await api.get<ChartDataBars[]>("/market/history", {
     params: { ticker, period },
   });
 
   // Pick the field you want to plot – here I’m using `close`
   return data.map(({ time, close }) => ({
-    time: (time as unknown) as Time, // or convert to the exact Time type you need
+    time: time as unknown as Time, // or convert to the exact Time type you need
     value: close,
   }));
 };
@@ -102,16 +114,37 @@ export const fetchHistoricalStockData = async (
 /**
  * Fetches consolidated account details from the backend.
  */
-export async function fetchAccountDetails(): Promise<AccountDetailsDTO> {
-  const { data } = await api.get<AccountDetailsDTO>(`/account/account-details`);
+export async function fetchAccountDetails(
+  accountId: string | null
+): Promise<AccountDetailsDTO | null> {
+  if (!accountId) {
+    return null;
+  }
+  const { data } = await api.get<AccountDetailsDTO>(
+    `/account/account-details`,
+    {
+      params: {
+        accountId: accountId,
+      },
+    }
+  );
   return data;
 }
 
 /**
  * Fetches the detailed, multi-currency balance ledger.
  */
-export async function fetchBalances(): Promise<LedgerDTO> {
+export async function fetchBalances(
+  accountId: string | null
+): Promise<LedgerDTO | null> {
+  if (!accountId) {
+    return null;
+  }
   // Assuming your endpoint is /ledger and takes an 'acct' query param
-  const { data } = await api.get<LedgerDTO>('/account/ledger');
+  const { data } = await api.get<LedgerDTO>("/account/ledger", {
+    params: {
+      accountId: accountId,
+    },
+  });
   return data;
 }

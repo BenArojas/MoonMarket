@@ -180,3 +180,8 @@ class AccountDetailsDTO(BaseModel):
     owner: OwnerInfoDTO
     account: AccountInfoDTO
     permissions: PermissionsDTO
+    
+class BriefAccountInfoDTO(BaseModel):
+    accountId: str
+    accountTitle: str
+    displayName: str

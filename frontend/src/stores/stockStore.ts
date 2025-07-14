@@ -43,6 +43,12 @@ export interface PnlRow {
 }
 
 /* --------------------------- AccountSummary DTO --------------------------- */
+export interface BriefAccountInfo {
+  accountId: string;
+  accountTitle: string;
+  displayName: string;
+}
+
 export interface OwnerInfoDTO {
   userName: string;
   entityName: string;
@@ -111,12 +117,14 @@ interface StockState {
   allocationView: AllocationView;
   accountDetails: AccountDetailsDTO | null;
   balances: LedgerDTO | null;
-  pnl: Record<string, PnlRow>;             // ⬅️ NEW – keyed by "U1234567.Core"
-  coreTotals: {                            // ⬅️ convenience slice for UI
+  pnl: Record<string, PnlRow>;             
+  coreTotals: {                          
     dailyRealized: number;
     unrealized: number;
     netLiq: number;
   };
+  allAccounts: BriefAccountInfo[];
+  selectedAccountId: string | null;
 
   // Actions
   setPnl: (rows: Record<string, PnlRow>) => void;
@@ -124,6 +132,8 @@ interface StockState {
   setAllocationView: (v: AllocationView) => void;
   setAccountDetails: (details: AccountDetailsDTO) => void;
   setBalances: (balances: LedgerDTO) => void;
+  setAllAccounts: (accounts: BriefAccountInfo[]) => void;
+  setSelectedAccountId: (accountId: string) => void;
   setConnectionStatus: (status: StockState["connectionStatus"]) => void;
   setError: (errorMsg: string) => void;
   clearError: () => void;
@@ -154,6 +164,8 @@ export const useStockStore = create<StockState>((set, get) => ({
   error: undefined,
   accountDetails: null,
   balances: null,
+  allAccounts: [],
+  selectedAccountId: null,
 
   // Actions
   
@@ -175,6 +187,8 @@ export const useStockStore = create<StockState>((set, get) => ({
   },
   setAccountDetails: (details) => set({ accountDetails: details }),
   setBalances: (balances) => set({ balances }),
+  setAllAccounts: (accounts) => set({ allAccounts: accounts }),
+  setSelectedAccountId: (accountId) => set({ selectedAccountId: accountId }),
   setConnectionStatus: (status) => set({ connectionStatus: status }),
   setError: (errorMsg) => set({ error: errorMsg, connectionStatus: "error" }),
   clearError: () => set({ error: undefined }),

@@ -3,7 +3,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from ibkr_service import IBKRService
-from models import AccountDetailsDTO, AllocationDTO, ChartDataPoint, ComboDTO, LedgerDTO
+from models import AccountDetailsDTO, AllocationDTO, BriefAccountInfoDTO, ChartDataPoint, ComboDTO, LedgerDTO
 from typing import List
 from deps import get_ibkr_service 
 
@@ -35,6 +35,7 @@ _VALID_PERIODS = {"1D", "7D", "MTD", "1M", "YTD", "1Y"}
 
 @router.get("/performance", response_model=PerformanceResponse)
 async def account_performance(
+    accountId: str,
     period: str = "1Y",
     ibkr: IBKRService = Depends(get_ibkr_service),
 ):
@@ -44,7 +45,7 @@ async def account_performance(
             f"Invalid period '{period}'. Choose one of: {', '.join(sorted(_VALID_PERIODS))}",
         )
 
-    raw = await ibkr.account_performance(period=period)         # ↩︎ POST /pa/performance
+    raw = await ibkr.account_performance(accountId,period=period)         # ↩︎ POST /pa/performance
 
     try:
         # Each section already contains its own dates; just normalise keys
@@ -68,19 +69,25 @@ async def account_performance(
     
 
 @router.get("/allocation", response_model=AllocationDTO)
-async def get_allocation(svc: IBKRService = Depends(get_ibkr_service)):
-    return await svc.account_allocation()
+async def get_allocation(accountId: str,svc: IBKRService = Depends(get_ibkr_service)):
+    return await svc.account_allocation(accountId)
 
 @router.get("/ledger", response_model=LedgerDTO)
-async def get_ledger(svc: IBKRService = Depends(get_ibkr_service)):
-    return await svc.ledger()
+async def get_ledger(accountId: str, svc: IBKRService = Depends(get_ibkr_service)):
+    return await svc.ledger(accountId)
 
 @router.get("/account-details/", response_model=AccountDetailsDTO)
-async def get_account_details(svc: IBKRService = Depends(get_ibkr_service)):
+async def get_account_details(accountId: str, svc: IBKRService = Depends(get_ibkr_service)):
     """
     Provides a consolidated view of account details, including owner info,
     account metadata, and trading permissions.
     """
-    return await svc.get_account_details()
+    return await svc.get_account_details(accountId)
 
-
+@router.get("/accounts", response_model=List[BriefAccountInfoDTO])
+async def get_available_accounts(svc: IBKRService = Depends(get_ibkr_service)):
+    """
+    Fetches a list of all accounts available to the user.
+    This is used for the initial account selection screen.
+    """
+    return await svc.get_available_accounts()
