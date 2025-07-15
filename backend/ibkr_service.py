@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 from typing import Awaitable, Callable, Optional, List, Dict, Any
 import websockets
 from utils import safe_float_conversion
-from models import AccountDetailsDTO, AccountInfoDTO, AccountSummaryData, BriefAccountInfoDTO, FrontendMarketDataUpdate, LedgerDTO, LedgerEntryDTO, OwnerInfoDTO, PermissionsDTO, PnlRow, PnlUpdate
+from models import AccountDetailsDTO, AccountInfoDTO, AccountSummaryData, BriefAccountInfoDTO, FrontendMarketDataUpdate, LedgerDTO, LedgerEntry, LedgerUpdate, OwnerInfoDTO, PermissionsDTO, PnlRow, PnlUpdate
 from cache import account_specific_key_builder, cached, history_cache_key_builder
 from rate_control import paced
 
@@ -441,7 +441,7 @@ class IBKRService:
             if "cashbalance" not in data and "settledcash" not in data:
                 continue
                 
-            ledgers.append(LedgerEntryDTO(
+            ledgers.append(LedgerEntry(
                 currency=data.get("currency", currency),
                 cashBalance=data.get("cashbalance", 0.0),
                 settledCash=data.get("settledcash", 0.0),
@@ -498,6 +498,46 @@ class IBKRService:
         self._current_ws_account = account_id
         # The _websocket_loop now needs to receive the account_id
         self._ws_task = asyncio.create_task(self._websocket_loop(account_id))
+        
+    async def _dispatch_ledger(self, msg: dict) -> None:
+        """
+        Convert an 'sld' frame into a Frontend Ledger payload by parsing the 'result' list.
+        """
+        # 1. Get data from the 'result' key, not 'args'
+        result_list = msg.get("result")
+        if not isinstance(result_list, list):
+            return
+
+        # 2. Filter out partial updates and find the base currency
+        # A full update will have the 'cashbalance' field.
+        full_ledger_items = [item for item in result_list if 'cashbalance' in item]
+        if not full_ledger_items:
+            # This was a partial update with only timestamps, so we ignore it.
+            return
+
+        base_currency = "USD" # Default base currency
+        base_entry = next((item for item in full_ledger_items if item.get("secondKey") == "BASE"), None)
+        if base_entry:
+            # If there's a BASE summary, we can determine the actual base currency
+            # For simplicity, we'll assume USD if not found, but you could make this more robust.
+            pass # Sticking with USD for now.
+
+        # 3. Parse the valid ledger items using our Pydantic model
+        try:
+            parsed_ledgers = [LedgerEntry(**item) for item in full_ledger_items]
+            
+            # 4. Construct the final DTO that the frontend expects
+            ledger_dto = LedgerDTO(
+                baseCurrency=base_currency,
+                ledgers=parsed_ledgers
+            )
+            
+            # 5. Broadcast the correctly formatted update
+            await self._broadcast(
+                LedgerUpdate(data=ledger_dto).model_dump_json(by_alias=True) # Use by_alias to serialize correctly
+            )
+        except Exception as e:
+            log.error(f"Failed to parse or dispatch ledger data: {e} - Data was: {full_ledger_items}")
         
     async def _dispatch_pnl(self, msg: dict) -> None:
         """
@@ -694,6 +734,8 @@ class IBKRService:
                                     await self._dispatch_tick(msg, conid_to_pos)
                                 elif topic == "spl":               
                                     await self._dispatch_pnl(msg)
+                                elif topic.startswith("sld"):
+                                    await self._dispatch_ledger(msg)
                                 elif topic in ("system", "sts", "act", "tic", "hb"):
                                     continue
                                 elif topic == "error":

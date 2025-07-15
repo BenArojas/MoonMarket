@@ -98,9 +98,9 @@ class AllocationDTO(BaseModel):
 
 
 # ---------- LedgerDTO --------------------------------------------------------
-class LedgerEntryDTO(BaseModel):
-    currency: str
-    cashBalance: float
+class LedgerEntry(BaseModel):
+    currency: str = Field(alias="secondKey")
+    cashBalance: float = Field(alias="cashbalance") # Maps incoming 'cashbalance' to 'cashBalance'
     settledCash: float
     unrealizedPnl: float
     dividends: float
@@ -108,8 +108,8 @@ class LedgerEntryDTO(BaseModel):
 
 class LedgerDTO(BaseModel):
     baseCurrency: str
-    ledgers: List[LedgerEntryDTO]
-    
+    ledgers: List[LedgerEntry]
+
 class LedgerUpdate(BaseModel):
     type: str = "ledger"
     data: LedgerDTO

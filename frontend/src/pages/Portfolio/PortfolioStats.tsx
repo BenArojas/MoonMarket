@@ -11,7 +11,7 @@ import {
     useTheme,
 } from "@mui/material";
 import { Brain } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 const mockPortfolioData = [
   { ticker: "AAPL", value: 15000 },
@@ -32,6 +32,36 @@ function PortfolioStats({
 
   const [isAiDialogOpen, setIsAiDialogOpen] = useState(false);
   const areAiFeaturesEnabled = useStockStore((s) => s.areAiFeaturesEnabled);
+
+  const stocks = useStockStore((s) => s.stocks);
+  const balances = useStockStore((s) => s.balances);
+  const netLiq = useStockStore((s) => s.coreTotals.netLiq);
+  const allocation = useStockStore((s) => s.allocation);
+
+
+  const portfolioDataForApi = useMemo(() => {
+    // Map the stocks object to the format the API endpoint needs
+    const holdings = Object.values(stocks).map(stock => ({
+      ticker: stock.symbol,
+      value: stock.value,
+    }));
+  
+    // Find the 'BASE' summary ledger to get the total cash value
+    const baseLedger = balances?.ledgers.find(
+      (ledger) => ledger.secondKey === "BASE"
+    );
+  
+    // If we found the BASE ledger and it has a positive cash balance, add it
+    if (baseLedger && baseLedger.cashbalance > 0) {
+      holdings.push({
+        ticker: "CASH",
+        value: baseLedger.cashbalance,
+      });
+    }
+  
+    return holdings;
+  }, [stocks, balances]);
+
   
   return (
     <Box
@@ -86,7 +116,7 @@ function PortfolioStats({
         <AiInsightsDialog
           open={isAiDialogOpen}
           onClose={() => setIsAiDialogOpen(false)}
-          portfolioData={mockPortfolioData} // <-- Pass real portfolio data here
+          portfolioData={portfolioDataForApi} 
         />
       )}
       </Box>

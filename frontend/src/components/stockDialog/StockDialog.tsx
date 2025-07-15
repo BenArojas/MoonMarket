@@ -8,6 +8,7 @@ import dayjs from "dayjs";
 import styles from "./stockDialog.module.css";
 import { useTheme } from "@mui/material";
 import { TransitionProps } from "@mui/material/transitions";
+import { leaderboardsStock } from "@/utils/dataProcessing";
 
 const Transition = React.forwardRef(function Transition(
   props: TransitionProps & { children: React.ReactElement<any, any> },
@@ -40,11 +41,10 @@ function InfoBox({ text, subtitle }: InfoBoxProps) {
 interface AlertDialogSlideProps{
   dialogOpen: boolean
   setDialogOpen: (isOpen: boolean) => void
-  stock: Stock
+  stock: leaderboardsStock
 }
 
 export default function AlertDialogSlide({ dialogOpen, setDialogOpen, stock }: AlertDialogSlideProps) {
-  console.log({stock})
   const theme = useTheme();
   const infoBoxText = [
     {

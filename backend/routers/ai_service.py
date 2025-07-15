@@ -1,29 +1,32 @@
 from datetime import date
+import logging
 import httpx
 from fastapi import APIRouter, HTTPException, Depends, Body
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from typing import List, Dict, Any
 
 # Assuming your config file is at the root of your backend source
-from .. import config
+from config import APIFY_API_KEY, PERPLEXITY_ANALYSIS_MODEL, PERPLEXITY_API_KEY, PERPLEXITY_REPORT_MODEL
 
 # Initialize router and sentiment analyzer
 router = APIRouter(prefix="/ai", tags=["AI Services"])
 analyzer = SentimentIntensityAnalyzer()
+log = logging.getLogger(__name__)
+
 
 # --- API KEY DEPENDENCIES ---
 
 def require_apify_key():
     """Dependency to ensure Apify API key is set."""
-    if not config.APIFY_API_KEY:
+    if not APIFY_API_KEY:
         raise HTTPException(status_code=412, detail="Apify API key is not configured on the server.")
-    return config.APIFY_API_KEY
+    return APIFY_API_KEY
 
 def require_perplexity_key():
     """Dependency to ensure Perplexity API key is set."""
-    if not config.PERPLEXITY_API_KEY:
+    if not PERPLEXITY_API_KEY:
         raise HTTPException(status_code=412, detail="Perplexity API key is not configured on the server.")
-    return config.PERPLEXITY_API_KEY
+    return PERPLEXITY_API_KEY
 
 
 # --- TWITTER SENTIMENT ENDPOINT ---
@@ -37,7 +40,12 @@ async def get_stock_sentiment(ticker: str):
     search_query = f"${ticker} -is:retweet"
     apify_api_url = f"https://api.apify.com/v2/acts/kaitoeasyapi~twitter-x-data-tweet-scraper-pay-per-result-cheapest/run-sync-get-dataset-items?token={config.APIFY_API_KEY}"
 
-    payload = {"twitterContent": search_query, "maxItems": 100, "lang": "en"}
+    payload = {
+        "twitterContent": search_query,
+        "maxItems": 100,
+        "lang": "en",
+        "filter:has_engagement": True, 
+    }
 
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
@@ -96,9 +104,7 @@ async def query_perplexity(prompt: str, model: str, api_key: str):
             response = await client.post(perplexity_api_url, json=payload, headers=headers)
             response.raise_for_status()
         
-        data = response.json()
-        # The answer is located in the 'content' of the first message in the 'choices' array
-        return data["choices"][0]["message"]["content"]
+        return response.json() 
     except httpx.HTTPStatusError as e:
         print(f"Perplexity API Error: {e.response.text}")
         raise HTTPException(status_code=e.response.status_code, detail="An error occurred with the Perplexity API.")
@@ -109,9 +115,8 @@ async def query_perplexity(prompt: str, model: str, api_key: str):
 @router.post("/portfolio/analysis", dependencies=[Depends(require_perplexity_key)])
 async def analyze_portfolio(portfolio_data: List[Dict[str, Any]] = Body(...)):
     """
-    Analyzes a user's portfolio using the model specified in the .env file.
+    Analyzes a user's portfolio using an improved prompt and response cleaning.
     """
-    # ... (code to build the prompt remains the same)
     portfolio_summary = ""
     total_value = sum(item.get('value', 0) for item in portfolio_data)
     for item in portfolio_data:
@@ -119,38 +124,85 @@ async def analyze_portfolio(portfolio_data: List[Dict[str, Any]] = Body(...)):
         portfolio_summary += f"- **{item.get('ticker', 'N/A')}**: ${item.get('value', 0):,.0f} ({percentage:.1f}%)\n"
 
     prompt = f"""
-    Analyze this investment portfolio:
+    You are a professional and concise financial analyst. Analyze the following investment portfolio.
+
+    **Portfolio Holdings:**
     {portfolio_summary}
     Total Value: ${total_value:,.0f}
 
-    Provide a brief analysis covering:
-    1.  **Diversification & Concentration**: Assess the portfolio's spread across assets. Highlight any significant concentration risks.
-    2.  **Potential Strengths & Weaknesses**: Identify the strongest aspects and potential vulnerabilities.
-    3.  **Actionable Considerations**: Suggest areas for the user to research further (e.g., "Consider exploring technology sector ETFs to balance the heavy industrial exposure.").
-
-    **CRITICAL**: End with the disclaimer: "This AI analysis is for informational purposes only and is not financial advice."
+    **Your Task:**
+    1.  **Identify Tickers**: For each ticker, perform a quick web search to identify the company and its primary industry. For new or obscure tickers like KRMN (Karman Holdings, a new stock), this is especially important.
+    2.  **Provide Analysis**: Write a brief, non-repetitive analysis covering the following points in order. Use clear headings for each section.
+        * **Diversification & Concentration**: Assess the portfolio's spread across assets and sectors. Highlight significant concentration risks.
+        * **Potential Strengths & Weaknesses**: Identify the strongest aspects and potential vulnerabilities.
+        * **Actionable Considerations**: Suggest areas for the user to research further. Frame these as considerations, not direct advice.
+    
+    **CRITICAL Formatting Rules:**
+    - Be direct and concise. Avoid redundant sentences.
+    - **Do NOT** include your thought process or any text within `<think>` tags in your final output.
+    - Start the analysis directly.
+    - End with the mandatory disclaimer: "This AI analysis is for informational purposes only and is not financial advice."
     """
-    # Use the configurable model from config.py for analysis
-    analysis = await query_perplexity(prompt, config.PERPLEXITY_ANALYSIS_MODEL, config.PERPLEXITY_API_KEY)
-    return {"analysis": analysis}
+
+    response_data = await query_perplexity(prompt, PERPLEXITY_ANALYSIS_MODEL, PERPLEXITY_API_KEY)    
+    content = response_data["choices"][0]["message"]["content"]
+    sources = response_data.get("search_results", [])
+    
+    if "</think>" in content:
+        content = content.split("</think>", 1)[-1].strip()
+        
+    final_content = _format_and_append_sources(content, sources)
+        
+    return {"analysis": final_content}
+
 
 
 @router.get("/market-report", dependencies=[Depends(require_perplexity_key)])
 async def get_market_report():
-    """
-    Generates a market report using the model specified in the .env file.
-    """
-    # ... (code to build the prompt remains the same)
     prompt = f"""
-    Generate a brief, current market report for an investor. Today's date is {date.today().strftime('%B %d, %Y')}.
+    Generate a brief, current market report for an investor looking for unique opportunities. Today's date is {date.today().strftime('%B %d, %Y')}.
 
-    1.  **Economic Snapshot**: A short paragraph on the current economic climate (e.g., inflation, interest rates, market sentiment).
-    2.  **Tickers in Focus**: Identify 3 interesting tickers. For each, provide:
+    1.  **Economic Snapshot**: A short paragraph on the current economic climate.
+    2.  **Under-the-Radar Tickers**: Identify 3-4 interesting **small-cap or mid-cap** tickers that are not part of the 'Magnificent Seven' (NVDA, AAPL, MSFT, GOOG, AMZN, META, TSLA). For each, provide:
         * **Company (Ticker)**
-        * **Why it's interesting**: 1-2 sentences on recent news, tech, or market position.
+        * **Why it's a unique opportunity**: 1-2 sentences explaining its innovative technology, unique market position, or recent catalyst that makes it noteworthy. Focus on companies with strong recent performance or those poised to disrupt an industry.
 
     **CRITICAL**: End with the disclaimer: "This AI report is for informational purposes only and is not financial advice."
     """
-    # Use the configurable model from config.py for the report
-    report = await query_perplexity(prompt, config.PERPLEXITY_REPORT_MODEL, config.PERPLEXITY_API_KEY)
-    return {"report": report}
+    
+    response_data = await query_perplexity(prompt, PERPLEXITY_REPORT_MODEL, PERPLEXITY_API_KEY)
+    
+    content = response_data["choices"][0]["message"]["content"]
+    sources = response_data.get("search_results", [])
+    
+    final_content = _format_and_append_sources(content, sources)
+            
+    return {"report": final_content}
+
+@router.get("/status")
+async def check_ai_status(
+    # This endpoint is protected by BOTH key dependencies.
+    # If either key is missing, the corresponding dependency will raise a 412 error.
+    apify_key: str = Depends(require_apify_key),
+    perplexity_key: str = Depends(require_perplexity_key)
+):
+    """
+    A lightweight endpoint to confirm that all necessary AI API keys are configured on the server.
+    Does not make any external API calls.
+    """
+    return {"enabled": True}
+
+def _format_and_append_sources(content: str, sources: list) -> str:
+    """Appends a formatted list of sources to the content if any exist."""
+    # This helper function is already correct and needs no changes.
+    if not sources:
+        return content
+
+    source_links = ["\n\n---", "\n**Sources:**"]
+    for i, source in enumerate(sources):
+        title = source.get('title', 'Source')
+        url = source.get('url')
+        if url:
+            source_links.append(f"{i+1}. [{title}]({url})")
+            
+    return content + "\n" + "\n".join(source_links)

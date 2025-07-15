@@ -20,3 +20,7 @@ export const disconnectWebSocket = async (): Promise<void> => {
   // Assuming you have a configured axios instance named 'api'
   await api.post("/ws/disconnect");
 };
+
+export const logout = async () => {
+  return await api.post("/auth/logout")
+}

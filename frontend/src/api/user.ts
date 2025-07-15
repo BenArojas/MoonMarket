@@ -82,7 +82,10 @@ export async function fetchBalances(
  */
 export const checkAiFeatures = async (): Promise<{ enabled: boolean }> => {
   try {
-    await api.get("/api/ai/market-report");
+    // --- UPDATE THIS LINE ---
+    // Point to the new, lightweight status endpoint instead of the market report.
+    await api.get("/ai/status");
+    
     // If the request succeeds (doesn't throw), features are enabled
     return { enabled: true };
   } catch (error: any) {
@@ -102,7 +105,7 @@ export const checkAiFeatures = async (): Promise<{ enabled: boolean }> => {
  * @param portfolioData - Array of objects like [{ ticker: "AAPL", value: 5000 }, ...]
  */
 export const fetchPortfolioAnalysis = async (portfolioData: any[]) => {
-  const { data } = await api.post("/api/ai/portfolio/analysis", portfolioData);
+  const { data } = await api.post("/ai/portfolio/analysis", portfolioData);
   return data; // { analysis: "..." }
 };
 
@@ -110,7 +113,7 @@ export const fetchPortfolioAnalysis = async (portfolioData: any[]) => {
  * Fetches the general AI-powered market report.
  */
 export const fetchMarketReport = async () => {
-  const { data } = await api.get("/api/ai/market-report");
+  const { data } = await api.get("/ai/market-report");
   return data; // { report: "..." }
 };
 
@@ -118,6 +121,6 @@ export const fetchMarketReport = async () => {
  * Fetches the Twitter sentiment for a specific stock ticker.
  */
 export const fetchStockSentiment = async (ticker: string) => {
-  const { data } = await api.get(`/api/ai/stock/${ticker}/sentiment`);
+  const { data } = await api.get(`/ai/stock/${ticker}/sentiment`);
   return data; // { sentiment: "positive", score: 0.8, ... }
 };

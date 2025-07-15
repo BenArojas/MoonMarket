@@ -68,8 +68,8 @@ export const ProfileTabs = () => {
     queryKey: ["balances"],
     queryFn: () => fetchBalances(selectedAccountId),
     enabled: !!selectedAccountId,
-    refetchOnWindowFocus: false, // Optional: prevent refetching on window focus
-    staleTime: 5 * 60 * 1000, // Data is considered fresh for 5 minutes
+    refetchOnWindowFocus: false, 
+    staleTime: 5 * 60 * 1000, 
   });
 
 

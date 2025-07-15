@@ -20,8 +20,8 @@ export type AllocationView = "assetClass" | "sector" | "group";
 /* -------------------------------- LedgerDTO ----------------------------- */
 
 export interface LedgerEntry {
-  currency: string;
-  cashBalance: number;
+  secondKey: string;      
+  cashbalance: number;    
   settledCash: number;
   unrealizedPnl: number;
   dividends: number;
@@ -288,7 +288,6 @@ function connectWebSocket(get: () => StockState) {
         break;
 
       case "allocation":
-        console.log(msg)
         get().setAllocation(msg.data);
         break;
 
