@@ -5,7 +5,7 @@ import { faCrown } from "@fortawesome/free-solid-svg-icons";
 import Avatar from "@mui/material/Avatar";
 import ShowChartSharpIcon from "@mui/icons-material/ShowChartSharp";
 import FolderIcon from "@mui/icons-material/Folder";
-import AlertDialogSlide from "@/components/stockDialog/StockDialog";
+import AlertDialogSlide from "@/components/leaderboards/StockDialog";
 import { useTheme } from "@mui/material";
 import { leaderboardsStock } from "@/utils/dataProcessing";
 

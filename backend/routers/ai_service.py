@@ -1,11 +1,10 @@
-from datetime import date
+from datetime import date, timedelta
 import logging
 import httpx
 from fastapi import APIRouter, HTTPException, Depends, Body
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from typing import List, Dict, Any
-
-# Assuming your config file is at the root of your backend source
+from models import SentimentResponse
 from config import APIFY_API_KEY, PERPLEXITY_ANALYSIS_MODEL, PERPLEXITY_API_KEY, PERPLEXITY_REPORT_MODEL
 
 # Initialize router and sentiment analyzer
@@ -32,19 +31,21 @@ def require_perplexity_key():
 # --- TWITTER SENTIMENT ENDPOINT ---
 
 @router.get("/stock/{ticker}/sentiment", dependencies=[Depends(require_apify_key)])
-async def get_stock_sentiment(ticker: str):
+async def get_stock_sentiment(ticker: str) -> SentimentResponse:
     """
-    Scrapes recent tweets for a stock ticker and returns an aggregated sentiment score.
-    Searches for cashtags (e.g., $TSLA) and filters out retweets.
+    Scrapes recent tweets for a stock ticker, calculates sentiment, and
+    returns the top positive and negative tweets.
     """
-    search_query = f"${ticker} -is:retweet"
-    apify_api_url = f"https://api.apify.com/v2/acts/kaitoeasyapi~twitter-x-data-tweet-scraper-pay-per-result-cheapest/run-sync-get-dataset-items?token={config.APIFY_API_KEY}"
+    last_week = (date.today() - timedelta(days=7)).strftime("%Y-%m-%d")
+    search_query = f"${ticker} -is:retweet since:{last_week}"
+    # search_query = f"(${ticker} AND (stock OR shares OR investing OR holding)) -is:retweet since:{last_week}"
+    apify_api_url = f"https://api.apify.com/v2/acts/kaitoeasyapi~twitter-x-data-tweet-scraper-pay-per-result-cheapest/run-sync-get-dataset-items?token={APIFY_API_KEY}"
 
     payload = {
         "twitterContent": search_query,
-        "maxItems": 100,
+        "maxItems": 200, # Get a larger sample to find good ones
         "lang": "en",
-        "filter:has_engagement": True, 
+        "filter:has_engagement": True,
     }
 
     try:
@@ -53,12 +54,26 @@ async def get_stock_sentiment(ticker: str):
             response.raise_for_status()
         tweets = response.json()
 
-        if not tweets or not any('text' in t for t in tweets):
-            return {"sentiment": "neutral", "score": 0, "tweets_analyzed": 0}
-
-        # Perform and aggregate sentiment analysis
-        compound_scores = [analyzer.polarity_scores(tweet['text'])['compound'] for tweet in tweets if 'text' in tweet]
-        avg_score = sum(compound_scores) / len(compound_scores)
+        if not tweets or len(tweets) < 10:
+            return SentimentResponse(sentiment="neutral", score=0, tweets_analyzed=0, top_positive_tweet=None, top_negative_tweet=None)
+        
+        analyzed_tweets = []
+        for tweet in tweets:
+            if 'text' in tweet and 'url' in tweet:
+                score = analyzer.polarity_scores(tweet['text'])['compound']
+                analyzed_tweets.append({
+                    "url": tweet['url'],
+                    "text": tweet['text'],
+                    "score": score,
+                    "likes": tweet.get('likeCount', 0),
+                    "retweets": tweet.get('retweetCount', 0)
+                })
+                
+        avg_score = sum(t['score'] for t in analyzed_tweets) / len(analyzed_tweets)
+        # Find the "most influential" positive and negative tweets
+        # (by score * (likes + retweets))
+        top_positive = max([t for t in analyzed_tweets if t['score'] > 0.2], key=lambda x: x['score'] * (x['likes'] + x['retweets'] + 1), default=None)
+        top_negative = min([t for t in analyzed_tweets if t['score'] < -0.2], key=lambda x: x['score'] * (x['likes'] + x['retweets'] + 1), default=None)
 
         if avg_score >= 0.05:
             sentiment = "positive"
@@ -66,8 +81,24 @@ async def get_stock_sentiment(ticker: str):
             sentiment = "negative"
         else:
             sentiment = "neutral"
+        
+        def get_score_label(score: float) -> str:
+            if score > 0.6: return "Very Positive"
+            if score > 0.2: return "Positive"
+            if score >= 0.05: return "Slightly Positive"
+            if score < -0.6: return "Very Negative"
+            if score < -0.2: return "Negative"
+            if score <= -0.05: return "Slightly Negative"
+            return "Neutral"
 
-        return {"sentiment": sentiment, "score": round(avg_score, 3), "tweets_analyzed": len(compound_scores)}
+        return SentimentResponse(
+            sentiment=sentiment,
+            score=round(avg_score, 3),
+            score_label=get_score_label(avg_score),
+            tweets_analyzed=len(analyzed_tweets),
+            top_positive_tweet=top_positive,
+            top_negative_tweet=top_negative
+        )
 
     except httpx.HTTPStatusError as e:
         # Log the error for debugging

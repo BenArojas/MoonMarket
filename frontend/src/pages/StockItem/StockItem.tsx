@@ -1,6 +1,6 @@
-import { getStockData, StockData } from "@/api/stock";
-import { ChartDataBars, fetchHistoricalStockDataBars } from "@/api/stock";
+import { ChartDataBars, fetchHistoricalStockDataBars, getStockData, StockData } from "@/api/stock";
 import CandleStickChart from "@/components/charts/CandleSticksChart";
+import ClickToFetchSentimentBadge from "@/components/ClickToFetchSentimentBadge";
 import SearchBar from "@/components/SearchBar.tsx";
 import StockInfoCard from "@/pages/StockItem/StockInfoCard";
 import {
@@ -13,19 +13,11 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense } from "react";
 import { Await, LoaderFunctionArgs, useLoaderData, useSearchParams } from "react-router-dom";
 
 const defaultTime = "7D";
 
-type TransformedChartData = {
-  date: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-};
 
 interface LoaderData {
   historicalData: Promise<ChartDataBars[]>;
@@ -218,7 +210,10 @@ function StockHeader({
           alignItems: isMobile ? "flex-start" : "center",
         }}
       >
-        <Typography variant="h4">{stock.ticker}</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Typography variant="h4">{stock.ticker}</Typography>
+          <ClickToFetchSentimentBadge ticker={stock.ticker} />
+        </Box>
         <Box
           sx={{
             display: "flex",

@@ -117,10 +117,28 @@ export const fetchMarketReport = async () => {
   return data; // { report: "..." }
 };
 
+export interface TweetInfo {
+  url: string;
+  text: string;
+  score: number;
+  likes: number;
+  retweets: number;
+}
+
+// This matches the SentimentResponse Pydantic model
+export interface SentimentResponse {
+  sentiment: "positive" | "negative" | "neutral"; // Be specific about the possible string values
+  score: number;
+  score_label: string;
+  tweets_analyzed: number;
+  top_positive_tweet: TweetInfo | null;
+  top_negative_tweet: TweetInfo | null;
+}
+
 /**
  * Fetches the Twitter sentiment for a specific stock ticker.
  */
-export const fetchStockSentiment = async (ticker: string) => {
+export const fetchStockSentiment = async (ticker: string): Promise<SentimentResponse> => {
   const { data } = await api.get(`/ai/stock/${ticker}/sentiment`);
-  return data; // { sentiment: "positive", score: 0.8, ... }
+  return data; 
 };

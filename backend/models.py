@@ -185,3 +185,18 @@ class BriefAccountInfoDTO(BaseModel):
     accountId: str
     accountTitle: str
     displayName: str
+    
+class TweetInfo(BaseModel):
+    url: str
+    text: str
+    score: float
+    likes: int
+    retweets: int
+
+class SentimentResponse(BaseModel):
+    sentiment: str
+    score: float
+    score_label: str
+    tweets_analyzed: int
+    top_positive_tweet: TweetInfo | None
+    top_negative_tweet: TweetInfo | None
