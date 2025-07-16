@@ -1,281 +1,125 @@
-import { ChartDataBars, fetchHistoricalStockDataBars, getStockData, StockData } from "@/api/stock";
+import { startTransition, useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { useStockStore } from "@/stores/stockStore";
+import api from "@/api/axios"; // Your axios instance
+
+// We'll create these components next, for now imagine they exist
+
+import { Box, CircularProgress } from "@mui/material";
+import LiveQuoteDisplay from "./LiveQuoteDisplay";
 import CandleStickChart from "@/components/charts/CandleSticksChart";
-import ClickToFetchSentimentBadge from "@/components/ClickToFetchSentimentBadge";
-import SearchBar from "@/components/SearchBar.tsx";
-import StockInfoCard from "@/pages/StockItem/StockInfoCard";
-import {
-  Box,
-  CircularProgress,
-  MenuItem,
-  Select,
-  SelectChangeEvent,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from "@mui/material";
-import { Suspense } from "react";
-import { Await, LoaderFunctionArgs, useLoaderData, useSearchParams } from "react-router-dom";
+import OrderPanel from "./OrderPanel";
+import DepthOfBookTable from "./DepthOfBookTable";
 
-const defaultTime = "7D";
-
-
-interface LoaderData {
-  historicalData: Promise<ChartDataBars[]>;
-  stock: Promise<StockData | null>;
+// This will hold the static data like name, conid, and historical chart data
+interface StaticStockInfo {
+  conid: number;
+  ticker: string;
+  companyName: string;
+  chartData: any[]; // The data for your candlestick chart
 }
 
-export async function loader({ params, request }: LoaderFunctionArgs): Promise<LoaderData> {
-  // containing your URL parameters.
-  const { stockTicker } = params;
+export default function StockItem() {
+  const { stockTicker } = useParams<{ stockTicker: string }>();
+  const [staticInfo, setStaticInfo] = useState<StaticStockInfo | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  if (!stockTicker) {
-    throw new Response("Not Found", { status: 404, statusText: "Stock ticker is required." });
+  // 1. Get actions and live data from our Zustand store
+  const activeStock = useStockStore((state) => state.activeStock);
+  const subscribeToStock = useStockStore((state) => state.subscribeToStock);
+  const unsubscribeFromStock = useStockStore(
+    (state) => state.unsubscribeFromStock
+  );
+
+  useEffect(() => {
+    let conid: number | null = null;
+
+    const setupPage = async () => {
+      if (!stockTicker) return;
+
+      setIsLoading(true);
+      try {
+        // A. Fetch initial, static data once on page load (conid, historical data)
+        const quoteResponse = await api.get(`/market/quote/${stockTicker}`);
+        const historyResponse = await api.get("/market/history", { params: { ticker: stockTicker, period: '1M' } });
+
+        conid = quoteResponse.data.conid;
+
+        startTransition(() => {
+          setStaticInfo({
+              conid: conid,
+              ticker: stockTicker,
+              companyName: quoteResponse.data.company_name || 'N/A',
+              chartData: historyResponse.data,
+          });
+
+          if (conid) {
+            subscribeToStock(conid, stockTicker);
+          }
+
+          setIsLoading(false); // It's good practice to include this inside as well
+        });
+
+      } catch (error) {
+        console.error("Failed to setup stock page:", error);
+        // Also wrap the error-case state update
+        startTransition(() => {
+          setIsLoading(false);
+      });
+      }
+    };
+
+    setupPage();
+
+    // C. The cleanup function: This is crucial!
+    // It runs when you navigate away from this page.
+    return () => {
+      if (conid) {
+        unsubscribeFromStock(conid);
+      }
+    };
+  }, [stockTicker]); 
+
+  if (isLoading) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "80vh",
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
   }
 
-  // The rest of your code works perfectly.
-  const { searchParams } = new URL(request.url);
-  const searchTerm = searchParams.get("time") || defaultTime;
+  if (!staticInfo) {
+    return <Box>Stock not found.</Box>;
+  }
 
-  const stock = getStockData(stockTicker);
-  const intradayData = fetchHistoricalStockDataBars(stockTicker, searchTerm);
-
-  return {
-    historicalData: intradayData,
-    stock: stock,
-  };
-}
-
-function StockItem() {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-
-  const { stock: stockPromise, historicalData: historicalDataPromise } =
-    useLoaderData() as LoaderData;
-  const [searchParams, setSearchParams] = useSearchParams();
-  
-
-  const currentRange = searchParams.get("time") || defaultTime;
-
-
-  const handleRangeChange = (newRange: string) => {
-    const newSearchParams = new URLSearchParams(searchParams);
-    newSearchParams.set("time", newRange);
-    setSearchParams(newSearchParams); 
-  };
-
+  // 3. The page now renders the live data from `activeStock`
   return (
-    <Box
-      className="layoutContainer"
-      sx={{
-        display: "grid",
-        gridTemplateRows: "auto 1fr auto",
-        gap: isMobile ? 2 : 5,
-        margin: "auto",
-        width: isMobile ? "95%" : "80%",
-      }}
-    >
-      <Suspense fallback={<LoadingFallback />}>
-        <Await resolve={stockPromise}>
-          {(resolvedStock: StockData | null) =>
-            resolvedStock === null ? (
-              <NoStockFound />
-            ) : (
-              <>
-                <StockHeader
-                  stock={resolvedStock}
-                  onRangeChange={handleRangeChange}
-                  currentRange={currentRange}
-                  isMobile={isMobile}
-                />
-                <Suspense fallback={<ChartLoadingFallback />}>
-                  {/* 3. Await the historical data promise */}
-                  <Await resolve={historicalDataPromise}>
-                    {/* 4. Process the data right here when it resolves */}
-                    {(resolvedHistoricalData: ChartDataBars[]) => {
-                      // Perform the transformation logic inside the render prop
-                      const transformedForChart = resolvedHistoricalData.map(
-                        (point) => ({
-                          date: new Date(point.time * 1000).toISOString(),
-                          open: point.open,
-                          high: point.high,
-                          low: point.low,
-                          close: point.close,
-                          volume: point.volume,
-                        })
-                      );
+    <Box className="layoutContainer">
+      <h2>
+        {staticInfo.companyName} ({staticInfo.ticker})
+      </h2>
 
-                      return (
-                        <CandleStickChart
-                          data={transformedForChart}
-                          isMobile={isMobile}
-                        />
-                      );
-                    }}
-                  </Await>
-                </Suspense>
-              </>
-            )
-          }
-        </Await>
-      </Suspense>
-    </Box>
-  );
-}
-
-function LoadingFallback() {
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        height: "70vh",
-      }}
-    >
-      <CircularProgress />
-    </Box>
-  );
-}
-
-function ChartLoadingFallback() {
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        height: "400px",
-      }}
-    >
-      <CircularProgress />
-    </Box>
-  );
-}
-
-function NoStockFound() {
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 5,
-        alignItems: "center",
-      }}
-    >
-      <Typography>
-        Didn't find the ticker you submitted. Please try another ticker.
-      </Typography>
-    </Box>
-  );
-}
-
-interface StockHeaderProps {
-  stock: StockData; // Use the StockData interface from api/stock.ts
-  onRangeChange: (newRange: string) => void;
-  currentRange: string;
-  isMobile: boolean;
-}
-
-function StockHeader({
-  stock,
-  onRangeChange,
-  currentRange,
-  isMobile,
-}: StockHeaderProps) {
-  // Time ranges should align with backend's PERIOD_BAR_MAPPING keys
-  const timeRanges = [
-    { value: "1D", label: "1 Day" },
-    { value: "7D", label: "1 Week" },
-    { value: "1M", label: "1 Month" },
-    { value: "3M", label: "3 Months" },
-    { value: "6M", label: "6 Months" },
-    { value: "1Y", label: "1 Year" },
-  ];
-
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: isMobile ? "column" : "row",
-        justifyContent: isMobile ? "flex-start" : "space-between",
-        alignItems: isMobile ? "flex-start" : "center",
-        gap: isMobile ? 2 : 5,
-      }}
-    >
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: isMobile ? "column" : "row",
-          gap: 4,
-          alignItems: isMobile ? "flex-start" : "center",
-        }}
+      <div
+        className="main-content-grid"
+        style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "20px" }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Typography variant="h4">{stock.ticker}</Typography>
-          <ClickToFetchSentimentBadge ticker={stock.ticker} />
-        </Box>
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "row",
-            gap: 4,
-            flexWrap: "wrap",
-          }}
-        >
-          <StockInfoCard label="Last Price" value={stock.last_price} />
-          <StockInfoCard label="Previous close" value={stock.previous_close} />
-          {/* Ensure changesPercentage is a number from backend */}
-          <StockInfoCard
-            label="Change (24h)"
-            value={`${stock?.change_percent?.toFixed(2)}%`}
-          />
-          {!isMobile && (
-            <>
-              <StockInfoCard label="High (24h)" value={stock.dayHigh} />
-              <StockInfoCard label="Low (24h)" value={stock.dayLow} />
-            </>
-          )}
-        </Box>
-      </Box>
+        <div className="chart-and-info">
+          <LiveQuoteDisplay quote={activeStock.quote} />
+          <CandleStickChart data={staticInfo.chartData} />
+        </div>
 
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "row",
-          gap: 2,
-          alignItems: "center",
-          flexWrap: isMobile ? "wrap" : "nowrap",
-          marginTop: isMobile ? 2 : 0, // Add some margin for mobile if elements wrap
-        }}
-      >
-        {/* Watchlist button (if you re-enable it) */}
-        <Select
-          value={currentRange}
-          onChange={(e: SelectChangeEvent<string>) =>
-            onRangeChange(e.target.value)
-          } // Typed event
-          size="small"
-          sx={{ minWidth: 120 }} // Ensure select has some minimum width
-        >
-          {timeRanges.map((range) => (
-            <MenuItem key={range.value} value={range.value}>
-              {range.label}
-            </MenuItem>
-          ))}
-        </Select>
-        <Box
-          sx={{
-            width: isMobile ? (isMobile ? "100%" : 200) : 200,
-            marginTop: isMobile ? 1 : 0,
-          }}
-        >
-          {" "}
-          {/* Adjust width for mobile */}
-          <SearchBar />
-        </Box>
-      </Box>
+        <div className="trading-panel">
+          <OrderPanel conid={staticInfo.conid} />
+          <DepthOfBookTable depth={activeStock.depth} />
+        </div>
+      </div>
     </Box>
   );
 }
-
-export default StockItem;

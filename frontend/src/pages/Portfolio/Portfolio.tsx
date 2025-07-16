@@ -7,7 +7,7 @@ import useGraphData from "@/hooks/useGraphData";
 import { StockData, useStockStore } from "@/stores/stockStore";
 import "@/styles/App.css";
 import { Box, Stack, useMediaQuery, useTheme } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 
 function Portfolio() {
@@ -20,6 +20,24 @@ function Portfolio() {
 
   const stocks = useStockStore((state) => state.stocks);
   const status = useStockStore((state) => state.connectionStatus);
+  const connectionStatus = useStockStore((state) => state.connectionStatus);
+  const subscribeToPortfolio = useStockStore(state => state.subscribeToPortfolio);
+  const unsubscribeFromPortfolio = useStockStore(state => state.unsubscribeFromPortfolio);
+
+  useEffect(() => {
+    // Only try to subscribe if the connection is actually active.
+    if (connectionStatus === 'connected') {
+      console.log("Portfolio page is visible and connected, subscribing to data...");
+      subscribeToPortfolio();
+    }
+
+    // When the component unmounts (you navigate away), unsubscribe.
+    return () => {
+      console.log("Portfolio page is hidden, unsubscribing from data...");
+      unsubscribeFromPortfolio();
+    };
+  }, [connectionStatus, subscribeToPortfolio, unsubscribeFromPortfolio]);
+
 
 
 

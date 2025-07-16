@@ -123,3 +123,17 @@ async def get_trades(
     except Exception as exc:
         log.exception("Failed to fetch recent trades: %s", exc)
         raise HTTPException(status_code=500, detail="Could not retrieve recent trades")
+    
+
+@router.get("/live-orders", summary="Get live orders")
+async def get_live_orders_route(ibkr_service: IBKRService = Depends(get_ibkr_service)):
+    return await ibkr_service.get_live_orders()
+
+@router.delete("/orders/{order_id}", summary="Cancel an order")
+async def cancel_order_route(order_id: str, accountId: str, ibkr_service: IBKRService = Depends(get_ibkr_service)):
+    # Assuming you have a way to get the current account ID
+    return await ibkr_service.cancel_order(accountId, order_id)
+
+@router.post("/orders/{order_id}", summary="Modify an order")
+async def modify_order_route(order_id: str, accountId: str, new_order_data: Dict[str, Any], ibkr_service: IBKRService = Depends(get_ibkr_service)):
+    return await ibkr_service.modify_order(accountId, order_id, new_order_data)

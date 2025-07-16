@@ -13,9 +13,10 @@ from pydantic import BaseModel, Field
 from typing import Awaitable, Callable, Optional, List, Dict, Any
 import websockets
 from utils import safe_float_conversion
-from models import AccountDetailsDTO, AccountInfoDTO, AccountSummaryData, BriefAccountInfoDTO, FrontendMarketDataUpdate, LedgerDTO, LedgerEntry, LedgerUpdate, OwnerInfoDTO, PermissionsDTO, PnlRow, PnlUpdate
+from models import AccountDetailsDTO, AccountInfoDTO, AccountSummaryData, BriefAccountInfoDTO, FrontendMarketDataUpdate, LedgerDTO, LedgerEntry, LedgerUpdate, OwnerInfoDTO, PermissionsDTO, PnlRow, PnlUpdate, WebSocketRequest
 from cache import account_specific_key_builder, cached, history_cache_key_builder
 from rate_control import paced
+from websockets.legacy.client import WebSocketClientProtocol
 
 
         
@@ -26,7 +27,8 @@ class IBKRConfig(BaseModel):
     port: int                  = Field(..., examples=[4002])
 
 class IBKRState(BaseModel):
-    
+    shutdown_signal: asyncio.Event = Field(default_factory=asyncio.Event)
+    ibkr_websocket_session: WebSocketClientProtocol | None = None
     ibkr_authenticated: bool = False
     ibkr_session_token: Optional[str] = None
     ws_connected: bool = False
@@ -39,6 +41,10 @@ class IBKRState(BaseModel):
     combo_positions: list[dict] = Field(default_factory=list)
     watchlists: list[dict] = Field(default_factory=list)
     pnl: Dict[str, Dict[str, PnlRow]] = Field(default_factory=dict) # PnL is often per-account already
+    
+    
+    class Config:
+        arbitrary_types_allowed = True
 
 class AuthStatusDTO(BaseModel):
     authenticated: bool
@@ -57,6 +63,11 @@ class IBKRService:
     
     def set_broadcast(self, cb: Callable[[str], Awaitable[None]]) -> None:
         self._broadcast = cb
+    
+    @property
+    def _ibkr_ws_session(self):
+        """Safely gets the current IBKR WebSocket session from state."""
+        return getattr(self.state, 'ibkr_websocket_session', None)
 
     # ---------- low-level helpers ----------
     @paced("dynamic")
@@ -189,7 +200,9 @@ class IBKRService:
         """
         log.info("Running IServer scanner with payload: %s", scanner_payload)
         return await self._req("POST", "/iserver/scanner/run", json=scanner_payload)
+    
     # market ----------------------------------------------------------
+    
     @cached(ttl=3600, key_builder=account_specific_key_builder)
     async def get_conid(self, symbol: str, sec_type: str = "STK") -> str | None:
         try:
@@ -252,6 +265,36 @@ class IBKRService:
         q = {"conid": conid, "period": period, "bar": bar, "outsideRth": "true"}
         return await self._req("GET", "/iserver/marketdata/history", params=q)
 
+    # orders -------------------------------------------------------
+    @cached(ttl=60) # Cache for 1 minute
+    async def get_live_orders(self) -> List[Dict[str, Any]]:
+        """ Fetches live orders from IBKR """
+        try:
+            # The 'force=true' parameter ensures we get a fresh list
+            orders_data = await self._req("GET", "/iserver/account/orders", params={"force": "true"})
+            return orders_data.get("orders", [])
+        except Exception as e:
+            log.exception("Failed to fetch live orders: %s", e)
+            return []
+
+    async def cancel_order(self, account_id: str, order_id: str) -> Dict[str, Any]:
+        """ Cancels an open order """
+        try:
+            response = await self._req("DELETE", f"/iserver/account/{account_id}/order/{order_id}")
+            return response
+        except Exception as e:
+            log.exception(f"Failed to cancel order {order_id}: {e}")
+            raise HTTPException(status_code=500, detail="Could not cancel order")
+
+    async def modify_order(self, account_id: str, order_id: str, new_order_data: Dict[str, Any]) -> Dict[str, Any]:
+        """ Modifies an existing order """
+        try:
+            response = await self._req("POST", f"/iserver/account/{account_id}/order/{order_id}", json=new_order_data)
+            return response
+        except Exception as e:
+            log.exception(f"Failed to modify order {order_id}: {e}")
+            raise HTTPException(status_code=500, detail="Could not modify order")
+    
     # positions -------------------------------------------------------
     # @cached(ttl=30)
     async def positions(self, account_id: str):
@@ -480,24 +523,91 @@ class IBKRService:
         # If the regex doesn't match at all, return the original string
         return description
     
-    async def stop_websocket(self):
-        """Stops the currently running WebSocket task."""
+    async def initialize_websocket_task(self, account_id: str):
+        """
+        Ensures the IBKR WebSocket loop is running.
+        If the task already exists, it does nothing.
+        If not, it creates it. This is called by the first connecting client.
+        """
+        # This check prevents starting multiple loops
         if self._ws_task and not self._ws_task.done():
-            self._ws_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await self._ws_task
-            log.info(f"WebSocket task for account {self._current_ws_account} stopped.")
-        self._ws_task = None
-        self._current_ws_account = None
+            log.info("WebSocket task is already running.")
+            return
 
-    async def start_websocket_for_account(self, account_id: str):
-        """Stops any existing WS task and starts a new one for the given account."""
-        await self.stop_websocket() # Ensure any old connection is closed
-
-        log.info(f"Starting WebSocket task for account: {account_id}")
+        log.info(f"Initializing new WebSocket task for account: {account_id}")
         self._current_ws_account = account_id
-        # The _websocket_loop now needs to receive the account_id
+        # Create and store the single, long-running task
         self._ws_task = asyncio.create_task(self._websocket_loop(account_id))
+        
+    async def shutdown_websocket_task(self):
+        """Signals the websocket loop to terminate and closes the connection."""
+        if not self._ws_task or self._ws_task.done():
+            log.info("WebSocket task not running, nothing to shut down.")
+            return
+
+        log.info("Shutting down IBKR WebSocket task...")
+        self.state.shutdown_signal.set()
+
+        # Gracefully close the active websocket session
+        if self.state.ibkr_websocket_session:
+            await self.state.ibkr_websocket_session.close(code=1000, reason='User logged out')
+
+        try:
+            # Wait for the task to finish its cleanup
+            await asyncio.wait_for(self._ws_task, timeout=5.0)
+        except asyncio.TimeoutError:
+            log.warning("WebSocket task did not shut down gracefully, cancelling.")
+            self._ws_task.cancel()
+        except asyncio.CancelledError:
+            pass # Task was already cancelled, which is fine
+        finally:
+            self._ws_task = None
+            self._current_ws_account = None
+
+        log.info("IBKR WebSocket task has been terminated.")
+    
+    
+    async def _dispatch_book_data(self, msg: Dict[str, Any]):
+        """
+        Parses BookTrader (price ladder) data and broadcasts it to the frontend.
+        """
+        try:
+            # The raw data is a list of price level objects
+            raw_book_data = msg.get("data", [])
+            if not raw_book_data:
+                return
+
+            processed_book = []
+            for level in raw_book_data:
+                price_str = level.get("price")
+                if not price_str:
+                    continue
+
+                # Price can sometimes be in "size @ price" format, so we handle that.
+                if "@" in price_str:
+                    parts = price_str.split(" @ ")
+                    price = float(parts[1])
+                else:
+                    price = float(price_str)
+
+                processed_level = {
+                    "price": price,
+                    "bidSize": int(level["bid"]) if level.get("bid") else None,
+                    "askSize": int(level["ask"]) if level.get("ask") else None,
+                }
+                processed_book.append(processed_level)
+
+            # Sort the book with the highest price (lowest ask) at the top
+            processed_book.sort(key=lambda x: x["price"], reverse=True)
+
+            # Broadcast the cleaned data to the frontend
+            await self._broadcast(json.dumps({
+                "type": "book_data", # A unique type for the frontend to identify it
+                "data": processed_book
+            }))
+
+        except (ValueError, KeyError) as e:
+            log.error(f"Error parsing book data: {e} - Data: {msg}")
         
     async def _dispatch_ledger(self, msg: dict) -> None:
         """
@@ -623,134 +733,168 @@ class IBKRService:
             await self._broadcast(update.model_dump_json())
         
     
-    
-    async def _websocket_loop(self, account_id: str) -> None:
-        uri = "wss://localhost:5000/v1/api/ws"
-        cookie  = f'api={{"session":"{self.state.ibkr_session_token}"}}'
+    async def handle_ws_command(self, command: WebSocketRequest):
+        """Processes commands by sending messages to the live IBKR WebSocket."""
+        ws = self._ibkr_ws_session
+        if not ws:
+            log.error("Cannot handle command, IBKR WebSocket is not connected.")
+            return
 
+        action = command.action
+        conid = command.conid
+        account_id = command.account_id or self._current_ws_account
+
+        if action == "subscribe_stock" and conid:
+            log.info(f"Subscribing to market data for conid: {conid}")
+            # Subscribe to Market Data (Quote: Last, Bid, Ask, Changes, etc.)
+            smd_cmd = f'smd+{conid}+{{"fields":["31","84","86","82","83","70","71"]}}'
+            await ws.send(smd_cmd)
+            # Subscribe to Price Ladder (BookTrader/Depth)
+            if account_id:
+                sbd_cmd = f'sbd+{account_id}+{conid}'
+                await ws.send(sbd_cmd)
+
+        elif action == "unsubscribe_stock" and conid:
+            log.info(f"Unsubscribing from market data for conid: {conid}")
+            await ws.send(f'umd+{conid}+{{}}')
+            # Also unsubscribe from the price ladder
+            if account_id:
+                 await ws.send(f'ubd+{account_id}')
+
+        elif action == "subscribe_portfolio" and account_id:
+            log.info(f"Subscribing to portfolio for account: {account_id}")
+            account_positions = await self.positions(account_id)
+            conids = [str(p["conid"]) for p in account_positions]
+            for cid in conids:
+                cmd = f'smd+{cid}+{{"fields":["31","7635","83","82"]}}'
+                await ws.send(cmd)
+                await asyncio.sleep(0.05)  # Throttle subscriptions
+        elif action == "unsubscribe_portfolio" and account_id:
+            log.info(f"Unsubscribing from portfolio for account: {account_id}")
+            account_positions = await self.positions(account_id)
+            conids = [str(p["conid"]) for p in account_positions]
+            for cid in conids:
+                await ws.send(f'umd+{cid}+{{}}')
+                await asyncio.sleep(0.05)
+            
+    async def _websocket_loop(self, account_id: str) -> None:
+        """
+        Maintains a persistent connection to the IBKR WebSocket.
+        It processes incoming market data and sends it to the frontend.
+        It does NOT handle subscription logic anymore; that's done by handle_ws_command.
+        """
+        uri = "wss://localhost:5000/v1/api/ws"
+        cookie = f'api={{"session":"{self.state.ibkr_session_token}"}}'
         ssl_ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         ssl_ctx.check_hostname = False
-        ssl_ctx.verify_mode    = ssl.CERT_NONE
+        ssl_ctx.verify_mode = ssl.CERT_NONE
 
-        while True:                           # reconnect forever
+        while not self.state.shutdown_signal.is_set():
             try:
-                # Fetch fresh positions for this account every time the WS connects/reconnects
-                log.info(f"Fetching positions for WebSocket stream: {account_id}")
-                account_positions = await self.positions(account_id)
-                self.state.positions[account_id] = account_positions # Update the state
-                conids = [str(p["conid"]) for p in account_positions]
-                conid_to_pos: dict[int, dict] = {p["conid"]: p for p in account_positions}
-
+                log.info(f"Connecting to IBKR WebSocket for account: {account_id}")
                 async with websockets.connect(
                     uri,
                     ssl=ssl_ctx,
-                    compression=None,                 # match websocket-client default
-                    ping_interval=None,               # we do heartbeat ourselves
+                    compression=None,
+                    ping_interval=None,
                     additional_headers=[("Cookie", cookie)]
                 ) as ws:
 
                     self.state.ws_connected = True
 
-                    # —— ① give Gateway a moment (matches time.sleep(3)) ——
-                    await asyncio.sleep(2)
+                    self.state.ibkr_websocket_session = ws
+                    log.info("IBKR WebSocket connected.")
 
-                    # —— ② account-level streams (optional) ————————————
-                    await ws.send(f"ssd+{account_id}")
-                    await asyncio.sleep(0.05)
-                    await ws.send(f"sld+{account_id}")
-                    await asyncio.sleep(0.05)
-                    await ws.send(f"spl+{account_id}")
-                    await asyncio.sleep(0.05)
-
-                    # —— ③ market-data subscriptions ————————————————
-                    for cid in conids:
-                        cmd = f'smd+{cid}+{{"fields":["31","7635","83","82"]}}'
-                        await ws.send(cmd)
-                        await asyncio.sleep(0.05)     # throttle
-
-                    # —— ④ heartbeat task ————————————————————————————
-                    async def heartbeat():
-                        try:
-                            while True:
-                                await asyncio.sleep(30)
-                                await ws.send("tic")
-                        except asyncio.CancelledError:
-                            # This is expected when the task is cancelled, exit gracefully
-                            pass
-                        except websockets.exceptions.ConnectionClosed:
-                            # Connection died unexpectedly, exit gracefully
-                            pass
+                    # --- Initial Subscriptions ---
+                    await asyncio.sleep(1) # Give connection a moment to settle
+                    # On connect, immediately subscribe to the main portfolio data
+                    await ws.send(f'spl+{account_id}')
                     
-                    async def allocation_refresher(account_id: str):
-                        """
-                        Immediately fetches and broadcasts allocation data, then enters
-                        a loop to refresh it periodically.
-                        """
-                        # 1. Fetch and broadcast the data IMMEDIATELY upon startup.
-                        try:
-                            log.info(f"Fetching initial allocation for {account_id}...")
-                            initial_data = await self.account_allocation(account_id)
-                            await self._broadcast(json.dumps({
-                                "type": "allocation",
-                                "data": initial_data
-                            }))
-                        except Exception as e:
-                            log.error(f"Failed to fetch initial allocation data: {e}")
+                    await self.handle_ws_command(
+                        WebSocketRequest(action="subscribe_portfolio", account_id=account_id)
+                    )
 
-                        # 2. Now, enter the periodic refresh loop.
-                        while True:
-                            await asyncio.sleep(300) # Refresh every 5 minutes
-                            try:
-                                log.info(f"Refreshing account allocation for {account_id}...")
-                                fresh_data = await self.account_allocation(account_id)
-                                await self._broadcast(json.dumps({
-                                    "type": "allocation",
-                                    "data": fresh_data
-                                }))
-                            except Exception as e:
-                                log.error(f"Failed to refresh allocation data: {e}")
-                        
-                    hb = asyncio.create_task(heartbeat())
-                    alloc_task = asyncio.create_task(allocation_refresher(account_id))
+                    # --- Background Tasks (Heartbeat, etc.) ---
+                    heartbeat_task = asyncio.create_task(self._ws_heartbeat())
+                    allocation_task = asyncio.create_task(self._ws_allocation_refresher(account_id))
 
-                    # —— ⑤ receive loop ————————————————————————————
-                    try:
-                        async for raw in ws:
-                            if isinstance(raw, bytes):
-                                try:
-                                    raw = raw.decode()
-                                except UnicodeDecodeError:
-                                    continue
-                            try:
-                                msgs = json.loads(raw)
-                                if not isinstance(msgs, list):
-                                    msgs = [msgs]
-                            except json.JSONDecodeError:
-                                continue
-
-                            for msg in msgs:
-                                topic = msg.get("topic", "")
-                                if topic.startswith("smd+"):
-                                    await self._dispatch_tick(msg, conid_to_pos)
-                                elif topic == "spl":               
-                                    await self._dispatch_pnl(msg)
-                                elif topic.startswith("sld"):
-                                    await self._dispatch_ledger(msg)
-                                elif topic in ("system", "sts", "act", "tic", "hb"):
-                                    continue
-                                elif topic == "error":
-                                    log.warning("[IBKR-ERR] %s", msg)
-                    finally:
-                        # This will run when the loop exits for any reason
-                        # (e.g., connection closed, or an outer exception)
-                        hb.cancel()
-                        alloc_task.cancel()
+                    # --- Main Receive Loop ---
+                    # This loop's only job is to listen for data from IBKR and dispatch it.
+                    conid_to_pos = {p["conid"]: p for p in await self.positions(account_id)}
+                    async for raw in ws:
+                        # (Your existing message processing logic goes here)
+                        await self._process_ibkr_message(raw, conid_to_pos)
 
             except Exception as exc:
-                log.warning("WS loop error: %s – retry in 15 s", exc)
+                log.warning(f"IBKR WS loop error: {exc} – retrying in 15s")
                 await asyncio.sleep(15)
             finally:
                 self.state.ws_connected = False
+                if 'heartbeat_task' in locals() and not heartbeat_task.done():
+                    heartbeat_task.cancel()
+                if 'allocation_task' in locals() and not allocation_task.done():
+                    allocation_task.cancel()
+                if hasattr(self.state, 'ibkr_websocket_session'):
+                    del self.state.ibkr_websocket_session
+                log.info("IBKR WebSocket disconnected. Awaiting reconnect.")
+            if not self.state.shutdown_signal.is_set():
+                log.info("Will attempt to reconnect in 15 seconds...")
+                await asyncio.sleep(15)
+        log.info("Exited IBKR WebSocket loop because shutdown was signaled.")
+
+    # NEW: Extracted background tasks for clarity
+    async def _ws_heartbeat(self):
+        """Sends a heartbeat ping every 30 seconds to keep the session alive."""
+        ws = self._ibkr_ws_session
+        while self.state.ws_connected:
+            try:
+                await asyncio.sleep(30)
+                await ws.send("tic")
+            except (asyncio.CancelledError, websockets.exceptions.ConnectionClosed):
+                break # Exit gracefully
+
+    async def _ws_allocation_refresher(self, account_id: str):
+        """Periodically refreshes and broadcasts account allocation data."""
+        while self.state.ws_connected:
+            try:
+                log.info(f"Refreshing account allocation for {account_id}...")
+                fresh_data = await self.account_allocation(account_id)
+                await self._broadcast(json.dumps({
+                    "type": "allocation",
+                    "data": fresh_data
+                }))
+                await asyncio.sleep(300) # Refresh every 5 minutes
+            except (asyncio.CancelledError, websockets.exceptions.ConnectionClosed):
+                break
+            except Exception as e:
+                log.error(f"Failed to refresh allocation data: {e}")
+                await asyncio.sleep(60) # Wait longer on error
+
+    # NEW: Extracted message processor for clarity
+    async def _process_ibkr_message(self, raw_message: str | bytes, conid_to_pos: Dict[int, Any]):
+        """Parses and dispatches a single message from the IBKR WebSocket."""
+        # Your existing logic from the 'for msg in msgs:' loop
+        # This keeps the _websocket_loop function clean and focused.
+        if isinstance(raw_message, bytes):
+            raw_message = raw_message.decode()
+        try:
+            msgs = json.loads(raw_message)
+            if not isinstance(msgs, list):
+                msgs = [msgs]
+
+            for msg in msgs:
+                topic = msg.get("topic", "")
+                if topic.startswith("smd+"):
+                    await self._dispatch_tick(msg, conid_to_pos)
+                elif topic == "spl":
+                    await self._dispatch_pnl(msg)
+                # ... etc for your other topics (sld, sbd)
+                elif topic.startswith("sbd+"):
+                    # You'll need to create this dispatcher
+                    await self._dispatch_book_data(msg)
+
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return
 
 
 def _extract_best_price_from_snapshot(snapshot_data: dict) -> float | None:

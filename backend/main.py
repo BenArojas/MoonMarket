@@ -70,22 +70,14 @@ async def auth_status(svc: IBKRService = Depends(get_ibkr_service)):
     """
     return await svc.check_and_authenticate()
 
-@app.post("/ws/connect")
-async def connect_ws(accountId: str, svc: IBKRService = Depends(get_ibkr_service)):
-    """Tells the backend to start the WebSocket for a specific account."""
-    await svc.start_websocket_for_account(accountId)
-    return {"status": "WebSocket connection initiated", "accountId": accountId}
-
-@app.post("/ws/disconnect")
-async def disconnect_ws(svc: IBKRService = Depends(get_ibkr_service)):
-    """Tells the backend to stop the current WebSocket connection."""
-    await svc.stop_websocket()
-    return {"status": "WebSocket connection terminated"}
-
 @app.post("/auth/logout")
 async def logout(svc: IBKRService = Depends(get_ibkr_service)):
-    return await svc.logout()
-
+    """
+    Logs out of the IBKR session and terminates the persistent WebSocket connection.
+    """
+    await svc.shutdown_websocket_task()
+    
+    return await svc.logout() 
 
 
 

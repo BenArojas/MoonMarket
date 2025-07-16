@@ -200,3 +200,9 @@ class SentimentResponse(BaseModel):
     tweets_analyzed: int
     top_positive_tweet: TweetInfo | None
     top_negative_tweet: TweetInfo | None
+
+class WebSocketRequest(BaseModel):
+    action: str  # e.g., "subscribe_stock", "unsubscribe_stock", "subscribe_portfolio"
+    conid: Optional[int] = None
+    account_id: Optional[str] = None
+    # Add any other parameters needed for commands

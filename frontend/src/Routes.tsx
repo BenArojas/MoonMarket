@@ -4,17 +4,17 @@ import { PublicRoute } from "@/pages/PublicRoute";
 import Layout from "@/pages/Layout/Layout";
 import NotFoundPage from "@/pages/NotFoundPage";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { lazy } from "react";
 import { Paths } from "@/constants/paths";
 
-// Lazy-load pages for better performance
-const Portfolio = lazy(() => import("@/pages/Portfolio/Portfolio"));
-const AccountSelectionPage = lazy(() => import("@/pages/AccountSelection/AccountSelectionPage"));
-const Profile = lazy(() => import("@/pages/Profile/Profile"));
-const Global = lazy(() =>  import("@/pages/Global/Global"))
-const Scanner = lazy(() =>  import("@/pages/Scanner/Scanner"))
-const Transactions = lazy(() =>  import("@/pages/Transactions/Transactions"))
-const Watchlist = lazy(() =>  import("@/pages/Watchlist/Watchlist"))
+import Portfolio from "@/pages/Portfolio/Portfolio";
+import StockItem from "@/pages/StockItem/StockItem";
+import AccountSelectionPage from "@/pages/AccountSelection/AccountSelectionPage";
+import Profile from "@/pages/Profile/Profile";
+import Global from "@/pages/Global/Global";
+import Scanner from "@/pages/Scanner/Scanner";
+import Transactions from "@/pages/Transactions/Transactions";
+import Watchlist from "@/pages/Watchlist/Watchlist";
+
 
 
 const router = createBrowserRouter([
@@ -39,16 +39,8 @@ const router = createBrowserRouter([
           { path: Paths.protected.app.transactions, element: <Transactions /> },
           { path: Paths.protected.app.watchlist, element: <Watchlist /> },
           {
-            path: Paths.protected.app.stockBase, // Use the base definition
-            async lazy() {
-              const { default: StockItem, loader } = await import("@/pages/StockItem/StockItem");
-              const { ErrorFallback } = await import("@/components/ErrorFallBack");
-              return {
-                Component: StockItem,
-                loader: loader,
-                ErrorBoundary: ErrorFallback,
-              };
-            },
+            path: Paths.protected.app.stockBase, 
+            element: <StockItem />,
           },
         ],
       },

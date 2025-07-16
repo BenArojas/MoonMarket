@@ -17,7 +17,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLiveOrders } from "@/hooks/useLiveOrders";
 import { useQuery } from "@tanstack/react-query";
 import {
   AlertCircle,
@@ -32,6 +33,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
+import { LiveOrdersTable } from "./LiveOrdersTable";
 
 /* ---------- SHAPES ---------- */
 interface ProcessedTrade {
@@ -344,6 +346,7 @@ const TradesTable: React.FC<{ trades: ProcessedTrade[] }> = ({ trades }) => {
 /* ---------- PAGE ---------- */
 const TransactionsPage: React.FC = () => {
   const { trades, summary, isLoading, error } = useRecentTrades(7);
+  const { liveOrders, isLoading: ordersLoading, error: ordersError } = useLiveOrders();
 
   if (isLoading) {
     return (
@@ -376,17 +379,28 @@ const TransactionsPage: React.FC = () => {
 
   return (
     <div className="h-[80vh] overflow-y-auto">
-      <main className="container mx-auto space-y-6 p-4 md:p-8">
-      <h1 className="text-2xl font-semibold ">Recent Trades (Last 7 days)</h1>
-        <SummaryCards s={summary} />
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-          <SymbolActivityChart trades={trades} /> {/* lg:col-span-2 */}
-          <VolumeBySymbolChart trades={trades} /> {/* lg:col-span-2 */}
-        </div>
-        <TradesTable trades={trades} />
-      </main>
+        <main className="container mx-auto space-y-6 p-4 md:p-8">
+            <Tabs defaultValue="trades">
+                <TabsList>
+                    <TabsTrigger value="trades">Recent Trades</TabsTrigger>
+                    <TabsTrigger value="orders">Live Orders</TabsTrigger>
+                </TabsList>
+                <TabsContent value="trades">
+                    <h1 className="text-2xl font-semibold ">Recent Trades (Last 7 days)</h1>
+                    <SummaryCards s={summary} />
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
+                        <SymbolActivityChart trades={trades} />
+                        <VolumeBySymbolChart trades={trades} />
+                    </div>
+                    <TradesTable trades={trades} />
+                </TabsContent>
+                <TabsContent value="orders">
+                    <LiveOrdersTable orders={liveOrders} />
+                </TabsContent>
+            </Tabs>
+        </main>
     </div>
-  );
+);
 };
 
 export default TransactionsPage;

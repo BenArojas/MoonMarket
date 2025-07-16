@@ -1,16 +1,9 @@
 import { createChart, ColorType, CrosshairMode } from "lightweight-charts";
 import { useEffect, useRef } from "react";
 import { useTheme } from "@mui/material";
+import React from "react";
 
-interface HistoricalData {
-  close: number;
-  date: string;
-  high: number;
-  low: number;
-  open: number;
-  volume: number;
-}
-
+// 1. Interfaces are defined once at the top.
 interface ChartData {
   time: number;
   open: number;
@@ -20,7 +13,7 @@ interface ChartData {
   volume: number;
 }
 
-interface ChartProps {
+interface ChartComponentProps {
   data: ChartData[];
   isMobile?: boolean;
   colors?: {
@@ -32,20 +25,8 @@ interface ChartProps {
   };
 }
 
-function transformData(historicalData: HistoricalData[]): ChartData[] {
-  return historicalData
-    .map((item) => ({
-      time: new Date(item.date).getTime() / 1000,
-      open: item.open,
-      high: item.high,
-      low: item.low,
-      close: item.close,
-      volume: item.volume,
-    }))
-    .sort((a, b) => a.time - b.time);
-}
-
-export const ChartComponent: React.FC<ChartProps> = (props) => {
+// 2. The main chart component is now exported so it can be used by the wrapper.
+export const ChartComponent: React.FC<ChartComponentProps> = (props) => {
   const theme = useTheme();
   const {
     data,
@@ -62,7 +43,8 @@ export const ChartComponent: React.FC<ChartProps> = (props) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!chartContainerRef.current) return;
+    // This check is important to prevent errors when data is empty
+    if (!chartContainerRef.current || data.length === 0) return;
 
     const handleResize = () => {
       if (chartContainerRef.current) {
@@ -173,16 +155,19 @@ export const ChartComponent: React.FC<ChartProps> = (props) => {
       },
     });
 
+    // This part for price line was incomplete, so I'm commenting it out
+    // to prevent potential errors. You can re-implement it if needed.
+    /*
     let priceLine: { price: number } = { price: 0 };
     chart.subscribeCrosshairMove((param) => {
       if (param.point) {
         const price = param.seriesPrices.get(candlestickSeries);
         if (price !== undefined) {
-          priceLine.price = price as number;
-          candlestickSeries.updatePriceLine?.(priceLine);
+          // You would need a way to set this state to update the line
         }
       }
     });
+    */
 
     window.addEventListener("resize", handleResize);
 
@@ -195,19 +180,15 @@ export const ChartComponent: React.FC<ChartProps> = (props) => {
   return <div ref={chartContainerRef} />;
 };
 
-interface CandleStickChartProps {
-  data: HistoricalData[];
-  isMobile?: boolean;
-  colors?: {
-    backgroundColor?: string;
-    lineColor?: string;
-    textColor?: string;
-    volumeUpColor?: string;
-    volumeDownColor?: string;
-  };
+
+// This is the default export that your other components will import.
+function CandleStickChart({ data, ...otherProps }: ChartComponentProps) {
+  const cleanedData = data
+    .filter(item => item && typeof item.time === 'number' && !isNaN(item.time))
+    .sort((a, b) => a.time - b.time);
+  
+  return <ChartComponent {...otherProps} data={cleanedData} />;
+
 }
 
-export default function CandleStickChart({ data, ...otherProps }: CandleStickChartProps) {
-  const transformedData = transformData(data);
-  return <ChartComponent {...otherProps} data={transformedData} />;
-}
+export default React.memo(CandleStickChart);

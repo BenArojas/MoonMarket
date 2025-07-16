@@ -1,50 +1,26 @@
+// src/hooks/WebSocketManager.tsx (SIMPLIFIED AND FINAL)
 import { useEffect } from 'react';
 import { useStockStore } from '@/stores/stockStore';
-import api from '@/api/axios';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const WebSocketManager = () => {
-    // Get the selected accountId from your global Zustand store
-    const selectedAccountId = useStockStore((state) => state.selectedAccountId);
+  const { isAuth } = useAuth();
+  
+  const selectedAccountId = useStockStore(state => state.selectedAccountId);
+  const connect = useStockStore(state => state.connect);
+  const disconnect = useStockStore(state => state.disconnect);
 
-    useEffect(() => {
-        const connect = async (accountId: string) => {
-            try {
-                console.log(`Connecting WebSocket for account: ${accountId}...`);
-                // Send the accountId as a query parameter
-                await api.post(`/ws/connect?accountId=${accountId}`);
-            } catch (error) {
-                console.error("Failed to connect WebSocket:", error);
-            }
-        };
+  useEffect(() => {
+    // This component's ONLY job is to connect when ready, and disconnect when not.
+    if (isAuth && selectedAccountId) {
+      connect();
+    }
 
-        const disconnect = async () => {
-            try {
-                console.log("Disconnecting WebSocket...");
-                await api.post('/ws/disconnect');
-            } catch (error) {
-                console.error("Failed to disconnect WebSocket:", error);
-            }
-        };
+    // The cleanup function will run when isAuth or selectedAccountId changes, or on unmount.
+    return () => {
+      disconnect();
+    };
+  }, [isAuth, selectedAccountId, connect, disconnect]);
 
-        if (selectedAccountId) {
-            // An account is selected, so establish the connection.
-            // The backend service handles stopping any previous connection first.
-            connect(selectedAccountId);
-        }
-
-        // The return function from useEffect is a cleanup function.
-        // It runs when the component unmounts (logout) or when selectedAccountId changes.
-        return () => {
-            if (selectedAccountId) {
-                // We disconnect when the account ID changes or on logout
-                // to ensure we don't leave stale connections open.
-                disconnect();
-            }
-        };
-
-    // This effect hook will re-run whenever `selectedAccountId` changes.
-    }, [selectedAccountId]);
-
-    // This component renders nothing. It's purely for managing side effects.
-    return null; 
+  return null;
 };
