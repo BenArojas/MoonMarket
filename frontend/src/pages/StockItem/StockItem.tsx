@@ -22,8 +22,6 @@ export default function StockItem() {
   const setInitialChartData = useStockStore((state) => state.setInitialChartData); // Assuming this is the correct function
   const subscribeToStock = useStockStore((state) => state.subscribeToStock);
   const unsubscribeFromStock = useStockStore((state) => state.unsubscribeFromStock);
-  const subscribeToChart = useStockStore((state) => state.subscribeToChart);
-  const unsubscribeFromChart = useStockStore((state) => state.unsubscribeFromChart);
   const setPreloadedDetails = useStockStore((state) => state.setPreloadedDetails);
 
   const conid = conidFromUrl ? parseInt(conidFromUrl, 10) : null;
