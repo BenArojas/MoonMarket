@@ -40,7 +40,6 @@ function Portfolio() {
 
 
 
-
   if (status === "connecting") {
     return <div>Connecting to live data...</div>;
   }

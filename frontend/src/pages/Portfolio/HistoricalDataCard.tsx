@@ -1,4 +1,5 @@
-import { fetchHistoricalStockData } from '@/api/stock'; 
+import api from '@/api/axios';
+import { fetchHistoricalStockData, fetchConidForTicker } from '@/api/stock'; 
 import { AreaChart, ChartDataPoint } from "@/components/charts/AreaChartLw";
 import { ErrorFallback } from "@/components/ErrorFallBack";
 import GraphSkeleton from "@/Skeletons/GraphSkeleton";
@@ -9,6 +10,9 @@ import { useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { useSearchParams } from "react-router-dom";
 
+
+
+
 export function HistoricalDataCard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const ticker = searchParams.get("selected") || "BTC";
@@ -18,20 +22,33 @@ export function HistoricalDataCard() {
     setSelectedPeriod(newPeriod);
   };
 
+  const { data: conidData, isLoading: isLoadingConid } = useQuery({
+    queryKey: ['conidForTicker', ticker],
+    queryFn: () => fetchConidForTicker(ticker),
+    enabled: !!ticker, // Only run if a ticker is present
+  });
+
+  const conid = conidData?.conid;
+  const companyName = conidData?.companyName || ticker;
+
+  // Step 2: Second query for historical data, which now depends on the conid.
   const {
     data: chartData,
-    isLoading,
+    isLoading: isLoadingHistory,
     isError,
     error,
   } = useQuery<ChartDataPoint[], Error>({
-    // Query key no longer includes selectedBar
-    queryKey: ["historicalStockData", ticker, selectedPeriod],
-    // fetchHistoricalStockData now only takes ticker and period
-    queryFn: () => fetchHistoricalStockData(ticker, selectedPeriod),
+    queryKey: ["historicalStockData", conid, selectedPeriod],
+    // Use the fetched conid to call the API function we updated earlier.
+    queryFn: () => fetchHistoricalStockData(conid!, selectedPeriod),
+    // IMPORTANT: This query will only run if the 'conid' has been successfully fetched.
+    enabled: !!conid,
   });
 
 
-  if (isLoading) return <GraphSkeleton height={320}/>;
+  if (isLoadingConid || isLoadingHistory) {
+    return <GraphSkeleton height={320} />;
+  }
 
   if (isError && error) {
     const errorMessage =

@@ -23,9 +23,9 @@ export const Paths = {
 
       // --- Dynamic Path Handling ---
       // For the router's <Route path="..."> definition
-      stockBase: "/app/stock/:stockTicker",
+      stockBase: "/app/stock/:conid",
       // For programmatic navigation with navigate()
-      stock: (stockTicker: string) => `/app/stock/${stockTicker}`,
+      stock: (conid: string) => `/app/stock/${conid}`,
     },
   },
   // Fallback route

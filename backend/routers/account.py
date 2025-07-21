@@ -91,3 +91,10 @@ async def get_available_accounts(svc: IBKRService = Depends(get_ibkr_service)):
     This is used for the initial account selection screen.
     """
     return await svc.get_available_accounts()
+
+@router.get("/accounts/{account_id}/summary", summary="Get account summary")
+async def get_account_summary_route(
+    account_id: str,
+    ibkr_service: IBKRService = Depends(get_ibkr_service)
+):
+    return await ibkr_service.get_account_summary(account_id)

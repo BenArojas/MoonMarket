@@ -2,7 +2,7 @@ import { useStockStore } from "@/stores/stockStore";
 import "@/styles/donut-chart.css";
 import { Box, Button, ButtonGroup, useMediaQuery, useTheme } from "@mui/material";
 import * as d3 from "d3";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 const MARGIN_X = 100;
 const MARGIN_Y = 50;
@@ -45,6 +45,13 @@ export const DonutChart = ({ width, height, data, onSliceClick }: DonutChartProp
 
   const allocationView = useStockStore((s) => s.allocationView);
   const setAllocationView = useStockStore((s) => s.setAllocationView);
+  const subscribeToAlocation = useStockStore((s) => s.subscribeToAllocation);
+
+  useEffect(() => {
+    // When the component mounts, ask the backend for the latest allocation data.
+    // Assume 'sendSocketMessage' is your function to send JSON to the backend WebSocket.
+    subscribeToAlocation()
+  }, []); // Empty dependency array means this runs once on mount.
   
 
   // Calculate chart size and margins for mobile

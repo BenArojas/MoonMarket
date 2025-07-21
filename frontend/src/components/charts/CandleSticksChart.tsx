@@ -1,194 +1,143 @@
-import { createChart, ColorType, CrosshairMode } from "lightweight-charts";
-import { useEffect, useRef } from "react";
-import { useTheme } from "@mui/material";
-import React from "react";
+import {
+  createChart,
+  ColorType,
+  CrosshairMode,
+  ISeriesApi,
+  IChartApi,
+  UTCTimestamp,
+} from "lightweight-charts";
+import React, { useEffect, useRef } from "react";
+import { useTheme, Box, Typography } from "@mui/material";
+import { useStockStore } from "@/stores/stockStore";
 
-// 1. Interfaces are defined once at the top.
-interface ChartData {
-  time: number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-}
-
+// Props no longer include data, as the component is self-sufficient.
 interface ChartComponentProps {
-  data: ChartData[];
   isMobile?: boolean;
-  colors?: {
-    backgroundColor?: string;
-    lineColor?: string;
-    textColor?: string;
-    volumeUpColor?: string;
-    volumeDownColor?: string;
-  };
 }
 
-// 2. The main chart component is now exported so it can be used by the wrapper.
-export const ChartComponent: React.FC<ChartComponentProps> = (props) => {
+const ChartComponent: React.FC<ChartComponentProps> = ({ isMobile = false }) => {
   const theme = useTheme();
-  const {
-    data,
-    isMobile = false,
-    colors: {
-      backgroundColor = "transparent",
-      lineColor = "#2962FF",
-      textColor = theme.palette.text.primary,
-      volumeUpColor = "rgba(19, 183, 33, 0.5)",
-      volumeDownColor = "rgba(255, 33, 66, 0.5)",
-    } = {},
-  } = props;
+  // 1. Get live chart data directly from the Zustand store.
+  const chartData = useStockStore((state) => state.activeStock.chartData);
 
   const chartContainerRef = useRef<HTMLDivElement>(null);
+  // Refs to hold the chart and series instances so they don't get recreated on every render.
+  const chartRef = useRef<IChartApi | null>(null);
+  const candlestickSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
 
+  const backgroundColor = "transparent";
+  const textColor = theme.palette.text.primary;
+  const volumeUpColor = "rgba(8, 153, 129, 0.5)";  // Green
+  const volumeDownColor = "rgba(213, 87, 95, 0.5)"; // Red
+
+  // Effect for creating and cleaning up the chart (runs only once).
   useEffect(() => {
-    // This check is important to prevent errors when data is empty
-    if (!chartContainerRef.current || data.length === 0) return;
+    if (!chartContainerRef.current) return;
 
-    const handleResize = () => {
-      if (chartContainerRef.current) {
-        chart.applyOptions({
-          width: isMobile ? 350 : chartContainerRef.current.clientWidth,
-          height: isMobile ? 300 : 500,
-        });
-      }
-    };
-
+    // 2. Create the chart, but only one time.
     const chart = createChart(chartContainerRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: backgroundColor },
-        attributionLogo: false,
         textColor,
+        attributionLogo: false,
       },
       grid: {
-        horzLines: {
-          color: theme.palette.text.disabled,
-          visible: false,
-        },
-        vertLines: {
-          color: theme.palette.text.disabled,
-          visible: false,
-        },
+        horzLines: { visible: false },
+        vertLines: { visible: false },
       },
-      width: isMobile ? 350 : chartContainerRef.current.clientWidth,
-      height: isMobile ? 300 : 500,
-      crosshair: {
-        mode: CrosshairMode.Normal,
+      width: chartContainerRef.current.clientWidth,
+      height: 500, // Fixed height, can be made dynamic
+      crosshair: { mode: CrosshairMode.Normal },
+      timeScale: {
+        borderColor: theme.palette.divider,
+        timeVisible: true,
+        secondsVisible: false,
       },
     });
-    chart.timeScale().fitContent();
+    chartRef.current = chart;
 
-    chart.timeScale().applyOptions({
-      borderColor: "white",
-      timeVisible: true,
-      secondsVisible: false,
-    });
-
-    const candlestickSeries = chart.addCandlestickSeries({
-      upColor: "#13b721",
-      downColor: "#FF2142",
+    // 3. Create the series and store them in refs.
+    candlestickSeriesRef.current = chart.addCandlestickSeries({
+      upColor: "#089981",
+      downColor: "#d5575f",
       borderVisible: false,
-      wickUpColor: "#26a69a",
-      wickDownColor: "#ef5350",
-      priceFormat: {
-        type: "price",
-        precision: 2,
-        minMove: 0.01,
-      },
+      wickUpColor: "#089981",
+      wickDownColor: "#d5575f",
     });
 
-    candlestickSeries.setData(data);
-
-    const volumeSeries = chart.addHistogramSeries({
-      color: "#26a69a",
-      priceFormat: {
-        type: "volume",
-      },
-      priceScaleId: "",
+    volumeSeriesRef.current = chart.addHistogramSeries({
+      priceFormat: { type: "volume" },
+      priceScaleId: "", // Set to empty string to overlay on the main chart
+    });
+    volumeSeriesRef.current.priceScale().applyOptions({
+      scaleMargins: { top: 0.7, bottom: 0 },
     });
 
-    volumeSeries.priceScale().applyOptions({
-      scaleMargins: {
-        top: 0.7,
-        bottom: 0,
-      },
-    });
-
-    const volumeData = data.map((item) => ({
-      time: item.time,
-      value: item.volume,
-      color: item.close > item.open ? volumeUpColor : volumeDownColor,
-    }));
-    volumeSeries.setData(volumeData);
-
-    candlestickSeries.priceScale().applyOptions({
-      scaleMargins: {
-        top: 0.1,
-        bottom: 0.4,
-      },
-    });
-
-    chart.applyOptions({
-      localization: {
-        timeFormatter: (time: number) => {
-          const date = new Date(time * 1000);
-          return date.toLocaleString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: true,
-          });
-        },
-      },
-      crosshair: {
-        horzLine: {
-          visible: true,
-          labelVisible: true,
-        },
-        vertLine: {
-          visible: true,
-          labelVisible: true,
-        },
-      },
-    });
-
-    // This part for price line was incomplete, so I'm commenting it out
-    // to prevent potential errors. You can re-implement it if needed.
-    /*
-    let priceLine: { price: number } = { price: 0 };
-    chart.subscribeCrosshairMove((param) => {
-      if (param.point) {
-        const price = param.seriesPrices.get(candlestickSeries);
-        if (price !== undefined) {
-          // You would need a way to set this state to update the line
-        }
+    // Handle window resizing
+    const handleResize = () => {
+      if (chartContainerRef.current) {
+        chart.applyOptions({ width: chartContainerRef.current.clientWidth });
       }
-    });
-    */
-
+    };
     window.addEventListener("resize", handleResize);
 
+    // 4. Return a cleanup function to remove the chart and listener on unmount.
     return () => {
       window.removeEventListener("resize", handleResize);
       chart.remove();
+      chartRef.current = null;
     };
-  }, [data, backgroundColor, lineColor, textColor, volumeUpColor, volumeDownColor, isMobile, theme]);
+  }, []); // Empty dependency array ensures this runs only once.
 
-  return <div ref={chartContainerRef} />;
+  // Effect for updating the chart with new data (runs whenever chartData changes).
+  useEffect(() => {
+    // 5. Check if the series have been created and if there's data.
+    if (candlestickSeriesRef.current && volumeSeriesRef.current && chartData.length > 0) {
+      const sortedData = [...chartData].sort((a, b) => a.time - b.time);
+      // Format data for candlestick series
+      const candleData = sortedData.map(d => ({
+        time: d.time as UTCTimestamp,
+        open: d.open,
+        high: d.high,
+        low: d.low,
+        close: d.close,
+      }));
+      candlestickSeriesRef.current.setData(candleData);
+      
+      // Format data for volume series
+      const volumeData = sortedData.map(d => ({
+        time: d.time as UTCTimestamp,
+        value: d.volume,
+        color: d.close > d.open ? volumeUpColor : volumeDownColor,
+      }));
+      volumeSeriesRef.current.setData(volumeData);
+      
+      // Auto-fit the view to the data
+      if (chartRef.current) {
+        chartRef.current.timeScale().fitContent();
+      }
+    }
+  }, [chartData, volumeUpColor, volumeDownColor]); // This effect re-runs only when data changes.
+
+  return <div ref={chartContainerRef} style={{ width: '100%', height: '500px' }} />;
 };
 
 
-// This is the default export that your other components will import.
-function CandleStickChart({ data, ...otherProps }: ChartComponentProps) {
-  const cleanedData = data
-    .filter(item => item && typeof item.time === 'number' && !isNaN(item.time))
-    .sort((a, b) => a.time - b.time);
+// This is the clean, exported wrapper component.
+function CandleStickChart(props: ChartComponentProps) {
+  // We can show a loading/empty state until the first batch of data arrives.
+  const hasData = useStockStore((state) => state.activeStock.chartData.length > 0);
   
-  return <ChartComponent {...otherProps} data={cleanedData} />;
+  if (!hasData) {
+    return (
+      <Box sx={{ height: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Typography>Loading chart data...</Typography>
+      </Box>
+    );
+  }
 
+  return <ChartComponent {...props} />;
 }
 
 export default React.memo(CandleStickChart);

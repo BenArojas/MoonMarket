@@ -1,88 +1,126 @@
-import "@/styles/searchBar.css";
-import SearchIcon from "@mui/icons-material/Search";
-import { CircularProgress, TextField } from "@mui/material";
-import InputAdornment from "@mui/material/InputAdornment";
-import { useEffect, useState, FormEvent, ChangeEvent } from "react";
-import { useNavigate, useLocation, useNavigation } from "react-router-dom";
-import { styled } from "@mui/material/styles";
+// src/components/SearchBar.tsx
+import { useState, useEffect, SyntheticEvent } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  TextField,
+  Autocomplete,
+  CircularProgress,
+  Box,
+  Typography,
+} from "@mui/material";
+import api from "@/api/axios";
 import { Paths } from "@/constants/paths";
 
-const StyledTextField = styled(TextField)({
-  "& .MuiInputBase-input": {
-    "&:-webkit-autofill": {
-      WebkitBoxShadow: "0 0 0 1000px transparent inset",
-      caretColor: "inherit",
-      transition: "background-color 5000s ease-in-out 0s",
-    },
-  },
-});
+interface SearchResult {
+  conid: number;
+  symbol: string | null;
+  companyName: string | null;
+  secType: string | null;
+}
 
-const isValidStockTicker = (ticker: string): boolean => {
-  if (typeof ticker === "string" && ticker.length >= 2 && ticker.length <= 5) {
-    if (/^[A-Za-z]+$/.test(ticker)) {
-      return true;
-    }
-  }
-  return false;
-};
-
-const SearchBar: React.FC = () => {
-  const location = useLocation();
-  const [tickerInput, setTickerInput] = useState<string>("");
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+export default function SearchBar() {
   const navigate = useNavigate();
-  const { state: navState } = useNavigation();
+  const [open, setOpen] = useState(false);
+  const [options, setOptions] = useState<readonly SearchResult[]>([]);
+  const [inputValue, setInputValue] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // Combine local isLoading with navigation state
-  const isBusy = isLoading || navState === "submitting" || navState === "loading";
+  useEffect(() => {
+    if (!inputValue) {
+      setOptions([]);
+      setLoading(false);
+      return;
+    }
 
-  const navigateToStockPage = (ticker: string): void => {
-    setIsLoading(true); 
-    navigate(Paths.protected.app.stock(ticker));
-  };
+    setLoading(true);
+    const delayDebounceFn = setTimeout(() => {
+      api
+        .get<SearchResult[]>(`/market/search`, {
+          params: { query: inputValue },
+        })
+        .then((response) => {
+          const validOptions = response.data.filter(
+            (item) => item.symbol || item.companyName
+          );
+          setOptions(validOptions);
+          setLoading(false);
+        })
+        .catch((error) => {
+          console.error("Search failed:", error);
+          setOptions([]);
+          setLoading(false);
+        });
+    }, 300);
 
-  const handleChange = (event: ChangeEvent<HTMLInputElement>): void => {
-    setTickerInput(event.target.value);
-  };
+    return () => clearTimeout(delayDebounceFn);
+  }, [inputValue]);
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>): void => {
-    e.preventDefault();
-    if (isValidStockTicker(tickerInput)) {
-      navigateToStockPage(tickerInput.toUpperCase());
-    } else {
-      alert("Please enter a valid ticker");
-      setIsLoading(false); // Reset loading if ticker is invalid
+  const handleSelectionChange = (
+    event: SyntheticEvent,
+    value: SearchResult | null
+  ) => {
+    if (value) {
+      navigate(Paths.protected.app.stock(value.conid.toString()), {
+        state: {
+          companyName: value.companyName,
+          ticker: value.symbol,
+        },
+      });
+
+      setOpen(false);
+      setOptions([]);
+      setInputValue("");
     }
   };
-
-  // Reset loading state and input when location.pathname changes
-  useEffect(() => {
-    setIsLoading(false); 
-      setTickerInput(""); // Clear input after successful navigation to /stock/:ticker
-  }, [location.pathname]);
 
   return (
-    <div className="search-bar">
-      <div className="search-container">
-        <form onSubmit={handleSubmit}>
-          <StyledTextField
-            value={tickerInput}
-            onChange={handleChange}
-            placeholder={isBusy ? "Loading…" : "Ticker"}
-            disabled={isBusy}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  {isBusy ? <CircularProgress size={20} /> : <SearchIcon />}
-                </InputAdornment>
-              ),
-            }}
-          />
-          <input type="submit" hidden />
-        </form>
-      </div>
-    </div>
+    <Autocomplete
+      id="stock-search-autocomplete"
+      sx={{ width: 300 }}
+      open={open}
+      onOpen={() => setOpen(true)}
+      onClose={() => setOpen(false)}
+      isOptionEqualToValue={(option, value) => option.conid === value.conid}
+      getOptionLabel={(option) => option.symbol || option.companyName || ""}
+      options={options}
+      loading={loading}
+      onChange={handleSelectionChange}
+      inputValue={inputValue}
+      onInputChange={(event, newInputValue) => {
+        setInputValue(newInputValue);
+      }}
+      renderOption={(props, option) => (
+        <Box component="li" {...props} key={option.conid}>
+          <Box sx={{ flexGrow: 1 }}>
+            <Typography variant="body1">
+              {option.symbol || "No Symbol"}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {option.companyName || "No Company Name"}
+            </Typography>
+          </Box>
+          <Typography variant="caption" color="text.secondary">
+            {option.secType || ""}
+          </Typography>
+        </Box>
+      )}
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          label="Search Ticker or Company..."
+          InputProps={{
+            ...params.InputProps,
+            endAdornment: (
+              <>
+                {loading ? (
+                  <CircularProgress color="inherit" size={20} />
+                ) : null}
+                {params.InputProps.endAdornment}
+              </>
+            ),
+          }}
+        />
+      )}
+    />
   );
-};
-
-export default SearchBar;
+}

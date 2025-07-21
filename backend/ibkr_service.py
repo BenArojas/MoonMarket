@@ -1,7 +1,7 @@
 # models.py  – pydantic versions
 import asyncio
 import contextlib
-from datetime import datetime
+from time import time
 import json
 import logging
 import math
@@ -13,8 +13,8 @@ from pydantic import BaseModel, Field
 from typing import Awaitable, Callable, Optional, List, Dict, Any
 import websockets
 from utils import safe_float_conversion
-from models import AccountDetailsDTO, AccountInfoDTO, AccountSummaryData, BriefAccountInfoDTO, FrontendMarketDataUpdate, LedgerDTO, LedgerEntry, LedgerUpdate, OwnerInfoDTO, PermissionsDTO, PnlRow, PnlUpdate, WebSocketRequest
-from cache import account_specific_key_builder, cached, history_cache_key_builder
+from models import AccountDetailsDTO, AccountInfoDTO, BriefAccountInfoDTO, FrontendMarketDataUpdate, LedgerDTO, LedgerEntry, LedgerUpdate, OwnerInfoDTO, PermissionsDTO, PnlRow, PnlUpdate, WebSocketRequest
+from cache import account_specific_key_builder, cached, history_cache_key_builder, snapshot_key_builder
 from rate_control import paced
 from websockets.legacy.client import WebSocketClientProtocol
 
@@ -41,6 +41,8 @@ class IBKRState(BaseModel):
     combo_positions: list[dict] = Field(default_factory=list)
     watchlists: list[dict] = Field(default_factory=list)
     pnl: Dict[str, Dict[str, PnlRow]] = Field(default_factory=dict) # PnL is often per-account already
+    active_stock_conid: Optional[int] = None
+    chart_subscriptions: Dict[int, str] = Field(default_factory=dict) # Key: conid, Value: serverId
     
     
     class Config:
@@ -215,6 +217,38 @@ class IBKRService:
         except httpx.HTTPStatusError as exc:
             log.warning("secdef search failed %s %s", exc.response.status_code, symbol)
             return None
+        
+    @cached(ttl=3600) 
+    async def search(self, symbol, name=False, secType=""):
+        q = {"symbol": symbol, "name": str(name).lower()}
+        if secType:
+            q["secType"] = secType
+        return await self._req("GET", "/iserver/secdef/search", params=q)
+    
+    @cached(ttl=3600) # Cache for 1 hour
+    async def search_detailed(self, conid: int):
+        """
+        Performs a detailed search for a single conid to get derivative info like months.
+        Note: The API seems to use /secdef/search for this, not /trsrv/secdef.
+        """
+        # We search by symbol, but since we have the conid, we can find the symbol first
+        # This is a bit of a workaround if a direct conid search for months isn't available.
+        # A more direct method might be needed if this is unreliable.
+        # For now, we assume we need to re-search to get the 'sections' part of the response.
+        # A better approach if available would be a direct info call that returns months.
+        # Let's assume we need to find the symbol from the conid first.
+        # This is complex, so for now, we will create a placeholder. The best way is to search for the conid
+        # in the positions or get it from the quote page.
+        # The /trsrv/secdef endpoint is a good alternative.
+        
+        # Let's use the /trsrv/secdef endpoint as it's cleaner.
+        response = await self._req("GET", f"/trsrv/secdef?conids={conid}")
+        return response.get('secdef', [])[0] if response.get('secdef') else None
+
+    @cached(ttl=3600) # Cache for 1 hour
+    async def strikes(self, conid: int, month: str, sec_type: str = "OPT"):
+        q = {"conid": conid, "sectype": sec_type, "month": month}
+        return await self._req("GET", "/iserver/secdef/strikes", params=q)
 
     async def check_market_data_availability(self, conid):
         """Check what market data is available for a contract"""
@@ -226,7 +260,7 @@ class IBKRService:
             return availability
         return None
 
-    @cached(ttl=150, key_builder=account_specific_key_builder)
+    @cached(ttl=150, key_builder=snapshot_key_builder)
     async def snapshot(self, conids, fields="31,84,86,7635,7741,83,70,71"):
         """
         Get market data snapshot for given contract IDs.
@@ -244,10 +278,12 @@ class IBKRService:
         
         # First request - often returns minimal data
         initial_response = await self._req("GET", "/iserver/marketdata/snapshot", params=q)
+        log.info(f"initial_response: {initial_response}")
         
         # Wait a moment and make second request for actual data
         await asyncio.sleep(1)
         final_response = await self._req("GET", "/iserver/marketdata/snapshot", params=q)
+        log.info(f"final_response: {final_response}")
         
         return final_response
     
@@ -295,6 +331,73 @@ class IBKRService:
             log.exception(f"Failed to modify order {order_id}: {e}")
             raise HTTPException(status_code=500, detail="Could not modify order")
     
+    async def preview_order(self, account_id: str, order: Dict[str, Any]) -> Dict[str, Any]:
+        """ Gets a preview of an order without submitting it. """
+        
+        account_positions = self.state.positions.get(account_id, [])
+
+        # --- NEW SAFEGUARD ---
+        if not account_positions:
+            account_positions = await self.positions(account_id)
+        try:
+
+            payload = {"orders": [order]}
+            response = await self._req(
+                "POST",
+                f"/iserver/account/{account_id}/orders/whatif",
+                json=payload
+            )
+            custom_warning = None
+            order_side = order.get("side", "").upper()
+            
+            if order_side == "SELL":
+                order_conid = order.get("conid")
+                order_quantity = order.get("quantity", 0)
+                
+                current_position = next((p for p in account_positions if p.get("conid") == order_conid), None)
+                
+                if current_position is None:
+                    custom_warning = "You are selling a stock you don't currently own. This will open a short position."
+                else:
+                    shares_owned = current_position.get("position", 0)
+                    if order_quantity > shares_owned:
+                        short_amount = order_quantity - shares_owned
+                        custom_warning = (
+                            f"Warning: You are trying to sell {order_quantity} shares but you only own {shares_owned}. "
+                            f"This will sell all your shares and open a new short position of {short_amount} shares."
+                        )
+
+            if custom_warning:
+                existing_warning = response.get("warn")
+                if existing_warning:
+                    response["warn"] = f"{custom_warning}\n\n{existing_warning}"
+                else:
+                    response["warn"] = custom_warning
+            
+            return response
+        except Exception as e:
+            log.exception(f"Failed to preview order: {e}")
+            raise HTTPException(status_code=500, detail="Could not preview order")
+
+    async def place_order(self, account_id: str, order: Dict[str, Any]) -> Dict[str, Any]:
+        """ Places an order """
+        try:
+            payload = {"orders": [order]}
+            response = await self._req("POST", f"/iserver/account/{account_id}/orders", json=payload)
+            return response
+        except Exception as e:
+            log.exception(f"Failed to place order: {e}")
+            raise HTTPException(status_code=500, detail="Could not place order")
+            
+    async def reply_to_confirmation(self, reply_id: str, confirmed: bool) -> Dict[str, Any]:
+        """ Replies to an order confirmation message """
+        try:
+            payload = {"confirmed": confirmed}
+            response = await self._req("POST", f"/iserver/reply/{reply_id}", json=payload)
+            return response
+        except Exception as e:
+            log.exception(f"Failed to reply to confirmation {reply_id}: {e}")
+            raise HTTPException(status_code=500, detail="Could not reply to order confirmation")
     # positions -------------------------------------------------------
     # @cached(ttl=30)
     async def positions(self, account_id: str):
@@ -308,7 +411,8 @@ class IBKRService:
                 break 
             all_positions.extend(pos_page)
             page_id += 1
-
+        
+        self.state.positions[account_id] = all_positions
         return all_positions
 
     # account ---------------------------------------------------------
@@ -334,6 +438,17 @@ class IBKRService:
             ))
             
         return accounts_list
+    
+    @cached(ttl=120, key_builder=account_specific_key_builder) 
+    async def get_account_summary(self, account_id: str) -> Dict[str, Any]:
+        """ Fetches account summary details like cash, net liquidation value, etc. """
+        try:
+            # This is a standard endpoint to get account values
+            response = await self._req("GET", f"/portfolio/{account_id}/summary")
+            return response
+        except Exception as e:
+            log.exception(f"Failed to fetch account summary for {account_id}: {e}")
+            raise HTTPException(status_code=500, detail="Could not fetch account summary")
 
     
     async def get_account_details(self, acct: str | None = None) -> AccountDetailsDTO:
@@ -452,10 +567,10 @@ class IBKRService:
         return watchlists
     
     # ---------------------------------------------------------------- asset alloc
-    @cached(ttl=300, key_builder=account_specific_key_builder)
+    @cached(ttl=1500, key_builder=account_specific_key_builder)
     async def account_allocation(self, account_id: str ):
         data = await self._req("GET", f"/portfolio/{account_id}/allocation")
-        self.state.allocation = data        # keep latest for WS/REST reuse
+        self.state.allocation = data       
         return data
 
     # ------------------------------------------------------------- combo pos
@@ -601,10 +716,10 @@ class IBKRService:
             processed_book.sort(key=lambda x: x["price"], reverse=True)
 
             # Broadcast the cleaned data to the frontend
-            await self._broadcast(json.dumps({
+            await self._broadcast({
                 "type": "book_data", # A unique type for the frontend to identify it
                 "data": processed_book
-            }))
+            })
 
         except (ValueError, KeyError) as e:
             log.error(f"Error parsing book data: {e} - Data: {msg}")
@@ -644,7 +759,7 @@ class IBKRService:
             
             # 5. Broadcast the correctly formatted update
             await self._broadcast(
-                LedgerUpdate(data=ledger_dto).model_dump_json(by_alias=True) # Use by_alias to serialize correctly
+                LedgerUpdate(data=ledger_dto).model_dump(by_alias=True) # Use by_alias to serialize correctly
             )
         except Exception as e:
             log.error(f"Failed to parse or dispatch ledger data: {e} - Data was: {full_ledger_items}")
@@ -676,8 +791,54 @@ class IBKRService:
 
         if rows:
             await self._broadcast(
-                PnlUpdate(type="pnl", data=rows).model_dump_json()
+                PnlUpdate(type="pnl", data=rows).model_dump()
             )
+    
+    async def _dispatch_chart_data(self, msg: dict) -> None:
+        """
+        Parses a historical market data message ('smh') and broadcasts
+        a formatted chart update to the frontend.
+        """
+        topic = msg.get("topic", "")
+        if not topic:
+            return
+
+        try:
+            # Extract the conid from the topic string, e.g., "smh+265598"
+            conid = int(topic.split('+')[1])
+            server_id = msg.get("serverId")
+            chart_bars = msg.get("data", [])
+
+            # When we get the first message, it includes the serverId.
+            # We must store it so we can unsubscribe later.
+            if conid and server_id:
+                self.state.chart_subscriptions[conid] = server_id
+
+            # Format the bar data into the structure our frontend chart expects
+            formatted_bars = [
+                {
+                    "time": bar["t"] // 1000,
+                    "open": bar["o"],
+                    "high": bar["h"],
+                    "low": bar["l"],
+                    "close": bar["c"],
+                    "volume": bar["v"],
+                }
+                for bar in chart_bars if "t" in bar # Ensure the bar is valid
+            ]
+            
+            # Only broadcast if there's actual data to send
+            if formatted_bars:
+                await self._broadcast({
+                    "type": "chart_update",
+                    "conid": conid,
+                    "data": formatted_bars
+                })
+        except (IndexError, ValueError) as e:
+            log.error(f"Could not parse conid from chart data topic '{topic}': {e}")
+        except Exception as e:
+            log.error(f"Error dispatching chart data: {e}")
+
 
         
     async def _dispatch_tick(
@@ -730,12 +891,44 @@ class IBKRService:
                 update.unrealized_pnl = (last_price - cost) * qty * multiplier
 
             # 7. Send the update to the frontend
-            await self._broadcast(update.model_dump_json())
+            await self._broadcast(update.model_dump())
+    
+    async def _dispatch_active_stock_update(self, msg: Dict[str, Any]) -> None:
+        """
+        Creates and sends ONE rich, detailed update for the single active stock,
+        including a timestamp so the frontend can build the live chart bar.
+        """
+        last_price = self._extract_price_from_snapshot(msg)
+        if math.isnan(last_price):
+            return
+
+        conid = int(msg["topic"].split("+", 1)[1])
+
+        # Construct ONE message with all the data the frontend needs
+        update_payload = {
+            "type": "active_stock_update",
+            "timestamp": int(time()), # The crucial timestamp
+            "conid": conid,
+            "lastPrice": last_price,
+            "changeAmount": safe_float_conversion(msg.get("82")),
+            "changePercent": safe_float_conversion(msg.get("83")),
+            "bid": safe_float_conversion(msg.get("84")),
+            "ask": safe_float_conversion(msg.get("86")),
+            "dayHigh": safe_float_conversion(msg.get("70")),
+            "dayLow": safe_float_conversion(msg.get("71")),
+        }
+        
+        # Filter out null values to keep the payload clean
+        final_payload = {k: v for k, v in update_payload.items() if v is not None}
+
+        await self._broadcast(final_payload)
+
         
     
     async def handle_ws_command(self, command: WebSocketRequest):
         """Processes commands by sending messages to the live IBKR WebSocket."""
-        ws = self._ibkr_ws_session
+        # Use self.state.ibkr_websocket_session consistently
+        ws = self.state.ibkr_websocket_session 
         if not ws:
             log.error("Cannot handle command, IBKR WebSocket is not connected.")
             return
@@ -744,11 +937,17 @@ class IBKRService:
         conid = command.conid
         account_id = command.account_id or self._current_ws_account
 
+        
+
         if action == "subscribe_stock" and conid:
             log.info(f"Subscribing to market data for conid: {conid}")
-            # Subscribe to Market Data (Quote: Last, Bid, Ask, Changes, etc.)
+            # Set the active stock conid BEFORE subscribing
+            self.state.active_stock_conid = conid
+            
+            # Subscribe to Market Data (Quote: Last, Bid, Ask, etc.)
             smd_cmd = f'smd+{conid}+{{"fields":["31","84","86","82","83","70","71"]}}'
             await ws.send(smd_cmd)
+            
             # Subscribe to Price Ladder (BookTrader/Depth)
             if account_id:
                 sbd_cmd = f'sbd+{account_id}+{conid}'
@@ -756,11 +955,15 @@ class IBKRService:
 
         elif action == "unsubscribe_stock" and conid:
             log.info(f"Unsubscribing from market data for conid: {conid}")
+            # Clear the active stock conid
+            self.state.active_stock_conid = None
             await ws.send(f'umd+{conid}+{{}}')
-            # Also unsubscribe from the price ladder
             if account_id:
-                 await ws.send(f'ubd+{account_id}')
-
+                await ws.send(f'ubd+{account_id}')
+                
+        elif action == "GET_INITIAL_ALLOCATION":
+            await self._send_initial_allocation(account_id)
+            
         elif action == "subscribe_portfolio" and account_id:
             log.info(f"Subscribing to portfolio for account: {account_id}")
             account_positions = await self.positions(account_id)
@@ -768,7 +971,8 @@ class IBKRService:
             for cid in conids:
                 cmd = f'smd+{cid}+{{"fields":["31","7635","83","82"]}}'
                 await ws.send(cmd)
-                await asyncio.sleep(0.05)  # Throttle subscriptions
+                await asyncio.sleep(0.05)
+
         elif action == "unsubscribe_portfolio" and account_id:
             log.info(f"Unsubscribing from portfolio for account: {account_id}")
             account_positions = await self.positions(account_id)
@@ -776,6 +980,9 @@ class IBKRService:
             for cid in conids:
                 await ws.send(f'umd+{cid}+{{}}')
                 await asyncio.sleep(0.05)
+                
+        else:
+            log.warning(f"Unknown or incomplete WebSocket command received: {action}")
             
     async def _websocket_loop(self, account_id: str) -> None:
         """
@@ -803,16 +1010,14 @@ class IBKRService:
                     self.state.ws_connected = True
 
                     self.state.ibkr_websocket_session = ws
-                    log.info("IBKR WebSocket connected.")
 
                     # --- Initial Subscriptions ---
                     await asyncio.sleep(1) # Give connection a moment to settle
                     # On connect, immediately subscribe to the main portfolio data
+                    log.info(f"spl+{account_id}")
                     await ws.send(f'spl+{account_id}')
                     
-                    await self.handle_ws_command(
-                        WebSocketRequest(action="subscribe_portfolio", account_id=account_id)
-                    )
+                    await self._send_initial_allocation(account_id)
 
                     # --- Background Tasks (Heartbeat, etc.) ---
                     heartbeat_task = asyncio.create_task(self._ws_heartbeat())
@@ -859,22 +1064,38 @@ class IBKRService:
             try:
                 log.info(f"Refreshing account allocation for {account_id}...")
                 fresh_data = await self.account_allocation(account_id)
-                await self._broadcast(json.dumps({
+                await self._broadcast({
                     "type": "allocation",
                     "data": fresh_data
-                }))
+                })
                 await asyncio.sleep(300) # Refresh every 5 minutes
             except (asyncio.CancelledError, websockets.exceptions.ConnectionClosed):
                 break
             except Exception as e:
                 log.error(f"Failed to refresh allocation data: {e}")
                 await asyncio.sleep(60) # Wait longer on error
+    
+    async def _send_initial_allocation(self, account_id: str):
+        """
+        Checks for cached allocation data, fetches if absent, and broadcasts it.
+        This ensures new connections get data immediately.
+        """
+        log.info("Preparing to send initial allocation data...")
+        # The account_allocation method uses a cache, so this is efficient.
+        # It will only hit the network if the cache is empty or stale.
+        try:
+            data_to_send = await self.account_allocation(account_id)
+            
+            await self._broadcast({
+                "type": "allocation",
+                "data": data_to_send
+            })
+            log.info("Successfully sent initial allocation data.")
+        except Exception as e:
+            log.error(f"Could not send initial allocation data: {e}")
 
-    # NEW: Extracted message processor for clarity
     async def _process_ibkr_message(self, raw_message: str | bytes, conid_to_pos: Dict[int, Any]):
         """Parses and dispatches a single message from the IBKR WebSocket."""
-        # Your existing logic from the 'for msg in msgs:' loop
-        # This keeps the _websocket_loop function clean and focused.
         if isinstance(raw_message, bytes):
             raw_message = raw_message.decode()
         try:
@@ -884,16 +1105,25 @@ class IBKRService:
 
             for msg in msgs:
                 topic = msg.get("topic", "")
+                
                 if topic.startswith("smd+"):
-                    await self._dispatch_tick(msg, conid_to_pos)
+                    conid = int(topic.split("+", 1)[1])
+                    if self.state.active_stock_conid and conid == self.state.active_stock_conid:
+                        await self._dispatch_active_stock_update(msg)
+                    elif conid in conid_to_pos:
+                        await self._dispatch_tick(msg, conid_to_pos)
+                
                 elif topic == "spl":
                     await self._dispatch_pnl(msg)
-                # ... etc for your other topics (sld, sbd)
+                    
                 elif topic.startswith("sbd+"):
-                    # You'll need to create this dispatcher
                     await self._dispatch_book_data(msg)
+                    
+                elif topic.startswith("smh+"):
+                    await self._dispatch_chart_data(msg)
 
         except (json.JSONDecodeError, UnicodeDecodeError):
+            # This can happen with heartbeat messages, safe to ignore.
             return
 
 

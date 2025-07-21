@@ -67,6 +67,7 @@ export const Treemap = ({ width, height, data, isDailyView }: TreemapProps) => {
       last_price,
       name,
       priceChangePercentage,
+      
     } = leaf.data as ProcessedStockData;
 
     const fillColor = getColor(priceChangePercentage);

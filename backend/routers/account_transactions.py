@@ -1,14 +1,10 @@
 # routes/account_transactions.py
 from __future__ import annotations
-
 import asyncio
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Literal, Optional
-
+from typing import Any, Dict, List
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field, RootModel, computed_field
-
+from models import Order
 from deps import get_ibkr_service
 from ibkr_service import IBKRService
 
@@ -24,6 +20,7 @@ router = APIRouter(prefix="/transactions", tags=["Account transactions Data"])
     response_model=Dict[str, List[Dict[str, Any]]] 
 )
 async def get_transactions(
+    accountId: str,
     days: int = Query(90, ge=1, le=365, description="History window in days"),
     ibkr_service: IBKRService = Depends(get_ibkr_service), # Use your real service here
 ):
@@ -37,12 +34,9 @@ async def get_transactions(
     4.  Return a dictionary containing both lists, as expected by the frontend.
     """
     try:
-        acct_id = await ibkr_service._primary_account()
-        if not acct_id:
-            raise HTTPException(status_code=404, detail="No account found")
 
         # 1️⃣ Get all unique conids from current positions
-        pos = ibkr_service.state.positions or await ibkr_service.positions(acct_id)
+        pos = ibkr_service.state.positions or await ibkr_service.positions(accountId)
         
         conids_set = {p["conid"] for p in pos if p.get("conid") and isinstance(p["conid"], int)}
         
@@ -57,7 +51,7 @@ async def get_transactions(
         # 2️⃣ Fetch transactions for each conid concurrently
         async def fetch_for_conid(conid: int):
             payload = {
-                "acctIds": [acct_id],
+                "acctIds": [accountId],
                 "conids": [conid],
                 "currency": "USD",
                 "days": days,
@@ -128,6 +122,31 @@ async def get_trades(
 @router.get("/live-orders", summary="Get live orders")
 async def get_live_orders_route(ibkr_service: IBKRService = Depends(get_ibkr_service)):
     return await ibkr_service.get_live_orders()
+
+@router.post("/orders/preview", summary="Preview an order's impact")
+async def preview_order_route(
+    accountId: str,
+    order: Order,
+    ibkr_service: IBKRService = Depends(get_ibkr_service)
+):
+    return await ibkr_service.preview_order(accountId, order.model_dump())
+
+@router.post("/orders", summary="Place an order")
+async def place_order_route(
+    accountId: str,
+    order: Order, 
+    ibkr_service: IBKRService = Depends(get_ibkr_service)
+):
+    return await ibkr_service.place_order(accountId, order.model_dump())
+
+@router.post("/orders/reply/{reply_id}", summary="Reply to an order confirmation")
+async def reply_to_confirmation_route(
+    reply_id: str,
+    confirmed: bool,
+    ibkr_service: IBKRService = Depends(get_ibkr_service)
+):
+    # This endpoint takes the reply_id from the URL and 'confirmed' from the body
+    return await ibkr_service.reply_to_confirmation(reply_id, confirmed)
 
 @router.delete("/orders/{order_id}", summary="Cancel an order")
 async def cancel_order_route(order_id: str, accountId: str, ibkr_service: IBKRService = Depends(get_ibkr_service)):

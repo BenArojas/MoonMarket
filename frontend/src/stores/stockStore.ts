@@ -106,6 +106,7 @@ interface FrontendMarketDataUpdate {
 }
 
 // For the live quote data on the stock page
+
 export interface Quote {
   lastPrice?: number;
   bid?: number;
@@ -114,6 +115,36 @@ export interface Quote {
   changeAmount?: number;
   dayHigh?: number;
   dayLow?: number;
+}
+
+export interface InitialQuoteData {
+  conid: number;
+  lastPrice?: number;
+  bid?: number;
+  ask?: number;
+  changePercent?: number;
+  changeAmount?: number;
+}
+
+export interface ActiveStockUpdate {
+  type: "active_stock_update";
+  conid: number;
+  lastPrice?: number;
+  bid?: number;
+  ask?: number;
+  changePercent?: number;
+  changeAmount?: number;
+  dayHigh?: number;
+  dayLow?: number;
+}
+
+export interface ChartBar {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
 }
 
 export interface PriceLadderRow {
@@ -128,8 +159,10 @@ interface StockState {
   activeStock: {
     conid: number | null;
     ticker: string | null;
+    companyName: string | null
     quote: Quote;
     depth: PriceLadderRow[];
+    chartData: ChartBar[];
   };
   watchlists: WatchlistDict;
   connectionStatus: "disconnected" | "connecting" | "connected" | "error";
@@ -149,7 +182,13 @@ interface StockState {
   areAiFeaturesEnabled: boolean | null;
 
   // Actions
-  subscribeToStock: (conid: number, ticker: string) => void;
+  // chart bars
+  setInitialChartData: (data: ChartBar[]) => void;
+
+  subscribeToStock: (conid: number) => void;
+  subscribeToAllocation: () => void;
+  setInitialQuote: (data: InitialQuoteData) => void;
+  setPreloadedDetails: (details: { conid: number; companyName: string ; ticker: string }) => void;
   subscribeToPortfolio: () => void;
   unsubscribeFromPortfolio: () => void;
   unsubscribeFromStock: (conid: number) => void;
@@ -186,8 +225,10 @@ export const useStockStore = create<StockState>()(
       activeStock: {
         conid: null,
         ticker: null,
+        companyName: null,
         quote: {},
         depth: [],
+        chartData: [],
       },
       watchlists: {},
       pnl: {},
@@ -203,8 +244,12 @@ export const useStockStore = create<StockState>()(
       areAiFeaturesEnabled: null,
 
       // Actions
-      
-      // ... (all your other actions like setPnl, etc. remain here, unchanged)
+
+      // ADDED: New actions for managing chart data
+      setInitialChartData: (data) =>
+        set((state) => ({
+          activeStock: { ...state.activeStock, chartData: data },
+        })),
       setPnl: (rows) => {
         const coreKey = Object.keys(rows).find((k) => k.endsWith(".Core"));
         const core = coreKey ? rows[coreKey] : undefined;
@@ -215,42 +260,90 @@ export const useStockStore = create<StockState>()(
             : { dailyRealized: 0, unrealized: 0, netLiq: 0 },
         });
       },
-      setAreAiFeaturesEnabled: (enabled) => set({ areAiFeaturesEnabled: enabled }),
+      setPreloadedDetails: (details: { conid: number; companyName: string | null; ticker: string | null }) =>
+        set((state) => ({
+          activeStock: {
+            ...state.activeStock,
+            conid: details.conid,
+            companyName: details.companyName,
+            ticker: details.ticker,
+            quote: {
+              ...state.activeStock.quote,
+              lastPrice: undefined,
+              changeAmount: undefined,
+              changePercent: undefined,
+            },
+          },
+        })),
+        setInitialQuote: (data: InitialQuoteData) =>
+          set((state) => ({ 
+            activeStock: {
+              ...state.activeStock, 
+              conid: data.conid,
+              quote: {
+                ...state.activeStock.quote, 
+                ...data,                   
+              },
+            },
+          })),
+      setAreAiFeaturesEnabled: (enabled) =>
+        set({ areAiFeaturesEnabled: enabled }),
       setAccountDetails: (details) => set({ accountDetails: details }),
       setBalances: (balances) => set({ balances }),
       setAllAccounts: (accounts) => set({ allAccounts: accounts }),
-      setSelectedAccountId: (accountId) => set({ selectedAccountId: accountId }),
+      setSelectedAccountId: (accountId) =>
+        set({ selectedAccountId: accountId }),
       setConnectionStatus: (status) => set({ connectionStatus: status }),
-      setError: (errorMsg) => set({ error: errorMsg, connectionStatus: "error" }),
+      setError: (errorMsg) =>
+        set({ error: errorMsg, connectionStatus: "error" }),
       clearError: () => set({ error: undefined }),
       setWatchlists: (data) => set({ watchlists: data }),
       setAllocation: (data) => set({ allocation: data }),
       setAllocationView: (v) => set({ allocationView: v }),
+      subscribeToAllocation: () => {
+        const accountId = get().selectedAccountId;
+        if (ws && ws.readyState === WebSocket.OPEN && accountId) {
+          ws.send(
+            JSON.stringify({
+              action: "GET_INITIAL_ALLOCATION",
+              account_id: accountId,
+            })
+          );
+        }
+      },
       subscribeToPortfolio: () => {
         const accountId = get().selectedAccountId;
         if (ws && ws.readyState === WebSocket.OPEN && accountId) {
-          ws.send(JSON.stringify({ action: "subscribe_portfolio", account_id: accountId }));
+          ws.send(
+            JSON.stringify({
+              action: "subscribe_portfolio",
+              account_id: accountId,
+            })
+          );
         }
       },
       unsubscribeFromPortfolio: () => {
         const accountId = get().selectedAccountId;
         if (ws && ws.readyState === WebSocket.OPEN && accountId) {
-          ws.send(JSON.stringify({ action: "unsubscribe_portfolio", account_id: accountId }));
+          ws.send(
+            JSON.stringify({
+              action: "unsubscribe_portfolio",
+              account_id: accountId,
+            })
+          );
         }
       },
-      subscribeToStock: (conid, ticker) => {
+      subscribeToStock: (conid) => {
         if (ws && ws.readyState === WebSocket.OPEN) {
-          set({ activeStock: { conid, ticker, quote: {}, depth: [] } });
           const command = { action: "subscribe_stock", conid };
           ws.send(JSON.stringify(command));
-          console.log(`Sent command to subscribe to conid: ${conid}`);
         }
       },
       unsubscribeFromStock: (conid) => {
         if (ws && ws.readyState === WebSocket.OPEN) {
           const command = { action: "unsubscribe_stock", conid };
           ws.send(JSON.stringify(command));
-          console.log(`Sent command to unsubscribe from conid: ${conid}`);
+
           get().clearActiveStock();
         }
       },
@@ -258,14 +351,18 @@ export const useStockStore = create<StockState>()(
         set((state) => ({
           activeStock: {
             ...state.activeStock,
+            // The || operator ensures we don't nullify a value if the update doesn't contain it
             quote: {
-              lastPrice: data["31"] ?? state.activeStock.quote.lastPrice,
-              bid: data["84"] ?? state.activeStock.quote.bid,
-              ask: data["86"] ?? state.activeStock.quote.ask,
-              changeAmount: data["82"] ?? state.activeStock.quote.changeAmount,
-              changePercent: data["83"] ?? state.activeStock.quote.changePercent,
-              dayHigh: data["70"] ?? state.activeStock.quote.dayHigh,
-              dayLow: data["71"] ?? state.activeStock.quote.dayLow,
+              ...state.activeStock.quote,
+              lastPrice: data.lastPrice ?? state.activeStock.quote.lastPrice,
+              bid: data.bid ?? state.activeStock.quote.bid,
+              ask: data.ask ?? state.activeStock.quote.ask,
+              changeAmount:
+                data.changeAmount ?? state.activeStock.quote.changeAmount,
+              changePercent:
+                data.changePercent ?? state.activeStock.quote.changePercent,
+              dayHigh: data.dayHigh ?? state.activeStock.quote.dayHigh,
+              dayLow: data.dayLow ?? state.activeStock.quote.dayLow,
             },
           },
         })),
@@ -275,7 +372,14 @@ export const useStockStore = create<StockState>()(
         })),
       clearActiveStock: () =>
         set({
-          activeStock: { conid: null, ticker: null, quote: {}, depth: [] },
+          activeStock: {
+            conid: null,
+            ticker: null,
+            companyName: null,
+            quote: {},
+            depth: [],
+            chartData: [],
+          },
         }),
       updateStock: (data: FrontendMarketDataUpdate) =>
         set((state) => {
@@ -314,11 +418,11 @@ export const useStockStore = create<StockState>()(
       },
     }),
     // --- End of your state and actions object ---
-    
+
     // --- CHANGED: Configuration object for persist middleware ---
     {
       name: "stock-storage", // Unique name for localStorage key
-      
+
       // Selectively save only the data that needs to persist
       partialize: (state) => ({
         selectedAccountId: state.selectedAccountId,
@@ -326,12 +430,9 @@ export const useStockStore = create<StockState>()(
         allocationView: state.allocationView,
         areAiFeaturesEnabled: state.areAiFeaturesEnabled,
       }),
-
     }
   )
 );
-
-
 
 let ws: WebSocket | null = null;
 let reconnectTimeout: NodeJS.Timeout;
@@ -356,7 +457,6 @@ function connectWebSocket(get: () => StockState) {
   ws = new WebSocket(`ws://localhost:8000/ws?accountId=${selectedAccountId}`);
 
   ws.onopen = () => {
-    console.log("WebSocket connected (Zustand)");
     reconnectAttempts = 0;
     get().setConnectionStatus("connected");
   };
@@ -375,6 +475,11 @@ function connectWebSocket(get: () => StockState) {
           get().updateStock(msg); // The original behavior for portfolio stocks
         }
         break;
+
+      case "active_stock_update":
+        get().updateActiveQuote(msg); // This now receives a clean, detailed object
+        break;
+
 
       case "book_data":
         get().updateActiveDepth(msg.data);

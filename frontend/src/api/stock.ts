@@ -49,23 +49,28 @@ export const fetchHistoricalStockDataBars = async (
   }
 };
 /**
- * Fetches historical stock data from the backend API.
- * @param ticker The stock ticker symbol (e.g., "BTC", "AAPL").
+ * Fetches historical stock data from the backend API using conid.
+ * @param conid The contract ID of the stock.
  * @param period The period for which to fetch data (e.g., "7D", "1M").
  * @returns A promise that resolves to an array of ChartDataPoint.
- * @throws Will throw an error if the API request fails.
  */
 export const fetchHistoricalStockData = async (
-  ticker: string,
+  conid: number,
   period: string
 ): Promise<ChartDataPoint[]> => {
   const { data } = await api.get<ChartDataBars[]>("/market/history", {
-    params: { ticker, period },
+    // Pass conid instead of ticker
+    params: { conid, period },
   });
 
-  // Pick the field you want to plot – here I’m using `close`
   return data.map(({ time, close }) => ({
-    time: time as unknown as Time, // or convert to the exact Time type you need
+    time: time as unknown as Time,
     value: close,
   }));
+};
+
+// This function will fetch the initial quote to get the conid
+export const fetchConidForTicker = async (ticker: string): Promise<{ conid: number; companyName: string }> => {
+  const { data } = await api.get(`/market/conid/${ticker}`);
+  return data;
 };

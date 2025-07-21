@@ -205,4 +205,25 @@ class WebSocketRequest(BaseModel):
     action: str  # e.g., "subscribe_stock", "unsubscribe_stock", "subscribe_portfolio"
     conid: Optional[int] = None
     account_id: Optional[str] = None
-    # Add any other parameters needed for commands
+    
+    
+class Order(BaseModel):
+    conid: int
+    orderType: str
+    side: Literal["BUY", "SELL"]
+    quantity: float
+    tif: str = "DAY"
+    price: Optional[float] = None
+    
+class SearchResult(BaseModel):
+    conid: int
+    symbol: Optional[str] = None
+    companyName: Optional[str] = None
+    secType: Optional[str] = None
+    
+class OptionsChainResponse(BaseModel):
+    expirations: Dict[str, List[float]] # e.g., {"AUG25": [150.0, 155.0, ...]}
+    
+class ConidResponse(BaseModel):
+    conid: int
+    companyName: str

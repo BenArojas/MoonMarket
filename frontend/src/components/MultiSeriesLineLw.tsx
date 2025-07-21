@@ -1,7 +1,7 @@
 // components/charts/MultiSeriesLineLw.tsx
 
 import {  ReturnSeries } from '@/api/user'; 
-import { fetchHistoricalStockData } from '@/api/stock'; 
+import { fetchConidForTicker, fetchHistoricalStockData } from '@/api/stock'; 
 import { toSeries } from '@/utils/lwHelpers';
 import { Skeleton, useTheme } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
@@ -42,12 +42,19 @@ const MultiSeriesLineLw = ({ portfolioSeries, period }: Props) => {
     const theme = useTheme();
     const historyPeriod = mapPeriodForHistory(period);
 
-    // Fetch S&P 500 data internally
-    const { data: spyData, isLoading, error } = useQuery({
-        queryKey: ["historicalData", "SPY", historyPeriod],
-        queryFn: () => fetchHistoricalStockData("SPY", historyPeriod),
-        staleTime: 1000 * 60 * 20, // 1-hour cache
-    });
+    const { data: spyConidData, isLoading: isLoadingConid } = useQuery({
+        queryKey: ['conidForTicker', 'SPY'],
+        queryFn: () => fetchConidForTicker('SPY'),
+        staleTime: Infinity, 
+      });
+      const spyConid = spyConidData?.conid;
+    
+    const { data: spyData, isLoading: isLoadingHistory, error } = useQuery({
+        queryKey: ["historicalData", spyConid, historyPeriod],
+        queryFn: () => fetchHistoricalStockData(spyConid!, historyPeriod),
+        staleTime: 1000 * 60 * 60, // 1-hour cache
+        enabled: !!spyConid,
+      });
 
     // Prepare the series data for the chart
     const comparisonSeries = useMemo(() => {
@@ -79,7 +86,7 @@ const MultiSeriesLineLw = ({ portfolioSeries, period }: Props) => {
     }, [portfolioSeries, spyData, theme]);
 
     // Handle internal loading and error states
-    if (isLoading) {
+    if (isLoadingHistory) {
         return <Skeleton variant="rectangular" width="100%" height={240} />;
     }
 

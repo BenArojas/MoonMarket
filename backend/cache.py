@@ -22,6 +22,31 @@ try:
 except ImportError:
     raise RuntimeError("Install aiocache[redis] for caching layer")
 
+
+def snapshot_key_builder(*args, **kwargs) -> str:
+    """
+    Creates a unique cache key for the IBKRService.snapshot method.
+    The key is based on the conids.
+    """
+    # The IBKRService instance is args[0]
+    service_instance = args[0]
+    fn_name = f"{service_instance.__class__.__name__}.{kwargs.get('func_name')}"
+
+    # The 'conids' are passed as a keyword argument from getStockQuote
+    conids = kwargs.get('conids')
+    if not conids:
+        # Or they might be the second positional argument
+        conids = args[1] if len(args) > 1 else None
+
+    if not conids:
+        raise ValueError("snapshot_key_builder requires a 'conids' argument.")
+
+    # Sort the conids so the key is consistent regardless of order
+    sorted_conids = sorted(map(str, conids))
+
+    # The final key will look like: "IBKRService.snapshot:265598,76798642"
+    return f"{fn_name}:{','.join(sorted_conids)}"
+
 def history_cache_key_builder(*args, **kwargs) -> str:
     """
     Creates a unique cache key for the IBKRService.history method.

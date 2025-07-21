@@ -3,30 +3,44 @@
 FastAPI-native WebSocket broadcaster.
 The single public symbol ``broadcast`` is injected into IBKRService.
 """
-import asyncio, logging, json
-from typing import Set, Callable, Awaitable
-from models import FrontendMarketDataUpdate
+import logging, json
+from typing import Any, Set
+from utils import clean_nan_values
+
 from ibkr_service import IBKRService
-from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from models import WebSocketRequest
 log = logging.getLogger(__name__)
 router = APIRouter()
 _clients: Set[WebSocket] = set()
 
 # ---------- helper wired from IBKRService ----------
-async def broadcast(msg: str) -> None:
+async def broadcast(payload: dict[str, Any]) -> None:
+    """
+    Cleans, serializes, and broadcasts a dictionary payload to all connected clients.
+    """
+    if not isinstance(payload, dict):
+        log.error(f"Broadcast function received non-dict payload: {type(payload)}")
+        return
+
+    # 1. Clean the dictionary to remove any NaN values
+    cleaned_payload = clean_nan_values(payload)
+    
+    # 2. Convert the clean dictionary to a JSON string
+    json_string = json.dumps(cleaned_payload)
+
+    # 3. Send the valid JSON string to all clients
     dead: list[WebSocket] = []
     for ws in _clients:
         try:
-            await ws.send_text(msg)
+            await ws.send_text(json_string)
         except WebSocketDisconnect:
             dead.append(ws)
         except RuntimeError:
-            # "Unexpected ASGI message 'websocket.send'": socket was already closed
             dead.append(ws)
 
     for ws in dead:
-        _clients.discard(ws)    
+        _clients.discard(ws)  
 
 # ---------- WebSocket endpoint ----------
 @router.websocket("/ws")
