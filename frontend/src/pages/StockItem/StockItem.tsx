@@ -61,7 +61,7 @@ export default function StockItem() {
       // unsubscribeFromChart(conid);
     };
     // This effect should only re-run if the conid itself changes
-  }, [conid, setInitialQuote, subscribeToStock, unsubscribeFromStock, subscribeToChart, unsubscribeFromChart]);
+  }, [conid, setInitialQuote, subscribeToStock, unsubscribeFromStock]);
 
 
   // --- EFFECT 2: Handles fetching historical chart data ---
