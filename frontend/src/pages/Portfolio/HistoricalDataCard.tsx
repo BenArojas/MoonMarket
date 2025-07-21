@@ -4,18 +4,26 @@ import { AreaChart, ChartDataPoint } from "@/components/charts/AreaChartLw";
 import { ErrorFallback } from "@/components/ErrorFallBack";
 import GraphSkeleton from "@/Skeletons/GraphSkeleton";
 import "@/styles/App.css";
-import { Card, MenuItem, Stack, TextField, Typography } from "@mui/material";
+import { Button, Card, MenuItem, Stack, TextField, Typography } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 
-
+const getUnderlyingTicker = (instrumentName: string | null): string => {
+  if (!instrumentName) {
+  return "BTC"; // Return a default if nothing is selected
+  }
+  // Splits "IBIT JUL2025 $65.00 C" by spaces and returns the first part.
+  return instrumentName.split(" ")[0];
+  };
 
 export function HistoricalDataCard() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const ticker = searchParams.get("selected") || "BTC";
+  const selectedInstrument = searchParams.get("selected");
+  const ticker = getUnderlyingTicker(selectedInstrument);
   const [selectedPeriod, setSelectedPeriod] = useState<string>("7D"); // Default period
 
   const handlePeriodChange = (newPeriod: string) => {
@@ -44,6 +52,17 @@ export function HistoricalDataCard() {
     // IMPORTANT: This query will only run if the 'conid' has been successfully fetched.
     enabled: !!conid,
   });
+
+  const handleTradeClick = () => {
+    if (conid) {
+      navigate(`/app/stock/${conid}`, {
+        state: {
+          companyName: companyName,
+          ticker: ticker,
+        },
+      });
+    }
+  };
 
 
   if (isLoadingConid || isLoadingHistory) {
@@ -78,7 +97,17 @@ export function HistoricalDataCard() {
           spacing={2}
           alignItems="center"
         >
-          <Typography variant="h5">{ticker}</Typography>
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Typography variant="h5">{ticker}</Typography>
+            <Button
+              variant="outlined"
+              size="medium"
+              onClick={handleTradeClick}
+              disabled={!conid} // Button is disabled until conid is available
+            >
+              Trade
+            </Button>
+          </Stack>
           <div>
             {/* dropdown menu for period */}
             <TextField
