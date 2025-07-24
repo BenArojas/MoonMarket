@@ -14,7 +14,7 @@ from typing import Awaitable, Callable, Optional, List, Dict, Any
 import websockets
 from utils import safe_float_conversion
 from models import AccountDetailsDTO, AccountInfoDTO, BriefAccountInfoDTO, FrontendMarketDataUpdate, LedgerDTO, LedgerEntry, LedgerUpdate, OwnerInfoDTO, PermissionsDTO, PnlRow, PnlUpdate, WebSocketRequest
-from cache import account_specific_key_builder, cached, history_cache_key_builder, snapshot_key_builder
+from cache import account_specific_key_builder, cached, history_cache_key_builder, option_key_builder, snapshot_key_builder
 from rate_control import paced
 from websockets.legacy.client import WebSocketClientProtocol
 
@@ -220,9 +220,17 @@ class IBKRService:
         
     @cached(ttl=3600) 
     async def search(self, symbol, name=False, secType=""):
-        q = {"symbol": symbol, "name": str(name).lower()}
+        # Initialize the query with only the symbol
+        q = {"symbol": symbol}
+        
+        # Only add the 'name' parameter if it's True
+        if name:
+            q["name"] = str(name).lower()
+
+        # Add 'secType' if provided
         if secType:
             q["secType"] = secType
+            
         return await self._req("GET", "/iserver/secdef/search", params=q)
     
     @cached(ttl=3600) # Cache for 1 hour
@@ -245,10 +253,19 @@ class IBKRService:
         response = await self._req("GET", f"/trsrv/secdef?conids={conid}")
         return response.get('secdef', [])[0] if response.get('secdef') else None
 
-    @cached(ttl=3600) # Cache for 1 hour
-    async def strikes(self, conid: int, month: str, sec_type: str = "OPT"):
-        q = {"conid": conid, "sectype": sec_type, "month": month}
-        return await self._req("GET", "/iserver/secdef/strikes", params=q)
+    
+    @cached(ttl=3600, key_builder=option_key_builder)
+    async def get_strikes_for_month(self, conid: int, month: str) -> dict:
+        """Calls /iserver/secdef/strikes to get all potential strikes."""
+        params = {"conid": conid, "secType": "OPT", "month": month}
+        return await self._req("GET", "/iserver/secdef/strikes", params=params)
+    
+    @cached(ttl=3600, key_builder=option_key_builder)
+    async def get_contract_info(self, conid: int, month: str, strike: float, right: str) -> list:
+        """Calls /iserver/secdef/info to validate a single contract and get its conId."""
+        params = {"conid": conid, "secType": "OPT", "month": month, "strike": strike, "right": right}
+        # This can return an empty list if the contract is invalid
+        return await self._req("GET", "/iserver/secdef/info", params=params)
 
     async def check_market_data_availability(self, conid):
         """Check what market data is available for a contract"""
@@ -278,12 +295,10 @@ class IBKRService:
         
         # First request - often returns minimal data
         initial_response = await self._req("GET", "/iserver/marketdata/snapshot", params=q)
-        log.info(f"initial_response: {initial_response}")
         
         # Wait a moment and make second request for actual data
         await asyncio.sleep(1)
         final_response = await self._req("GET", "/iserver/marketdata/snapshot", params=q)
-        log.info(f"final_response: {final_response}")
         
         return final_response
     
@@ -1014,7 +1029,6 @@ class IBKRService:
                     # --- Initial Subscriptions ---
                     await asyncio.sleep(1) # Give connection a moment to settle
                     # On connect, immediately subscribe to the main portfolio data
-                    log.info(f"spl+{account_id}")
                     await ws.send(f'spl+{account_id}')
                     
                     await self._send_initial_allocation(account_id)

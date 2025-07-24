@@ -13,6 +13,8 @@ import {
   CircularProgress,
   Alert,
   Divider,
+  IconButton,
+  Collapse,
 } from "@mui/material";
 import { useStockStore } from "@/stores/stockStore";
 import {
@@ -21,12 +23,17 @@ import {
   usePlaceOrder,
   usePreviewOrder,
 } from "@/hooks/useOrderMutations";
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 
 interface OrderPanelProps {
   conid: number | null;
 }
 
 const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
+
+  const [isExpanded, setIsExpanded] = useState(true);
+
   const [side, setSide] = useState<"BUY" | "SELL">("BUY");
   const [quantity, setQuantity] = useState(1);
   const [orderType, setOrderType] = useState("LMT");
@@ -191,16 +198,30 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
     <Paper
       variant="outlined"
       sx={{
-        maxHeight: "75vh",
         overflowY: "auto",
+        maxHeight:'50vh'
       }}
     >
-      <Typography
-        variant="h6"
-        sx={{ p: 2, borderBottom: "1px solid", borderColor: "divider" }}
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          p: 2,
+          cursor: 'pointer',
+          borderBottom: isExpanded ? '1px solid' : 'none',
+          borderColor: 'divider',
+        }}
+        onClick={() => setIsExpanded(!isExpanded)}
       >
-        Place Order
-      </Typography>
+        <Typography variant="h6">
+          Place Order
+        </Typography>
+        <IconButton size="small">
+          {isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+        </IconButton>
+      </Box>
+      <Collapse in={isExpanded}>
       {accountSummary && (
         <Box
           sx={{
@@ -395,6 +416,7 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
           </Box>
         )}
       </Box>
+      </Collapse>
     </Paper>
   );
 };

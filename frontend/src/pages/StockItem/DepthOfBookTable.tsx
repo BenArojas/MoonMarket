@@ -8,9 +8,16 @@ interface DepthOfBookTableProps {
 
 const DepthOfBookTable: React.FC<DepthOfBookTableProps> = ({ depth }) => {
   return (
-    <Paper variant="outlined" sx={{ mt: 3 }}>
+    <Paper 
+     variant="outlined" 
+     sx={{ 
+       display: 'flex', 
+       flexDirection: 'column', 
+       height: '220px' 
+     }}
+   >
         <Typography variant="h6" sx={{ p: 2 }}>Market Depth</Typography>
-        <TableContainer sx={{ maxHeight: 400 }}>
+        <TableContainer sx={{ flex: 1, overflowY: 'auto' }}>
             <Table stickyHeader size="small">
                 <TableHead>
                     <TableRow>

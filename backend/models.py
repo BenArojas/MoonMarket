@@ -223,7 +223,32 @@ class SearchResult(BaseModel):
     
 class OptionsChainResponse(BaseModel):
     expirations: Dict[str, List[float]] # e.g., {"AUG25": [150.0, 155.0, ...]}
+
+class OptionContract(BaseModel):
+    contractId: int
+    strike: float
+    type: Literal["call", "put"]
+    lastPrice: Optional[float] = None
+    bid: Optional[float] = None
+    ask: Optional[float] = None
+    volume: Optional[int] = None
+    delta: Optional[float] = None
+    bidSize: Optional[int] = None
+    askSize: Optional[int] = None
+
+class FullChainResponse(BaseModel):
+    # e.g., { "60.0": { "call": OptionContract, "put": OptionContract } }
+    chain: Dict[str, Dict[str, Optional[OptionContract]]]
     
 class ConidResponse(BaseModel):
     conid: int
     companyName: str
+    
+class FilteredChainResponse(BaseModel):
+    all_strikes: List[float]
+    chain: Dict[str, Any] # The chain data is now a partial map
+    
+# A new response model for a single call/put pair
+class SingleContractResponse(BaseModel):
+    strike: float
+    data: Dict[str, Optional[OptionContract]]

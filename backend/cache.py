@@ -22,6 +22,31 @@ try:
 except ImportError:
     raise RuntimeError("Install aiocache[redis] for caching layer")
 
+def option_key_builder(*args, **kwargs) -> str:
+    """
+    Creates a unique cache key for options-related API calls.
+    The key includes the function name, conid, month, and optionally strike and right.
+    """
+    # args[0] is the IBKRService instance
+    service_instance = args[0]
+    fn_name = f"{service_instance.__class__.__name__}.{kwargs.get('func_name')}"
+
+    # Required parameters from positional args
+    conid = args[1]
+    month = args[2]
+
+    # Optional parameters (for get_contract_info)
+    strike = args[3] if len(args) > 3 else None
+    right = args[4] if len(args) > 4 else None
+
+    # Build the key, adding optional parts only if they exist
+    key = f"{fn_name}:{conid}:{month}"
+    if strike:
+        key += f":{strike}"
+    if right:
+        key += f":{right}"
+    
+    return key
 
 def snapshot_key_builder(*args, **kwargs) -> str:
     """

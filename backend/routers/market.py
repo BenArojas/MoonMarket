@@ -1,12 +1,13 @@
+import asyncio
 import datetime
 from logging import log
 import logging
-from typing import Dict, List
+from typing import Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 import httpx
 from utils import price_delta, safe_float_conversion
 from ibkr_service import IBKRService
-from models import ChartDataBars, ConidResponse, OptionsChainResponse, SearchResult
+from models import ChartDataBars, ConidResponse, FilteredChainResponse, FullChainResponse, OptionContract, OptionsChainResponse, SearchResult, SingleContractResponse
 from deps import get_ibkr_service 
 from constants import CRYPTO_SYMBOLS, PERIOD_BAR 
 log = logging.getLogger(__name__)
@@ -76,11 +77,9 @@ async def get_stock_quote(conid: int, ibkr_service: IBKRService = Depends(get_ib
         ]
 
         raw_data = await ibkr_service.snapshot(conids=[conid], fields=fields_to_fetch)
-        log.info(f"raw data is {raw_data}")
         if not raw_data:
             raise HTTPException(status_code=404, detail="No market data available")
         data = raw_data[0]
-        log.info(f"data is: {data}")
         
         price_data = price_delta(raw_data)
         # Extract the extra fields we need
@@ -138,48 +137,215 @@ async def search_securities(
     except Exception:
         log.exception("Unexpected /search error")
         return []
-    
-@router.get("/options/chain/{underlying_conid}", response_model=OptionsChainResponse)
-async def get_options_chain(
-    underlying_conid: int,
+
+@router.get("/options/expirations/{ticker}", response_model=List[str])
+async def get_option_expirations(
+    ticker: str,
     svc: IBKRService = Depends(get_ibkr_service)
 ):
     """
-    Constructs and returns an options chain for a given underlying contract ID.
+    Gets option expiration months by searching for the ticker symbol.
     """
     try:
-        # Step 1: Search for the underlying to get available option months.
-        # The 'sections' array in the search result contains this.
-        search_results = await svc.search_detailed(underlying_conid) # We need a search function that returns 'sections'
-        
-        if not search_results or not search_results.get('sections'):
-            raise HTTPException(status_code=404, detail="No options data found for this conid.")
+        # Use the existing search method to find the contract by ticker
+        search_results = await svc.search(symbol=ticker,secType="STK")
+        if not search_results:
+            raise HTTPException(status_code=404, detail=f"No stock contract found for ticker {ticker}")
 
-        # Find the 'OPT' section to get the months
-        opt_section = next((s for s in search_results['sections'] if s.get('secType') == 'OPT'), None)
+        # The search can return multiple results; we assume the first is the primary.
+        # A more robust solution might filter by exchange if needed.
+        metadata = search_results[0]
+        
+        if not metadata.get('sections'):
+            raise HTTPException(status_code=404, detail="Contract found, but no 'sections' data was available.")
+
+        opt_section = next((s for s in metadata['sections'] if s.get('secType') == 'OPT'), None)
         if not opt_section or not opt_section.get('months'):
             raise HTTPException(status_code=404, detail="No option expiration months found.")
 
-        # Months are returned as a semicolon-separated string, e.g., "JUL25;AUG25;SEP25"
         months = opt_section['months'].split(';')
+        return [m for m in months if m]
+    except Exception as e:
+        log.error(e)
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
+
+
+@router.get("/options/chain/{ticker}", response_model=FilteredChainResponse)
+async def get_filtered_option_chain(
+    ticker: str,
+    expiration_month: str,
+    strike_count: int = 4, # Number of strikes to fetch on each side of the price
+    svc: IBKRService = Depends(get_ibkr_service)
+):
+    # --- Step 1: Get Underlying ConID & Price ---
+    search_results = await svc.search(symbol=ticker, secType="STK")
+    underlying_conid = search_results[0].get("conid")
+    
+    current_price = None
+    max_retries = 3
+    retry_delay = 2  # seconds
+    for attempt in range(max_retries):
+    # Use the snapshot to get the underlying's last price
+        price_snapshot = await svc.snapshot([underlying_conid], fields="31")
+        if price_snapshot and isinstance(price_snapshot, list) and price_snapshot[0]:
+            price_str = price_snapshot[0].get("31")
+            if price_str and price_str.replace('.', '', 1).isdigit():
+                current_price = float(price_str)
+                log.info(f"Successfully fetched price for {ticker} on attempt {attempt + 1}: {current_price}")
+                break  # Exit loop on success
+        log.warning(
+            f"Attempt {attempt + 1}/{max_retries} to fetch price for {ticker} failed or returned invalid data. "
+            f"Retrying in {retry_delay}s..."
+        )
+        if attempt < max_retries - 1:
+            await asyncio.sleep(retry_delay)
+    if current_price is None:
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Could not fetch a valid market price for {ticker} after {max_retries} attempts."
+        )
+
+    # --- Step 2: Get All Potential Strikes ---
+    all_strikes_data = await svc.get_strikes_for_month(underlying_conid, expiration_month)
+    all_strikes = sorted([float(s) for s in all_strikes_data.get("put", [])])
+    if not all_strikes:
+        raise HTTPException(status_code=404, detail="No strikes found for this expiration.")
+
+    # --- Step 3: Filter the Strikes ---
+    # Find the index of the strike closest to the current price
+    closest_strike_index = min(range(len(all_strikes)), key=lambda i: abs(all_strikes[i] - current_price))
+    start_index = max(0, closest_strike_index - strike_count)
+    end_index = min(len(all_strikes), closest_strike_index + strike_count)
+    filtered_strikes = all_strikes[start_index:end_index]
+
+    # --- Step 4: Validate Filtered Strikes Concurrently ---
+    tasks = []
+    for strike in filtered_strikes:
+        tasks.append(svc.get_contract_info(underlying_conid, expiration_month, strike, "C"))
+        tasks.append(svc.get_contract_info(underlying_conid, expiration_month, strike, "P"))
+    
+    validated_contracts_responses = await asyncio.gather(*tasks)
+    
+    # --- Step 5 & 6: Get Bulk Market Data ---
+    valid_conids = [
+        contract["conid"]
+        for response in validated_contracts_responses
+        if response and isinstance(response, list) and len(response) > 0 and (contract := response[0])
+    ]
+
+    market_data_snapshot = await svc.snapshot(valid_conids, fields="31,84,86,7069,13,70,71")
+    market_data_map = {str(item['conid']): item for item in market_data_snapshot}
+
+    # --- Step 7: Reshape Data for Frontend ---
+    final_chain = {}
+    for response in validated_contracts_responses:
+        if response and isinstance(response, list) and len(response) > 0 and (contract := response[0]):
+            strike_key = f"{float(contract['strike']):.2f}"
+            if strike_key not in final_chain:
+                final_chain[strike_key] = {"call": None, "put": None}
+            
+            contract_type = "call" if contract['right'] == "C" else "put"
+            market_data = market_data_map.get(str(contract['conid']), {})
+            
+            final_chain[strike_key][contract_type] = OptionContract(
+                contractId=contract['conid'],
+                strike=float(strike_key),
+                type=contract_type,
+                lastPrice=safe_float_conversion(market_data.get('31')),
+                bid=safe_float_conversion(market_data.get('84')),
+                ask=safe_float_conversion(market_data.get('86')),
+                volume=int(market_data['7069']) if market_data.get('7069') else None,
+                delta=safe_float_conversion(market_data.get('13')),
+                bidSize=int(market_data['70']) if market_data.get('70') else None,
+                askSize=int(market_data['71']) if market_data.get('71') else None,
+            )
+
+    return FilteredChainResponse(all_strikes=all_strikes, chain=final_chain)
+
+@router.get("/options/contract/{ticker}", response_model=SingleContractResponse)
+async def get_single_option_contract(
+    ticker: str,
+    expiration_month: str,
+    strike: float,
+    svc: IBKRService = Depends(get_ibkr_service)
+):
+    """
+    Gets the validated Call and Put contracts for a single strike price
+    and enriches them with live market data.
+    """
+    try:
+        # Step 1: Get underlying conId
+        search_results = await svc.search(symbol=ticker, secType="STK")
+        if not search_results:
+            raise HTTPException(status_code=404, detail=f"No stock contract found for {ticker}")
+        underlying_conid = search_results[0].get("conid")
+
+        # Step 2: Validate Call and Put contracts concurrently
+        call_task = svc.get_contract_info(underlying_conid, expiration_month, strike, "C")
+        put_task = svc.get_contract_info(underlying_conid, expiration_month, strike, "P")
+        call_info_list, put_info_list = await asyncio.gather(call_task, put_task)
+
+        # Step 3: Collect valid conIds to fetch market data
+        conids_to_price = []
+        call_contract_info = call_info_list[0] if call_info_list else None
+        put_contract_info = put_info_list[0] if put_info_list else None
+
+        if call_contract_info:
+            conids_to_price.append(call_contract_info['conid'])
+        if put_contract_info:
+            conids_to_price.append(put_contract_info['conid'])
+
+        if not conids_to_price:
+            # If no valid contracts found, return empty data
+            return SingleContractResponse(strike=strike, data={"call": None, "put": None})
+
+        # Step 4: Get market data snapshot for the valid conIds
+        market_data_snapshot = await svc.snapshot(conids_to_price, fields="31,84,86,7069,13,70,71")
+        market_data_map = {str(item['conid']): item for item in market_data_snapshot}
+
+        # Step 5: Build the final response object
+        call_to_add: Optional[OptionContract] = None
+        put_to_add: Optional[OptionContract] = None
+
+        if call_contract_info:
+            conid = str(call_contract_info['conid'])
+            market_data = market_data_map.get(conid, {})
+            
+            call_to_add = OptionContract(
+                contractId=int(conid), strike=strike, type='call',
+                lastPrice=safe_float_conversion(market_data.get('31')),
+                bid=safe_float_conversion(market_data.get('84')),
+                ask=safe_float_conversion(market_data.get('86')),
+                volume=int(market_data['7069']) if market_data.get('7069') else None,
+                delta=safe_float_conversion(market_data.get('13')),
+                bidSize=int(market_data['70']) if market_data.get('70') else None,
+                askSize=int(market_data['71']) if market_data.get('71') else None,
+            )
+
+        if put_contract_info:
+            conid = str(put_contract_info['conid'])
+            market_data = market_data_map.get(conid, {})
+            put_to_add = OptionContract(
+                contractId=int(conid), strike=strike, type='put',
+                lastPrice=safe_float_conversion(market_data.get('31')),
+                bid=safe_float_conversion(market_data.get('84')),
+                ask=safe_float_conversion(market_data.get('86')),
+                volume=int(market_data['7069']) if market_data.get('7069') else None,
+                delta=safe_float_conversion(market_data.get('13')),
+                bidSize=int(market_data['70']) if market_data.get('70') else None,
+                askSize=int(market_data['71']) if market_data.get('71') else None,
+            )
         
-        chain_data: Dict[str, List[float]] = {}
-
-        # Step 2: For each month, fetch the available strike prices.
-        for month in months:
-            if not month: continue
-            strike_data = await svc.strikes(conid=underlying_conid, month=month)
-            # The API returns strikes for both calls and puts. We'll combine them and remove duplicates.
-            if strike_data and ('call' in strike_data or 'put' in strike_data):
-                all_strikes = set(strike_data.get('call', [])) | set(strike_data.get('put', []))
-                chain_data[month] = sorted(list(all_strikes))
-
-        return {"expirations": chain_data}
+        # Explicitly create the nested data structure for the response model
+        response_data = {"call": call_to_add, "put": put_to_add}
+        return SingleContractResponse(strike=strike, data=response_data)
 
     except Exception as e:
-        log.exception(f"Failed to build options chain for conid {underlying_conid}")
-        raise HTTPException(status_code=500, detail=str(e))
-    
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
 
 @router.get("/conid/{ticker}", response_model=ConidResponse)
 async def get_conid_for_ticker(

@@ -16,16 +16,61 @@ import CandleStickChart from "@/components/charts/CandleSticksChart";
 import OrderPanel from "./OrderPanel";
 import DepthOfBookTable from "./DepthOfBookTable";
 import OptionsChain from "./OptionsChain";
+import { useQuery } from "@tanstack/react-query";
 
 const timePeriods = ["1D", "7D", "1M", "3M", "YTD", "1Y", "5Y"];
 
+// --- TYPE DEFINITIONS ---
+export interface OptionContract {
+  contractId: number;
+  strike: number;
+  type: "call" | "put";
+  lastPrice?: number;
+  bid?: number;
+  ask?: number;
+  volume?: number;
+  delta?: number;
+  bidSize?: number;
+  askSize?: number;
+}
+
+export type OptionsChainData = Record<
+  string,
+  {
+    call?: OptionContract;
+    put?: OptionContract;
+  }
+>;
+
+// Add these new types for our API responses
+export interface FilteredChainResponse {
+  all_strikes: number[];
+  chain: OptionsChainData;
+}
+
+export interface SingleContractResponse {
+  strike: number;
+  data: {
+    call?: OptionContract;
+    put?: OptionContract;
+  };
+}
+
 export default function StockItem() {
   const { conid: conidFromUrl } = useParams<{ conid: string }>();
+  const [view, setView] = useState<"chart" | "options">("chart");
+
+  // Chart State
   const [isChartLoading, setIsChartLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState("7D");
-  const [view, setView] = useState<"chart" | "options">("chart");
-  const location = useLocation();
 
+  // Options State
+  //  const [expirations, setExpirations] = useState<string[]>([]);
+  const [selectedExpiration, setSelectedExpiration] = useState<string>("");
+  const [optionsChainData, setOptionsChainData] =
+    useState<OptionsChainData | null>(null);
+
+  const location = useLocation();
   const activeStock = useStockStore((state) => state.activeStock);
   const setInitialQuote = useStockStore((state) => state.setInitialQuote);
   const setInitialChartData = useStockStore(
@@ -38,8 +83,60 @@ export default function StockItem() {
   const setPreloadedDetails = useStockStore(
     (state) => state.setPreloadedDetails
   );
-
+  const { ticker } = activeStock;
   const conid = conidFromUrl ? parseInt(conidFromUrl, 10) : null;
+
+  const {
+    data: expirations,
+    isLoading: isExpirationsLoading,
+    error: expirationsError,
+  } = useQuery({
+    queryKey: ["expirations", ticker],
+    queryFn: async () => {
+      const response = await api.get<string[]>(
+        `market/options/expirations/${ticker}`
+      );
+      return response.data;
+    },
+    enabled: view === "options" && !!ticker,
+    // The 'onSuccess' callback has been removed.
+  });
+
+  // NEW: Use useEffect to handle the side effect of setting the default expiration.
+  // This runs whenever the 'expirations' data from the query changes.
+  useEffect(() => {
+    // If we have expiration dates but none is selected yet, select the first one.
+    if (expirations && expirations.length > 0 && !selectedExpiration) {
+      setSelectedExpiration(expirations[0]);
+    }
+  }, [expirations, selectedExpiration]);
+
+  // --- Query 2: Fetch Filtered Option Chain ---
+  const {
+    data: chainResponse,
+    isLoading: isChainLoading,
+    error: chainError,
+  } = useQuery({
+    queryKey: ["optionChain", ticker, selectedExpiration],
+    queryFn: async () => {
+      const response = await api.get<FilteredChainResponse>(
+        `market/options/chain/${ticker}?expiration_month=${selectedExpiration}`
+      );
+      return response.data;
+    },
+    // Only run this query when we have a selected expiration
+    enabled: !!selectedExpiration,
+  });
+
+  useEffect(() => {
+    if (chainResponse) {
+      setOptionsChainData(chainResponse.chain);
+    }
+  }, [chainResponse]);
+
+  const handleChainUpdate = (updatedChain: OptionsChainData) => {
+    setOptionsChainData(updatedChain);
+  };
 
   // --- EFFECT 1: Handles initial quote and live subscriptions ---
   // This runs only when the stock's conid changes.
@@ -130,122 +227,111 @@ export default function StockItem() {
     );
   }
 
-  if (!activeStock.conid) {
-    return (
-      <Typography sx={{ p: 4 }}>Stock not found or failed to load.</Typography>
-    );
-  }
-
   return (
-    <Box className="layoutContainer" sx={{ p: 2 }}>
-      <Typography variant="h5" component="h2" gutterBottom>
+    <Box
+      className="layoutContainer"
+      sx={{
+        p: 2,
+        // Define the master grid layout for the whole page
+        display: "grid",
+        // Two rows: header (auto height), main content (fills remaining space)
+        gridTemplateRows: "auto 1fr",
+        // Two columns: main (2fr), sidebar (1fr)
+        gridTemplateColumns: "2fr 1fr",
+        gap: "0 20px", // 0px row gap, 20px column gap
+        // Set a height boundary for the entire component
+        height: "calc(100vh - 80px)", // Adjust 80px to match your navbar height
+      }}
+    >
+      <Typography
+        variant="h5"
+        component="h2"
+        gutterBottom
+        sx={{ gridColumn: "1 / -1" }}
+      >
         {activeStock.companyName} ({activeStock.ticker})
       </Typography>
 
       <div
-        className="main-content-grid"
-        style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "20px" }}
+        className="chart-and-info"
+        style={{
+          gridRow: 2, // Place in the second row
+          gridColumn: 1, // Place in the first column
+          display: "flex",
+          flexDirection: "column",
+          minHeight: 0, // Prevents flex items from overflowing
+        }}
       >
-        <div className="chart-and-info">
-          <LiveQuoteDisplay quote={activeStock.quote} />
-          <Stack
-            sx={{ my: 2 }}
-            direction="row-reverse"
-            justifyContent={"space-between"}
-          >
-            <ButtonGroup variant="outlined" aria-label="view selector">
-              <Button
-                variant={view === "chart" ? "contained" : "outlined"}
-                onClick={() => setView("chart")}
-              >
-                Chart
-              </Button>
-              <Button
-                variant={view === "options" ? "contained" : "outlined"}
-                onClick={() => setView("options")}
-              >
-                Options
-              </Button>
-            </ButtonGroup>
-            {view === "chart" && (
-              <ButtonGroup variant="outlined" aria-label="time period selector">
-                {timePeriods.map((period) => (
-                  <Button
-                    key={period}
-                    variant={
-                      selectedPeriod === period ? "contained" : "outlined"
-                    }
-                    onClick={() => setSelectedPeriod(period)}
-                  >
-                    {period}
-                  </Button>
-                ))}
-              </ButtonGroup>
-            )}
-          </Stack>
-
-          {/* This loader is now controlled by the chart-specific loading state */}
+        <LiveQuoteDisplay quote={activeStock.quote} />
+        <Stack
+          sx={{ my: 2 }}
+          direction="row-reverse"
+          justifyContent={"space-between"}
+        >
+          <ButtonGroup variant="outlined" aria-label="view selector">
+            <Button
+              variant={view === "chart" ? "contained" : "outlined"}
+              onClick={() => setView("chart")}
+            >
+              Chart
+            </Button>
+            <Button
+              variant={view === "options" ? "contained" : "outlined"}
+              onClick={() => setView("options")}
+            >
+              Options
+            </Button>
+          </ButtonGroup>
           {view === "chart" && (
-            <>
-              {isChartLoading ? (
-                <Box
-                  sx={{
-                    height: 500,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
+            <ButtonGroup variant="outlined" aria-label="time period selector">
+              {timePeriods.map((period) => (
+                <Button
+                  key={period}
+                  variant={selectedPeriod === period ? "contained" : "outlined"}
+                  onClick={() => setSelectedPeriod(period)}
                 >
-                  <CircularProgress />
-                </Box>
-              ) : (
-                <CandleStickChart />
-              )}
-            </>
+                  {period}
+                </Button>
+              ))}
+            </ButtonGroup>
           )}
+        </Stack>
 
-          {view === "options" && (
-            // You can fetch real options data here in the future
-            <OptionsChain data={mockOptionsData}/>
-          )}
-        </div>
-        <div className="trading-panel">
-          <OrderPanel conid={activeStock.conid} />
-          <DepthOfBookTable depth={activeStock.depth} />
-        </div>
+        {/* This loader is now controlled by the chart-specific loading state */}
+        {view === "chart" && <CandleStickChart />}
+
+        {view === "options" && (
+          <OptionsChain
+            allStrikes={chainResponse?.all_strikes || []}
+            ticker={ticker || ""}
+            onChainUpdate={handleChainUpdate}
+            chainData={optionsChainData}
+            expirations={expirations || []}
+            selectedExpiration={selectedExpiration}
+            onExpirationChange={(e) => setSelectedExpiration(e.target.value)}
+            // Combine loading states from both queries
+            isLoading={isExpirationsLoading || isChainLoading}
+            // Combine error states
+            error={expirationsError?.message || chainError?.message || null}
+            currentPrice={activeStock.quote.lastPrice || 0}
+          />
+        )}
+      </div>
+      <div
+        className="trading-panel"
+        style={{
+          gridRow: 2, // Place in the second row
+          gridColumn: 2, // Place in the second column
+          display: "flex",
+          flexDirection: "column",
+          minHeight: 0,
+          overflowY: "auto",
+          gap: '10px'
+        }}
+      >
+        <DepthOfBookTable depth={activeStock.depth} />
+        <OrderPanel conid={activeStock.conid} />
       </div>
     </Box>
   );
 }
-
-export interface OptionContract {
-  contractId: string;
-  strike: number;
-  type: 'call' | 'put';
-  lastPrice: number;
-  bid: number;
-  ask: number;
-  volume: number;
-  openInterest: number;
-}
-
-export interface OptionsData {
-  [expirationDate: string]: OptionContract[];
-}
-
-export const mockOptionsData: OptionsData = {
-  "2025-07-25": [
-    { contractId: 'c1', strike: 60, type: 'call', lastPrice: 6.50, bid: 6.45, ask: 6.55, volume: 120, openInterest: 1500 },
-    { contractId: 'p1', strike: 60, type: 'put', lastPrice: 0.50, bid: 0.48, ask: 0.52, volume: 90, openInterest: 1200 },
-    { contractId: 'c2', strike: 65, type: 'call', lastPrice: 2.80, bid: 2.78, ask: 2.82, volume: 250, openInterest: 3000 },
-    { contractId: 'p2', strike: 65, type: 'put', lastPrice: 1.80, bid: 1.78, ask: 1.82, volume: 180, openInterest: 2500 },
-    { contractId: 'c3', strike: 70, type: 'call', lastPrice: 0.90, bid: 0.88, ask: 0.92, volume: 300, openInterest: 4000 },
-    { contractId: 'p3', strike: 70, type: 'put', lastPrice: 4.90, bid: 4.85, ask: 4.95, volume: 150, openInterest: 2000 },
-  ],
-  "2025-08-15": [
-    { contractId: 'c4', strike: 62.5, type: 'call', lastPrice: 5.20, bid: 5.15, ask: 5.25, volume: 80, openInterest: 1000 },
-    { contractId: 'p4', strike: 62.5, type: 'put', lastPrice: 1.20, bid: 1.18, ask: 1.22, volume: 60, openInterest: 800 },
-    { contractId: 'c5', strike: 67.5, type: 'call', lastPrice: 2.10, bid: 2.08, ask: 2.12, volume: 150, openInterest: 2000 },
-    { contractId: 'p5', strike: 67.5, type: 'put', lastPrice: 3.10, bid: 3.05, ask: 3.15, volume: 100, openInterest: 1500 },
-  ],
-};

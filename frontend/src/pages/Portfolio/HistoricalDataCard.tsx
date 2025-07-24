@@ -2,6 +2,7 @@ import api from '@/api/axios';
 import { fetchHistoricalStockData, fetchConidForTicker } from '@/api/stock'; 
 import { AreaChart, ChartDataPoint } from "@/components/charts/AreaChartLw";
 import { ErrorFallback } from "@/components/ErrorFallBack";
+import { useAuth } from '@/contexts/AuthContext';
 import GraphSkeleton from "@/Skeletons/GraphSkeleton";
 import "@/styles/App.css";
 import { Button, Card, MenuItem, Stack, TextField, Typography } from "@mui/material";
@@ -20,6 +21,7 @@ const getUnderlyingTicker = (instrumentName: string | null): string => {
   };
 
 export function HistoricalDataCard() {
+  const { isAuth } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedInstrument = searchParams.get("selected");
@@ -33,7 +35,7 @@ export function HistoricalDataCard() {
   const { data: conidData, isLoading: isLoadingConid } = useQuery({
     queryKey: ['conidForTicker', ticker],
     queryFn: () => fetchConidForTicker(ticker),
-    enabled: !!ticker, // Only run if a ticker is present
+    enabled:  !!ticker && isAuth, // Only run if a ticker is present
   });
 
   const conid = conidData?.conid;
