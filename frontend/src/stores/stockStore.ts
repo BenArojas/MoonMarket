@@ -1,4 +1,5 @@
 // src/stores/stockStore.ts
+import api from "@/api/axios";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 /* -------------------------------- AllocationDTO ------------------------- */
@@ -184,7 +185,7 @@ interface StockState {
   // Actions
   // chart bars
   setInitialChartData: (data: ChartBar[]) => void;
-
+  setInitialCoreTotals: (totals: { dailyRealized: number; unrealized: number; netLiq: number }) => void;
   subscribeToStock: (conid: number) => void;
   subscribeToAllocation: () => void;
   setInitialQuote: (data: InitialQuoteData) => void;
@@ -250,6 +251,11 @@ export const useStockStore = create<StockState>()(
         set((state) => ({
           activeStock: { ...state.activeStock, chartData: data },
         })),
+        
+        setInitialCoreTotals: (totals) => {
+          set({ coreTotals: totals });
+        },
+
       setPnl: (rows) => {
         const coreKey = Object.keys(rows).find((k) => k.endsWith(".Core"));
         const core = coreKey ? rows[coreKey] : undefined;
@@ -490,6 +496,7 @@ function connectWebSocket(get: () => StockState) {
         break;
 
       case "pnl":
+        console.log("")
         get().setPnl(msg.data);
         break;
 

@@ -24,6 +24,8 @@ function Portfolio() {
   const subscribeToPortfolio = useStockStore(state => state.subscribeToPortfolio);
   const unsubscribeFromPortfolio = useStockStore(state => state.unsubscribeFromPortfolio);
 
+
+
   useEffect(() => {
     // Only try to subscribe if the connection is actually active.
     if (connectionStatus === 'connected') {

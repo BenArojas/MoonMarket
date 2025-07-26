@@ -9,23 +9,54 @@ import { WebSocketManager } from "@/hooks/WebSocketManager";
 import { useStockStore } from "@/stores/stockStore";
 import { useQuery } from "@tanstack/react-query";
 import { checkAiFeatures } from "@/api/user";
+import api from "@/api/axios";
+
+export const fetchPnlSnapshot = async (accountId: string) => {
+  const response = await api.get(`/account/pnl?accountId=${accountId}`);
+  return response.data; // The payload with { type: 'pnl', data: { ... } }
+};
 
 const Layout: React.FC = () => {
   const theme = useTheme();
   const isMobileScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const setAreAiFeaturesEnabled = useStockStore((s) => s.setAreAiFeaturesEnabled);
+  const { setInitialCoreTotals } = useStockStore();
+  const selectedAccountId = useStockStore((state) => state.selectedAccountId);
+
+
   const { data } = useQuery({
     queryKey: ["aiFeatureCheck"],
     queryFn: checkAiFeatures,
     staleTime: Infinity, // We only need to check this once per session
     retry: false, // Don't retry on failure
   });
+
+  const { data: pnlData } = useQuery({
+    queryKey: ['pnlSnapshot', selectedAccountId],
+    queryFn: () => fetchPnlSnapshot(selectedAccountId!),
+    enabled: !!selectedAccountId, // Only run when we have an account ID
+    refetchOnWindowFocus: false,
+  });
+  console.log(pnlData)
+
+  // 2. A useEffect hook handles the side effect of updating the store.
+  useEffect(() => {
+    // When the 'data' object is populated by a successful query...
+    if (pnlData) {
+      // ...update the Zustand store.
+      setInitialCoreTotals({
+        dailyRealized: pnlData.dailyRealized,
+        unrealized: pnlData.unrealized,
+        netLiq: pnlData.netLiq,
+      });
+    }
+  }, [data,pnlData, setInitialCoreTotals]);
   
   useEffect(() => {
     if (data) {
       setAreAiFeaturesEnabled(data.enabled);
     }
-  }, [data, setAreAiFeaturesEnabled]);
+  }, [data, setAreAiFeaturesEnabled, selectedAccountId]);
 
 
   return (

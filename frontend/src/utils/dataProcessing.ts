@@ -58,6 +58,9 @@ export function processTreemapData(
 
   // Process each stock from the stocks object
   Object.entries(stocks).forEach(([ticker, stockData]) => {
+    if (stockData.quantity === 0) {
+      return; // Skip this stock if quantity is 0
+    }
     const value: number = stockData.value;
     sum += value;
 
@@ -170,69 +173,7 @@ export type DonutData = {
   othersStocks?: any[];
 }
 
-export function processDonutData(stocks: { [symbol: string]: StockData }): DonutData[] {
-  type ProcessedStockData = {
-    name: string;
-    value: number;
-    quantity: number;
-    percentageOfPortfolio: number;
-  }
 
-  const stocksArray: ProcessedStockData[] = [];
-  let totalPortfolioValue: number = 0;
-
-  // Calculate total portfolio value
-  Object.entries(stocks).forEach(([ticker, stockData]) => {
-    totalPortfolioValue += stockData.value;
-  });
-
-  // Process each stock and calculate percentage
-  Object.entries(stocks).forEach(([ticker, stockData]) => {
-    const percentageOfPortfolio: number = Math.round(
-      (stockData.value / totalPortfolioValue) * 100
-    );
-
-    stocksArray.push({
-      name: ticker,
-      value: stockData.value,
-      quantity: stockData.quantity,
-      percentageOfPortfolio,
-    });
-  });
-
-  // Sort stocks by value in descending order
-  stocksArray.sort((a: ProcessedStockData, b: ProcessedStockData) => b.value - a.value);
-
-  // Handle "Others" category for more than 8 stocks
-  const othersStocks: ProcessedStockData[] = stocksArray.length > 8 ? stocksArray.slice(8) : [];
-  if (othersStocks.length > 0) {
-    const othersValue: number = othersStocks.reduce(
-      (acc: number, curr: ProcessedStockData) => acc + curr.value,
-      0
-    );
-    const othersPercentage: number = othersStocks.reduce(
-      (acc: number, curr: ProcessedStockData) => acc + curr.percentageOfPortfolio,
-      0
-    );
-
-    stocksArray.length = 8; // Trim to first 8
-    stocksArray.push({
-      name: "Others",
-      value: othersValue,
-      percentageOfPortfolio: othersPercentage,
-      quantity: 0, // Quantity not relevant for "Others"
-    });
-  }
-
-  // Attach othersStocks to the result
-  Object.defineProperty(stocksArray, "othersStocks", {
-    value: othersStocks,
-    writable: true,
-    enumerable: false,
-  });
-
-  return stocksArray;
-}
 // Sankey Data Processing
 export function processSankeyData(stocks: { [symbol: string]: StockData }): SankeyInputData {
   // Nodes conforming to SankeyInputNode
@@ -248,6 +189,13 @@ export function processSankeyData(stocks: { [symbol: string]: StockData }): Sank
   let negativeValue: number = 0;
 
   Object.entries(stocks).forEach(([ticker, stockData]) => {
+    if (
+      stockData.quantity === 0 ||
+      !stockData.avg_bought_price ||
+      stockData.avg_bought_price <= 0
+    ) {
+      return; // Skip this stock
+    }
     // Skip if we don't have proper price data
     if (!stockData.avg_bought_price || stockData.avg_bought_price <= 0) return;
 
@@ -317,53 +265,42 @@ export type CircularData = {
 
 // Circular Data Processing
 export function processCircularData(stocks: { [symbol: string]: StockData }): CircularData {
-  const children: {
-    type: string;
-    ticker: string;
-    name: string;
-    value: number;
-    stockType: string;
-    quantity: number;
-    avgSharePrice: number;
-    last_price: number;
-    percentageOfPortfolio: number;
-  }[] = [];
-  let sum: number = 0;
   let totalPortfolioValue: number = 0;
 
-  // Calculate total portfolio value first
-  Object.values(stocks).forEach((stockData) => {
+  const relevantStocks = Object.entries(stocks).filter(
+    ([, stockData]) => stockData.quantity !== 0
+  );
+
+  relevantStocks.forEach(([, stockData]) => {
     totalPortfolioValue += stockData.value;
   });
 
-  // Process each stock
-  Object.entries(stocks).forEach(([ticker, stockData]) => {
+  const children: StockChild[] = relevantStocks.map(([ticker, stockData]) => {
     const value: number = stockData.value;
-    sum += value;
-    const stock_avg_price = stockData.avg_bought_price;
-    const percentageOfPortfolio = (
-      (value / totalPortfolioValue) * 100
-    );
+    const percentageOfPortfolio =
+      totalPortfolioValue > 0 ? (value / totalPortfolioValue) * 100 : 0;
+    const stockType: string =
+      stockData.last_price > stockData.avg_bought_price
+        ? "positive"
+        : "negative";
 
-    const stockType: string = stockData.last_price > stockData.avg_bought_price ? "positive" : "negative";
-
-    children.push({
+    return {
       type: "leaf",
       ticker,
-      name: ticker, // Using ticker as name since we don't have separate company name
+      name: ticker,
       value,
       stockType,
       quantity: stockData.quantity,
-      avgSharePrice: stock_avg_price,
+      avgSharePrice: stockData.avg_bought_price,
       last_price: stockData.last_price,
       percentageOfPortfolio,
-    });
+    };
   });
 
   return {
     type: "node",
     name: "stocks",
-    value: sum,
+    value: totalPortfolioValue,
     children,
   };
 }
@@ -381,36 +318,42 @@ export type leaderboardsStock ={
   gainLoss: number;
 }
 export function processLeaderboardsData(stocks: { [symbol: string]: StockData }): leaderboardsStock[]{
-  let totalPortfolioValue: number = 0;
 
-  // Calculate total portfolio value first
-  Object.values(stocks).forEach((stockData) => {
+  const relevantStocks = Object.entries(stocks).filter(
+    ([, stockData]) => stockData.quantity !== 0
+  );
+  let totalPortfolioValue: number = 0;
+  // Calculate total portfolio value from relevant stocks
+  relevantStocks.forEach(([, stockData]) => {
     totalPortfolioValue += stockData.value;
   });
 
   // Process each stock
-  const LeaderboardsData = Object.entries(stocks)
+  const LeaderboardsData = relevantStocks
     .map(([ticker, stockData]) => {
-      const value = stockData.value;
-      const priceChange: number = stockData.last_price - stockData.avg_bought_price;
-      const priceChangePercentage = (
-        ((stockData.last_price - stockData.avg_bought_price) / stockData.avg_bought_price) * 100
-      );
-      const percentageOfPortfolio = (
-        (stockData.value / totalPortfolioValue) * 100
-      );
-      const gainLoss = (
-        stockData.value - (stockData.avg_bought_price * stockData.quantity)
-      );
+      const priceChange: number =
+        stockData.last_price - stockData.avg_bought_price;
+      const priceChangePercentage =
+        stockData.avg_bought_price !== 0
+          ? ((stockData.last_price - stockData.avg_bought_price) /
+              stockData.avg_bought_price) *
+            100
+          : 0;
+      const percentageOfPortfolio =
+        totalPortfolioValue > 0
+          ? (stockData.value / totalPortfolioValue) * 100
+          : 0;
+      const gainLoss =
+        stockData.value - stockData.avg_bought_price * stockData.quantity;
 
       return {
         ticker: ticker,
-        name: ticker, // Using ticker as name since we don't have separate company name
-        value,
+        name: ticker,
+        value: stockData.value,
         priceChange,
         priceChangePercentage,
         sharePrice: stockData.last_price,
-        earnings: "N/A", // Not available in your current data structure
+        earnings: "N/A",
         quantity: stockData.quantity,
         percentageOfPortfolio,
         gainLoss,

@@ -1,9 +1,10 @@
+import asyncio
 from datetime import datetime, timezone
 import logging
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from ibkr_service import IBKRService
-from models import AccountDetailsDTO, AllocationDTO, BriefAccountInfoDTO, ChartDataPoint, ComboDTO, LedgerDTO
+from models import AccountDetailsDTO, AllocationDTO, BriefAccountInfoDTO, ChartDataPoint, ComboDTO, LedgerDTO, PnlRow, PnlUpdate
 from typing import List
 from deps import get_ibkr_service 
 
@@ -98,3 +99,44 @@ async def get_account_summary_route(
     ibkr_service: IBKRService = Depends(get_ibkr_service)
 ):
     return await ibkr_service.get_account_summary(account_id)
+
+
+class PnlSnapshotDTO(BaseModel):
+    dailyRealized: float
+    unrealized: float 
+    netLiq: float 
+    
+@router.get("/pnl", response_model=PnlSnapshotDTO)
+async def get_pnl_snapshot(
+    accountId: str,
+    svc: IBKRService = Depends(get_ibkr_service),
+):
+    """
+    Fetches a simple snapshot of the account's core PnL values
+    from the dedicated PnL endpoint.
+    """
+    try:
+        # 1. Make a single call to the correct endpoint
+        pnl_response = await svc.get_pnl()
+
+        # 2. Navigate the correct JSON structure: upnl -> {accountId}.Core
+        upnl_data = pnl_response.get("upnl", {})
+        
+        # 3. Find the data for the specific account we want
+        core_key = f"{accountId}.Core"
+        core_data = upnl_data.get(core_key)
+
+        if not core_data:
+            raise HTTPException(status_code=404, detail=f"PnL data not found for account {accountId}")
+
+        # 4. Extract the values we need from the .Core object
+        dpl = core_data.get("dpl", 0.0)
+        upl = core_data.get("upl", 0.0)
+        nl = core_data.get("nl", 0.0)
+        
+        # 5. Return the data in our simple DTO format
+        return PnlSnapshotDTO(dailyRealized=dpl, unrealized=upl, netLiq=nl)
+
+    except Exception as e:
+        log.error(f"Failed to create PnL snapshot for {accountId}: {e}")
+        raise HTTPException(status_code=502, detail="Could not fetch PnL data.")

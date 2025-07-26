@@ -76,7 +76,8 @@ async def get_stock_quote(conid: int, ibkr_service: IBKRService = Depends(get_ib
             "6509"  # Market Data Availability
         ]
 
-        raw_data = await ibkr_service.snapshot(conids=[conid], fields=fields_to_fetch)
+        fields_str = ",".join(fields_to_fetch)
+        raw_data = await ibkr_service.snapshot(conids=[conid], fields=fields_str)
         if not raw_data:
             raise HTTPException(status_code=404, detail="No market data available")
         data = raw_data[0]
@@ -183,29 +184,15 @@ async def get_filtered_option_chain(
     search_results = await svc.search(symbol=ticker, secType="STK")
     underlying_conid = search_results[0].get("conid")
     
-    current_price = None
-    max_retries = 3
-    retry_delay = 2  # seconds
-    for attempt in range(max_retries):
-    # Use the snapshot to get the underlying's last price
-        price_snapshot = await svc.snapshot([underlying_conid], fields="31")
-        if price_snapshot and isinstance(price_snapshot, list) and price_snapshot[0]:
-            price_str = price_snapshot[0].get("31")
-            if price_str and price_str.replace('.', '', 1).isdigit():
-                current_price = float(price_str)
-                log.info(f"Successfully fetched price for {ticker} on attempt {attempt + 1}: {current_price}")
-                break  # Exit loop on success
-        log.warning(
-            f"Attempt {attempt + 1}/{max_retries} to fetch price for {ticker} failed or returned invalid data. "
-            f"Retrying in {retry_delay}s..."
-        )
-        if attempt < max_retries - 1:
-            await asyncio.sleep(retry_delay)
-    if current_price is None:
+    price_snapshot = await svc.snapshot(conids=[underlying_conid], fields="31")
+    # Check if the snapshot was successful after its internal polling
+    if not (price_snapshot and "31" in price_snapshot[0]):
         raise HTTPException(
-            status_code=404, 
-            detail=f"Could not fetch a valid market price for {ticker} after {max_retries} attempts."
+            status_code=404,
+            detail=f"Could not fetch a valid market price for {ticker}."
         )
+
+    current_price = float(price_snapshot[0]["31"])
 
     # --- Step 2: Get All Potential Strikes ---
     all_strikes_data = await svc.get_strikes_for_month(underlying_conid, expiration_month)
@@ -256,10 +243,10 @@ async def get_filtered_option_chain(
                 lastPrice=safe_float_conversion(market_data.get('31')),
                 bid=safe_float_conversion(market_data.get('84')),
                 ask=safe_float_conversion(market_data.get('86')),
-                volume=int(market_data['7069']) if market_data.get('7069') else None,
+                volume=safe_float_conversion(market_data.get('7069')),
                 delta=safe_float_conversion(market_data.get('13')),
-                bidSize=int(market_data['70']) if market_data.get('70') else None,
-                askSize=int(market_data['71']) if market_data.get('71') else None,
+                bidSize=safe_float_conversion(market_data.get('70')),
+                askSize=safe_float_conversion(market_data.get('71')),
             )
 
     return FilteredChainResponse(all_strikes=all_strikes, chain=final_chain)
@@ -318,10 +305,10 @@ async def get_single_option_contract(
                 lastPrice=safe_float_conversion(market_data.get('31')),
                 bid=safe_float_conversion(market_data.get('84')),
                 ask=safe_float_conversion(market_data.get('86')),
-                volume=int(market_data['7069']) if market_data.get('7069') else None,
+                volume=safe_float_conversion(market_data.get('7069')),
                 delta=safe_float_conversion(market_data.get('13')),
-                bidSize=int(market_data['70']) if market_data.get('70') else None,
-                askSize=int(market_data['71']) if market_data.get('71') else None,
+                bidSize=safe_float_conversion(market_data.get('70')),
+                askSize=safe_float_conversion(market_data.get('71')),
             )
 
         if put_contract_info:
@@ -332,10 +319,10 @@ async def get_single_option_contract(
                 lastPrice=safe_float_conversion(market_data.get('31')),
                 bid=safe_float_conversion(market_data.get('84')),
                 ask=safe_float_conversion(market_data.get('86')),
-                volume=int(market_data['7069']) if market_data.get('7069') else None,
+                volume=safe_float_conversion(market_data.get('7069')),
                 delta=safe_float_conversion(market_data.get('13')),
-                bidSize=int(market_data['70']) if market_data.get('70') else None,
-                askSize=int(market_data['71']) if market_data.get('71') else None,
+                bidSize=safe_float_conversion(market_data.get('70')),
+                askSize=safe_float_conversion(market_data.get('71')),
             )
         
         # Explicitly create the nested data structure for the response model

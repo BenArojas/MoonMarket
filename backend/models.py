@@ -231,10 +231,10 @@ class OptionContract(BaseModel):
     lastPrice: Optional[float] = None
     bid: Optional[float] = None
     ask: Optional[float] = None
-    volume: Optional[int] = None
+    volume: Optional[float] = None
     delta: Optional[float] = None
-    bidSize: Optional[int] = None
-    askSize: Optional[int] = None
+    bidSize: Optional[float] = None
+    askSize: Optional[float] = None
 
 class FullChainResponse(BaseModel):
     # e.g., { "60.0": { "call": OptionContract, "put": OptionContract } }

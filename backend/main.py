@@ -23,13 +23,16 @@ from routers.ai_service import router as ai_router
 # --- Global instances and config loading ---
 from deps import get_ibkr_service
 
-svc = IBKRService()
-svc.set_broadcast(broadcast) 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    svc = IBKRService()
+    svc.set_broadcast(broadcast) 
     app.state.ibkr = svc 
     yield
+    print("Application shutdown: Cleaning up IBKR resources.")
+    await app.state.ibkr.shutdown_websocket_task()
+
     
 app = FastAPI(lifespan=lifespan)
 @app.exception_handler(RateLimitExceededException)

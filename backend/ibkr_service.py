@@ -1,7 +1,7 @@
 # models.py  – pydantic versions
 import asyncio
 import contextlib
-from time import time
+import time
 import json
 import logging
 import math
@@ -10,7 +10,7 @@ import ssl
 from fastapi import HTTPException
 import httpx
 from pydantic import BaseModel, Field
-from typing import Awaitable, Callable, Optional, List, Dict, Any
+from typing import Awaitable, Callable, Optional, List, Dict, Any, Set
 import websockets
 from utils import safe_float_conversion
 from models import AccountDetailsDTO, AccountInfoDTO, BriefAccountInfoDTO, FrontendMarketDataUpdate, LedgerDTO, LedgerEntry, LedgerUpdate, OwnerInfoDTO, PermissionsDTO, PnlRow, PnlUpdate, WebSocketRequest
@@ -43,6 +43,9 @@ class IBKRState(BaseModel):
     pnl: Dict[str, Dict[str, PnlRow]] = Field(default_factory=dict) # PnL is often per-account already
     active_stock_conid: Optional[int] = None
     chart_subscriptions: Dict[int, str] = Field(default_factory=dict) # Key: conid, Value: serverId
+    pnl_subscribed: bool = False
+    
+    portfolio_subscriptions: Set[int] = Field(default_factory=set)
     
     
     class Config:
@@ -70,6 +73,13 @@ class IBKRService:
     def _ibkr_ws_session(self):
         """Safely gets the current IBKR WebSocket session from state."""
         return getattr(self.state, 'ibkr_websocket_session', None)
+    
+    async def wait_for_connection(self):
+        """
+        An awaitable helper that waits until the IBKR WebSocket is connected.
+        """
+        while not self.state.ws_connected:
+            await asyncio.sleep(0.1)
 
     # ---------- low-level helpers ----------
     @paced("dynamic")
@@ -277,30 +287,51 @@ class IBKRService:
             return availability
         return None
 
+    # fields="31,84,86,7635,7741,83,70,71"
     @cached(ttl=150, key_builder=snapshot_key_builder)
-    async def snapshot(self, conids, fields="31,84,86,7635,7741,83,70,71"):
+    async def snapshot(self, conids, fields="31,84,86,7635,7741,83,70,71", timeout=5, interval=1):
         """
-        Get market data snapshot for given contract IDs.
-        
-        Fields:
-        - 31: Last Price
-        - 84: Bid Price  
-        - 86: Ask Price
-        - 7635: Mark Price (calculated fair value - best for options)
+        Get market data snapshot, polling until data is available or a timeout occurs.
         """
-    
-        # Make pre-flight request first
         await self.ensure_accounts()
         q = {"conids": ",".join(map(str, conids)), "fields": fields}
         
-        # First request - often returns minimal data
-        initial_response = await self._req("GET", "/iserver/marketdata/snapshot", params=q)
+        start_time = time.time()
+        final_response = []
         
-        # Wait a moment and make second request for actual data
-        await asyncio.sleep(1)
-        final_response = await self._req("GET", "/iserver/marketdata/snapshot", params=q)
-        
-        return final_response
+        # List of fields we expect in the response
+        requested_fields = fields.split(',')
+
+        while time.time() - start_time < timeout:
+            response = await self._req("GET", "/iserver/marketdata/snapshot", params=q)
+            
+            if response and isinstance(response, list):
+                # Check if ALL requested conids are in the response and have the necessary fields
+                all_data_present = True
+                conids_in_response = {str(item.get('conid')) for item in response}
+
+                if not set(map(str, conids)).issubset(conids_in_response):
+                    all_data_present = False
+                else:
+                    for item in response:
+                        # Check if at least one of the requested data fields is present.
+                        # Some fields like '31' (last price) might not be available for an
+                        # instrument that hasn't traded, but others like '84' (bid) should be.
+                        if not any(field in item for field in requested_fields):
+                            all_data_present = False
+                            break # This item is incomplete, so the whole response is incomplete for now
+                
+                if all_data_present:
+                    # Success! We got the data we need.
+                    return response
+
+            # If data is not yet present, wait and try again
+            await asyncio.sleep(interval)
+
+        # If the loop finishes without returning, it timed out. Return the last response we got.
+        # The calling function will have to handle the potentially incomplete data.
+        log.warning(f"Snapshot request for conids {conids} timed out after {timeout}s.")
+        return response # Return the last known response, even if incomplete
     
     def _extract_price_from_snapshot(self, snapshot_data: dict) -> float:
         """
@@ -464,6 +495,18 @@ class IBKRService:
         except Exception as e:
             log.exception(f"Failed to fetch account summary for {account_id}: {e}")
             raise HTTPException(status_code=500, detail="Could not fetch account summary")
+    
+    @cached(ttl=120) # Cache for 2 minutes
+    async def get_pnl(self) -> Dict[str, Any]:
+        """
+        Fetches the partitioned PnL data using the official endpoint.
+        The response contains PnL data for all accounts in the session.
+        """
+        try:
+            return await self._req("GET", "/iserver/account/pnl/partitioned")
+        except Exception as e:
+            log.exception(f"Failed to fetch partitioned PnL: {e}")
+            return {} # Return an empty dict on failure
 
     
     async def get_account_details(self, acct: str | None = None) -> AccountDetailsDTO:
@@ -786,12 +829,12 @@ class IBKRService:
         args = msg.get("args")    # may be list OR dict
 
         rows: dict[str, PnlRow] = {}
+        log.info(msg)
 
         if isinstance(args, dict):
             for k, v in args.items():
                 if isinstance(v, dict):
-                    # --- ADD THIS CHECK ---
-                    # Only try to parse if a key data point exists
+
                     if "dpl" in v: 
                         rows[k] = PnlRow(**v)
 
@@ -859,8 +902,13 @@ class IBKRService:
     async def _dispatch_tick(
     self,
     msg: Dict[str, Any],
-    conid_to_pos: Dict[int, Dict[str, Any]],
 ) -> None:
+        account_id = self._current_ws_account
+        if not account_id: return
+        all_positions = self.state.positions.get(account_id)
+        if all_positions is None:
+            all_positions = await self.positions(account_id)
+        conid_to_pos = {p["conid"]: p for p in all_positions}
         # 1. Get the price from the real-time message. If there's no price, ignore it.
         last_price = self._extract_price_from_snapshot(msg)
         if math.isnan(last_price):
@@ -922,7 +970,7 @@ class IBKRService:
         # Construct ONE message with all the data the frontend needs
         update_payload = {
             "type": "active_stock_update",
-            "timestamp": int(time()), # The crucial timestamp
+            "timestamp": int(time.time()), # The crucial timestamp
             "conid": conid,
             "lastPrice": last_price,
             "changeAmount": safe_float_conversion(msg.get("82")),
@@ -944,15 +992,13 @@ class IBKRService:
         """Processes commands by sending messages to the live IBKR WebSocket."""
         # Use self.state.ibkr_websocket_session consistently
         ws = self.state.ibkr_websocket_session 
-        if not ws:
-            log.error("Cannot handle command, IBKR WebSocket is not connected.")
+        if not self.state.ws_connected or not ws:
+            log.warning("Cannot handle command, IBKR WebSocket is not ready yet.")
             return
 
         action = command.action
         conid = command.conid
         account_id = command.account_id or self._current_ws_account
-
-        
 
         if action == "subscribe_stock" and conid:
             log.info(f"Subscribing to market data for conid: {conid}")
@@ -983,6 +1029,9 @@ class IBKRService:
             log.info(f"Subscribing to portfolio for account: {account_id}")
             account_positions = await self.positions(account_id)
             conids = [str(p["conid"]) for p in account_positions]
+            
+            self.state.portfolio_subscriptions.update(conids)
+
             for cid in conids:
                 cmd = f'smd+{cid}+{{"fields":["31","7635","83","82"]}}'
                 await ws.send(cmd)
@@ -993,6 +1042,7 @@ class IBKRService:
             account_positions = await self.positions(account_id)
             conids = [str(p["conid"]) for p in account_positions]
             for cid in conids:
+                self.state.portfolio_subscriptions.discard(cid)
                 await ws.send(f'umd+{cid}+{{}}')
                 await asyncio.sleep(0.05)
                 
@@ -1002,8 +1052,7 @@ class IBKRService:
     async def _websocket_loop(self, account_id: str) -> None:
         """
         Maintains a persistent connection to the IBKR WebSocket.
-        It processes incoming market data and sends it to the frontend.
-        It does NOT handle subscription logic anymore; that's done by handle_ws_command.
+        Its ONLY job is to connect, run background tasks, and process incoming messages.
         """
         uri = "wss://localhost:5000/v1/api/ws"
         cookie = f'api={{"session":"{self.state.ibkr_session_token}"}}'
@@ -1012,6 +1061,9 @@ class IBKRService:
         ssl_ctx.verify_mode = ssl.CERT_NONE
 
         while not self.state.shutdown_signal.is_set():
+            # Define tasks as None before the try block
+            heartbeat_task = None
+            allocation_task = None
             try:
                 log.info(f"Connecting to IBKR WebSocket for account: {account_id}")
                 async with websockets.connect(
@@ -1021,45 +1073,42 @@ class IBKRService:
                     ping_interval=None,
                     additional_headers=[("Cookie", cookie)]
                 ) as ws:
-
+                    # --- Connection is live ---
                     self.state.ws_connected = True
-
                     self.state.ibkr_websocket_session = ws
+                    log.info("✅ IBKR WebSocket connection established.")
 
-                    # --- Initial Subscriptions ---
-                    await asyncio.sleep(1) # Give connection a moment to settle
-                    # On connect, immediately subscribe to the main portfolio data
-                    await ws.send(f'spl+{account_id}')
-                    
-                    await self._send_initial_allocation(account_id)
-
-                    # --- Background Tasks (Heartbeat, etc.) ---
+                    # --- Start Background Tasks ---
                     heartbeat_task = asyncio.create_task(self._ws_heartbeat())
                     allocation_task = asyncio.create_task(self._ws_allocation_refresher(account_id))
 
                     # --- Main Receive Loop ---
-                    # This loop's only job is to listen for data from IBKR and dispatch it.
-                    conid_to_pos = {p["conid"]: p for p in await self.positions(account_id)}
                     async for raw in ws:
-                        # (Your existing message processing logic goes here)
-                        await self._process_ibkr_message(raw, conid_to_pos)
+                        await self._process_ibkr_message(raw)
 
             except Exception as exc:
-                log.warning(f"IBKR WS loop error: {exc} – retrying in 15s")
-                await asyncio.sleep(15)
+                log.warning(f"IBKR WS loop error: {exc}")
+            
             finally:
+                # --- Cleanup on Disconnect ---
+                log.info("Cleaning up IBKR WebSocket connection...")
                 self.state.ws_connected = False
-                if 'heartbeat_task' in locals() and not heartbeat_task.done():
+                self.state.ibkr_websocket_session = None
+                self.state.pnl_subscribed = False # Reset the flag
+
+                # Safely cancel background tasks
+                if heartbeat_task and not heartbeat_task.done():
                     heartbeat_task.cancel()
-                if 'allocation_task' in locals() and not allocation_task.done():
+                if allocation_task and not allocation_task.done():
                     allocation_task.cancel()
-                if hasattr(self.state, 'ibkr_websocket_session'):
-                    del self.state.ibkr_websocket_session
-                log.info("IBKR WebSocket disconnected. Awaiting reconnect.")
-            if not self.state.shutdown_signal.is_set():
-                log.info("Will attempt to reconnect in 15 seconds...")
-                await asyncio.sleep(15)
+
+                # Attempt to reconnect if not shutting down
+                if not self.state.shutdown_signal.is_set():
+                    log.info("Will attempt to reconnect in 15 seconds...")
+                    await asyncio.sleep(15)
+
         log.info("Exited IBKR WebSocket loop because shutdown was signaled.")
+        
 
     # NEW: Extracted background tasks for clarity
     async def _ws_heartbeat(self):
@@ -1108,7 +1157,7 @@ class IBKRService:
         except Exception as e:
             log.error(f"Could not send initial allocation data: {e}")
 
-    async def _process_ibkr_message(self, raw_message: str | bytes, conid_to_pos: Dict[int, Any]):
+    async def _process_ibkr_message(self, raw_message: str | bytes):
         """Parses and dispatches a single message from the IBKR WebSocket."""
         if isinstance(raw_message, bytes):
             raw_message = raw_message.decode()
@@ -1118,14 +1167,16 @@ class IBKRService:
                 msgs = [msgs]
 
             for msg in msgs:
+                if not isinstance(msg, dict):
+                    continue
                 topic = msg.get("topic", "")
                 
                 if topic.startswith("smd+"):
                     conid = int(topic.split("+", 1)[1])
                     if self.state.active_stock_conid and conid == self.state.active_stock_conid:
                         await self._dispatch_active_stock_update(msg)
-                    elif conid in conid_to_pos:
-                        await self._dispatch_tick(msg, conid_to_pos)
+                    else:
+                        await self._dispatch_tick(msg)
                 
                 elif topic == "spl":
                     await self._dispatch_pnl(msg)

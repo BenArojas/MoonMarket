@@ -24,6 +24,7 @@ const AccountSelectionPage = () => {
   const [isPending, startTransition] = useTransition();
   const setAllAccounts = useStockStore((state) => state.setAllAccounts);
   const setSelectedAccountId = useStockStore((state) => state.setSelectedAccountId);
+
   // Note: Renamed to standard camelCase for consistency
   const selectedAccountId = useStockStore((state) => state.selectedAccountId);
 
