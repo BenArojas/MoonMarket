@@ -3,11 +3,11 @@ import datetime
 from logging import log
 import logging
 from typing import Dict, List, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 import httpx
 from utils import price_delta, safe_float_conversion
 from ibkr_service import IBKRService
-from models import ChartDataBars, ConidResponse, FilteredChainResponse, FullChainResponse, OptionContract, OptionsChainResponse, SearchResult, SingleContractResponse
+from models import ChartDataBars, ConidResponse, FilteredChainResponse, FullChainResponse, OptionContract, OptionsChainResponse, PositionInfo, QuoteInfo, SearchResult, SingleContractResponse, StaticInfo, StockDetailsResponse
 from deps import get_ibkr_service 
 from constants import CRYPTO_SYMBOLS, PERIOD_BAR 
 log = logging.getLogger(__name__)
@@ -367,3 +367,78 @@ async def get_conid_for_ticker(
     except Exception:
         log.exception(f"Error finding conid for {ticker}")
         raise HTTPException(status_code=500, detail="Failed to resolve ticker to conid.")
+
+@router.get("/stock/{conid}/details", response_model=StockDetailsResponse)
+async def get_stock_details(
+    conid: int,
+    accountId: str,
+    svc: IBKRService = Depends(get_ibkr_service)
+):
+    """
+    Fetches a bundle of data for the StockItem page:
+    1. Static contract information (name, ticker).
+    2. A current quote snapshot.
+    3. The user's position details, if the instrument is held.
+    """
+    try:
+        # --- Task 1: Fetch Static Info & Quote from IBKR ---
+        # A list of relevant IBKR field codes
+        fields_to_fetch = [
+            "55",   # Ticker Symbol
+            "7051", # Company Name
+            "6004", # Exchange
+            "6119", # secType
+            "6070", # Currency
+            "31",   # Last Price
+            "84",   # Bid
+            "86",   # Ask
+            "83",   # Change %
+            "82",   # Change Amount
+            "70",   # Day High
+            "71",   # Day Low
+        ]
+        fields_str = ",".join(fields_to_fetch)
+        
+        # We expect a list with one item for our single conid
+        snapshot_data = await svc.snapshot(conids=[conid], fields=fields_str)
+        if not snapshot_data:
+            raise HTTPException(status_code=404, detail="Instrument not found or no market data available.")
+        
+        data = snapshot_data[0]
+
+        # --- Task 2: Find Position Info from Server State ---
+        position_dict = svc.get_position_by_conid(accountId, conid)
+
+        # --- Task 3: Assemble the Response ---
+        static_info = StaticInfo(
+            conid=conid,
+            ticker=data.get("55", "N/A"),
+            companyName=data.get("7051", "Unknown Company"),
+            exchange=data.get("6004"),
+            secType=data.get("6119"),
+            currency=data.get("6070"),
+        )
+        
+        quote_info = QuoteInfo(
+            lastPrice=safe_float_conversion(data.get("31")),
+            bid=safe_float_conversion(data.get("84")),
+            ask=safe_float_conversion(data.get("86")),
+            changePercent=safe_float_conversion(data.get("83")),
+            changeAmount=safe_float_conversion(data.get("82")),
+            dayHigh=safe_float_conversion(data.get("70")),
+            dayLow=safe_float_conversion(data.get("71")),
+        )
+
+        position_info = PositionInfo(**position_dict) if position_dict else None
+
+        return StockDetailsResponse(
+            staticInfo=static_info,
+            quote=quote_info,
+            positionInfo=position_info,
+        )
+
+    except HTTPException as e:
+        raise e # Re-throw known HTTP exceptions
+    except Exception as e:
+        log.exception(f"Failed to get stock details for conid {conid}: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred.")

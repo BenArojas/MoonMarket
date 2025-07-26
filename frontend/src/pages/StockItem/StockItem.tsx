@@ -1,8 +1,9 @@
-import { startTransition, useEffect, useState } from "react";
-import { useLocation, useParams } from "react-router-dom";
-import { ChartBar, InitialQuoteData, useStockStore } from "@/stores/stockStore";
 import api from "@/api/axios";
+import { ChartBar, useStockStore } from "@/stores/stockStore";
+import { startTransition, useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 
+import CandleStickChart from "@/components/charts/CandleSticksChart";
 import {
   Box,
   Button,
@@ -11,12 +12,12 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import LiveQuoteDisplay from "./LiveQuoteDisplay";
-import CandleStickChart from "@/components/charts/CandleSticksChart";
-import OrderPanel from "./OrderPanel";
-import DepthOfBookTable from "./DepthOfBookTable";
-import OptionsChain from "./OptionsChain";
 import { useQuery } from "@tanstack/react-query";
+import DepthOfBookTable from "./DepthOfBookTable";
+import LiveQuoteDisplay from "./LiveQuoteDisplay";
+import OptionsChain from "./OptionsChain";
+import OrderPanel from "./OrderPanel";
+import { PositionDetails } from "./PositionDetails";
 
 const timePeriods = ["1D", "7D", "1M", "3M", "YTD", "1Y", "5Y"];
 
@@ -56,6 +57,39 @@ export interface SingleContractResponse {
   };
 }
 
+export interface StaticInfo {
+  conid: number;
+  ticker: string;
+  companyName: string;
+  exchange?: string;
+  secType?: string;
+  currency?: string;
+}
+
+export interface QuoteInfo {
+  lastPrice?: number;
+  bid?: number;
+  ask?: number;
+  changePercent?: number;
+  changeAmount?: number;
+  dayHigh?: number;
+  dayLow?: number;
+}
+
+export interface PositionInfo {
+  position: number;
+  avgCost: number;
+  unrealizedPnl: number;
+  mktValue: number;
+}
+
+// The full response from our new endpoint
+export interface StockDetailsResponse {
+  staticInfo: StaticInfo;
+  quote: QuoteInfo;
+  positionInfo: PositionInfo | null;
+}
+
 export default function StockItem() {
   const { conid: conidFromUrl } = useParams<{ conid: string }>();
   const [view, setView] = useState<"chart" | "options">("chart");
@@ -70,7 +104,6 @@ export default function StockItem() {
   const [optionsChainData, setOptionsChainData] =
     useState<OptionsChainData | null>(null);
 
-  const location = useLocation();
   const activeStock = useStockStore((state) => state.activeStock);
   const setInitialQuote = useStockStore((state) => state.setInitialQuote);
   const setInitialChartData = useStockStore(
@@ -83,8 +116,52 @@ export default function StockItem() {
   const setPreloadedDetails = useStockStore(
     (state) => state.setPreloadedDetails
   );
+  const setInitialPosition = useStockStore((state) => state.setInitialPosition);
+  const selectedAccountId = useStockStore((state) => state.selectedAccountId);
+
   const { ticker } = activeStock;
   const conid = conidFromUrl ? parseInt(conidFromUrl, 10) : null;
+
+
+  const { data: stockDetails, isLoading: isDetailsLoading } =
+    useQuery<StockDetailsResponse>({
+      queryKey: ["stockDetails", conid, selectedAccountId],
+      queryFn: async () => {
+        const response = await api.get(`/market/stock/${conid}/details`, {
+          params: {
+            accountId: selectedAccountId,
+          },
+        });
+        return response.data;
+      },
+      enabled: !!conid && !!selectedAccountId,
+    });
+    const isDataStale = stockDetails?.staticInfo?.conid !== conid;
+
+
+  useEffect(() => {
+    if (stockDetails) {
+      // Data has arrived, populate the store
+      startTransition(() => {
+        setPreloadedDetails(stockDetails.staticInfo);
+        setInitialQuote({
+          ...stockDetails.quote, // Spread the quote data (price, bid, ask...)
+          conid: stockDetails.staticInfo.conid, // Add the conid from staticInfo
+        });
+        setInitialPosition(stockDetails.positionInfo);
+      });
+
+      // Subscribe to live updates
+      subscribeToStock(conid!);
+    }
+
+    // Unsubscribe when the component unmounts or conid changes
+    return () => {
+      if (conid) {
+        unsubscribeFromStock(conid);
+      }
+    };
+  }, [stockDetails, conid]);
 
   const {
     data: expirations,
@@ -138,48 +215,6 @@ export default function StockItem() {
     setOptionsChainData(updatedChain);
   };
 
-  // --- EFFECT 1: Handles initial quote and live subscriptions ---
-  // This runs only when the stock's conid changes.
-  useEffect(() => {
-    if (!conid) return;
-
-    const preloadedState = location.state as {
-      companyName: string;
-      ticker: string;
-    } | null;
-    if (preloadedState) {
-      startTransition(() => {
-        setPreloadedDetails({ conid, ...preloadedState });
-      });
-    }
-
-    const setupSubscriptions = async () => {
-      try {
-        // Fetch initial quote data once
-        const quoteResponse = await api.get<InitialQuoteData>(
-          `/market/quote/${conid}`
-        );
-        startTransition(() => {
-          setInitialQuote(quoteResponse.data);
-          // Subscribe to live updates
-          subscribeToStock(conid);
-          // subscribeToChart(conid);
-        });
-      } catch (error) {
-        console.error("Failed to fetch initial quote:", error);
-      }
-    };
-
-    setupSubscriptions();
-
-    // Cleanup function: Unsubscribe when the component unmounts or conid changes
-    return () => {
-      unsubscribeFromStock(conid);
-      // unsubscribeFromChart(conid);
-    };
-    // This effect should only re-run if the conid itself changes
-  }, [conid, setInitialQuote, subscribeToStock, unsubscribeFromStock]);
-
   // --- EFFECT 2: Handles fetching historical chart data ---
   // This runs whenever the conid or the selectedPeriod changes.
   useEffect(() => {
@@ -211,21 +246,13 @@ export default function StockItem() {
     // This effect depends on the selected time period
   }, [conid, selectedPeriod, setInitialChartData]);
 
-  // Show a full-page loader only if we have no active stock data at all
-  if (!activeStock.conid && isChartLoading) {
+  if (isDataStale) {
     return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "80vh",
-        }}
-      >
-        <CircularProgress />
-      </Box>
+        <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "80vh" }}>
+            <CircularProgress />
+        </Box>
     );
-  }
+}
 
   return (
     <Box
@@ -298,7 +325,19 @@ export default function StockItem() {
         </Stack>
 
         {/* This loader is now controlled by the chart-specific loading state */}
-        {view === "chart" && <CandleStickChart />}
+        {view === "chart" && !isChartLoading && <CandleStickChart />}
+        {isChartLoading && (
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              height: "80vh",
+            }}
+          >
+            <CircularProgress />
+          </Box>
+        )}
 
         {view === "options" && (
           <OptionsChain
@@ -326,9 +365,10 @@ export default function StockItem() {
           flexDirection: "column",
           minHeight: 0,
           overflowY: "auto",
-          gap: '10px'
+          gap: "10px",
         }}
       >
+        <PositionDetails />
         <DepthOfBookTable depth={activeStock.depth} />
         <OrderPanel conid={activeStock.conid} />
       </div>

@@ -37,7 +37,6 @@ const Layout: React.FC = () => {
     enabled: !!selectedAccountId, // Only run when we have an account ID
     refetchOnWindowFocus: false,
   });
-  console.log(pnlData)
 
   // 2. A useEffect hook handles the side effect of updating the store.
   useEffect(() => {

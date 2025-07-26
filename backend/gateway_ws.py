@@ -83,7 +83,7 @@ async def ws_endpoint(ws: WebSocket, accountId: str):
             except Exception as e:
                 log.error(f"Failed to process WS command: {data}, error: {e}")
                 
-    except WebSocketDisconnect:
+    except (WebSocketDisconnect, RuntimeError):
         pass # Clean disconnect
     finally:
         _clients.discard(ws)

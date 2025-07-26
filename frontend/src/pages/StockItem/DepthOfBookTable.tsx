@@ -1,58 +1,76 @@
-import React from 'react';
+// src/components/DepthOfBookTable.tsx
+
 import { PriceLadderRow } from '@/stores/stockStore';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography, Box, Collapse, IconButton } from '@mui/material';
+import React, { useState } from 'react';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 
 interface DepthOfBookTableProps {
-  depth: PriceLadderRow[];
+    depth: PriceLadderRow[];
 }
 
 const DepthOfBookTable: React.FC<DepthOfBookTableProps> = ({ depth }) => {
-  return (
-    <Paper 
-     variant="outlined" 
-     sx={{ 
-       display: 'flex', 
-       flexDirection: 'column', 
-       height: '220px' 
-     }}
-   >
-        <Typography variant="h6" sx={{ p: 2 }}>Market Depth</Typography>
-        <TableContainer sx={{ flex: 1, overflowY: 'auto' }}>
-            <Table stickyHeader size="small">
-                <TableHead>
-                    <TableRow>
-                        <TableCell align="center" sx={{ color: 'success.main', fontWeight: 'bold' }}>Bid Size</TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 'bold' }}>Price</TableCell>
-                        <TableCell align="center" sx={{ color: 'error.main', fontWeight: 'bold' }}>Ask Size</TableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    {depth.length > 0 ? (
-                        depth.map((row, index) => (
-                            <TableRow key={index} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
-                                <TableCell align="center" sx={{ color: 'success.dark' }}>
-                                    {row.bidSize}
-                                </TableCell>
-                                <TableCell align="center" sx={{ fontWeight: 'medium' }}>
-                                    {row.price.toFixed(2)}
-                                </TableCell>
-                                <TableCell align="center" sx={{ color: 'error.dark' }}>
-                                    {row.askSize}
-                                </TableCell>
-                            </TableRow>
-                        ))
-                    ) : (
-                        <TableRow>
-                            <TableCell colSpan={3} align="center" sx={{ py: 4 }}>
-                                No depth data available.
-                            </TableCell>
-                        </TableRow>
-                    )}
-                </TableBody>
-            </Table>
-        </TableContainer>
-    </Paper>
-  );
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    return (
+        <Paper variant="outlined">
+            <Box
+                onClick={() => setIsExpanded(!isExpanded)}
+                sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    p: 2,
+                    cursor: 'pointer',
+                    borderBottom: isExpanded ? '1px solid' : 'none',
+                    borderColor: 'divider',
+                }}
+            >
+                <Typography variant="h6">Market Depth</Typography>
+                <IconButton size="small">
+                    {isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                </IconButton>
+            </Box>
+
+            <Collapse in={isExpanded}>
+                {/* ✅ FIX: Add a Box with a fixed height and flex properties */}
+                <Box sx={{ height: 220, display: 'flex', flexDirection: 'column' }}>
+                    {/* ✅ FIX: Remove maxHeight from here and let it fill the Box */}
+                    <TableContainer sx={{ overflowY: 'auto' }}>
+                        <Table stickyHeader size="small">
+                            <TableHead>
+                                <TableRow>
+                                    <TableCell align="center" sx={{ fontWeight: 'bold' }}>Bid Size</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 'bold' }}>Price</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 'bold' }}>Ask Size</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {depth.length > 0 ? (
+                                    depth.map((row, index) => (
+                                        <TableRow key={index} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+                                            <TableCell align="center">{row.bidSize}</TableCell>
+                                            <TableCell align="center" sx={{ fontWeight: 'medium' }}>
+                                                {row.price.toFixed(2)}
+                                            </TableCell>
+                                            <TableCell align="center">{row.askSize}</TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={3} align="center" sx={{ py: 4 }}>
+                                            No depth data available.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                </Box>
+            </Collapse>
+        </Paper>
+    );
 };
 
 export default DepthOfBookTable;

@@ -461,6 +461,35 @@ class IBKRService:
         self.state.positions[account_id] = all_positions
         return all_positions
 
+    def get_position_by_conid(self, account_id: str, conid: int) -> Optional[dict]:
+        """
+        Finds a specific position for a given account ID and conid
+        from the locally stored portfolio state.
+        
+        Args:
+            account_id: The account to search within.
+            conid: The contract ID of the position to find.
+            
+        Returns:
+            A dictionary representing the position if found, otherwise None.
+        """
+        # First, get the list of all positions for the specified account.
+        # self.state.positions is assumed to be a dict like: {'U123...': [pos1, pos2]}
+        account_positions = self.state.positions.get(account_id)
+        
+        if not account_positions:
+            # If there are no positions for this account, we can't find it.
+            return None
+        
+        # Loop through the positions for that account to find the matching conid.
+        for pos in account_positions:
+            if pos.get("conid") == conid:
+                # Return the entire position dictionary upon finding a match.
+                return pos
+                
+        # If the loop completes without finding the conid, return None.
+        return None
+
     # account ---------------------------------------------------------
     
     async def get_available_accounts(self) -> List[BriefAccountInfoDTO]:
@@ -496,7 +525,7 @@ class IBKRService:
             log.exception(f"Failed to fetch account summary for {account_id}: {e}")
             raise HTTPException(status_code=500, detail="Could not fetch account summary")
     
-    @cached(ttl=120) # Cache for 2 minutes
+    # @cached(ttl=120) 
     async def get_pnl(self) -> Dict[str, Any]:
         """
         Fetches the partitioned PnL data using the official endpoint.

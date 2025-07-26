@@ -252,3 +252,33 @@ class FilteredChainResponse(BaseModel):
 class SingleContractResponse(BaseModel):
     strike: float
     data: Dict[str, Optional[OptionContract]]
+    
+class StaticInfo(BaseModel):
+    conid: int
+    ticker: str
+    companyName: str
+    exchange: Optional[str] = None
+    secType: Optional[str] = None
+    currency: Optional[str] = None
+
+class QuoteInfo(BaseModel):
+    lastPrice: Optional[float] = None
+    bid: Optional[float] = None
+    ask: Optional[float] = None
+    changePercent: Optional[float] = None
+    changeAmount: Optional[float] = None
+    dayHigh: Optional[float] = None
+    dayLow: Optional[float] = None
+
+class PositionInfo(BaseModel):
+    # Field names now match the IBKR portfolio endpoint response
+    position: float  # Renamed from quantity
+    avgCost: float   # Renamed from avg_bought_price
+    unrealizedPnl: float
+    mktValue: float  # Renamed from value
+
+# This is the final response model for our new endpoint
+class StockDetailsResponse(BaseModel):
+    staticInfo: StaticInfo
+    quote: QuoteInfo
+    positionInfo: Optional[PositionInfo] = None

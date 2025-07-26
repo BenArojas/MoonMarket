@@ -198,9 +198,11 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
     <Paper
       variant="outlined"
       sx={{
-        overflowY: "auto",
-        maxHeight:'50vh'
-      }}
+        // ✅ 1. Make the Paper a flex container
+        display: 'flex',
+        flexDirection: 'column',
+        maxHeight: '55vh',
+    }}
     >
       <Box
         sx={{
@@ -211,7 +213,9 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
           cursor: 'pointer',
           borderBottom: isExpanded ? '1px solid' : 'none',
           borderColor: 'divider',
-        }}
+          // This prevents the header from shrinking
+          flexShrink: 0,
+      }}
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <Typography variant="h6">
@@ -221,7 +225,7 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
           {isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
         </IconButton>
       </Box>
-      <Collapse in={isExpanded}>
+      <Collapse in={isExpanded}  sx={{ overflowY: 'auto' }}>
       {accountSummary && (
         <Box
           sx={{

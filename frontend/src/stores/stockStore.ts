@@ -1,5 +1,6 @@
 // src/stores/stockStore.ts
 import api from "@/api/axios";
+import { PositionInfo } from "@/pages/StockItem/StockItem";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 /* -------------------------------- AllocationDTO ------------------------- */
@@ -160,11 +161,12 @@ interface StockState {
   activeStock: {
     conid: number | null;
     ticker: string | null;
-    companyName: string | null
+    companyName: string | null;
     quote: Quote;
     depth: PriceLadderRow[];
     chartData: ChartBar[];
-  };
+    position: PositionInfo | null; // ✅ ADD THIS LINE
+};
   watchlists: WatchlistDict;
   connectionStatus: "disconnected" | "connecting" | "connected" | "error";
   error?: string;
@@ -187,6 +189,7 @@ interface StockState {
   setInitialChartData: (data: ChartBar[]) => void;
   setInitialCoreTotals: (totals: { dailyRealized: number; unrealized: number; netLiq: number }) => void;
   subscribeToStock: (conid: number) => void;
+  setInitialPosition: (position: PositionInfo | null) => void;
   subscribeToAllocation: () => void;
   setInitialQuote: (data: InitialQuoteData) => void;
   setPreloadedDetails: (details: { conid: number; companyName: string ; ticker: string }) => void;
@@ -230,7 +233,8 @@ export const useStockStore = create<StockState>()(
         quote: {},
         depth: [],
         chartData: [],
-      },
+        position: null, // ✅ Set initial state to null
+    },
       watchlists: {},
       pnl: {},
       allocation: undefined,
@@ -246,11 +250,14 @@ export const useStockStore = create<StockState>()(
 
       // Actions
 
-      // ADDED: New actions for managing chart data
       setInitialChartData: (data) =>
         set((state) => ({
           activeStock: { ...state.activeStock, chartData: data },
         })),
+        setInitialPosition: (position) =>
+          set((state) => ({
+              activeStock: { ...state.activeStock, position: position },
+          })),
         
         setInitialCoreTotals: (totals) => {
           set({ coreTotals: totals });
@@ -349,8 +356,6 @@ export const useStockStore = create<StockState>()(
         if (ws && ws.readyState === WebSocket.OPEN) {
           const command = { action: "unsubscribe_stock", conid };
           ws.send(JSON.stringify(command));
-
-          get().clearActiveStock();
         }
       },
       updateActiveQuote: (data) =>
@@ -385,7 +390,8 @@ export const useStockStore = create<StockState>()(
             quote: {},
             depth: [],
             chartData: [],
-          },
+            position: null, // Reset position
+        },
         }),
       updateStock: (data: FrontendMarketDataUpdate) =>
         set((state) => {
