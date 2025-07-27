@@ -132,13 +132,18 @@ async def preview_order_route(
 ):
     return await ibkr_service.preview_order(accountId, order.model_dump())
 
-@router.post("/orders", summary="Place an order")
+@router.post("/orders", summary="Place one or more orders (including Brackets/OCA)")
 async def place_order_route(
     accountId: str,
-    order: Order, 
+    orders: List[Order], 
     ibkr_service: IBKRService = Depends(get_ibkr_service)
 ):
-    return await ibkr_service.place_order(accountId, order.model_dump())
+    # Convert list of Pydantic models to list of dicts
+    try:
+        orders_data = [order.model_dump(exclude_none=True) for order in orders]
+        return await ibkr_service.place_order(accountId, orders_data)
+    except Exception as e:
+        log.error(e)
 
 class ConfirmationReply(BaseModel):
     confirmed: bool

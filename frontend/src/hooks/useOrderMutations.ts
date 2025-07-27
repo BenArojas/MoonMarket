@@ -12,9 +12,12 @@ interface OrderPayload {
   quantity: number;
   tif: string;
   price?: number;
+  auxPrice?: number;
+  cOID?: string;
+  parentId?: string;
+  isSingleGroup?: boolean;
 }
 
-// --- FIX: Define a single object for the mutation variables ---
 interface PreviewOrderVariables {
   accountId: string;
   order: OrderPayload;
@@ -28,9 +31,7 @@ interface ErrorDetail {
 export const usePreviewOrder = () => {
   // Use the new variables interface
   return useMutation<any, AxiosError<ErrorDetail>, PreviewOrderVariables>({
-    // --- FIX: mutationFn accepts ONE object, which we destructure ---
     mutationFn: ({ accountId, order }) => 
-      // --- FIX: Use correct axios syntax ---
       api.post(
         '/transactions/orders/preview', // URL
         order,                          // Request Body
@@ -39,19 +40,22 @@ export const usePreviewOrder = () => {
   });
 };
 
-// Hook to place an order (apply the same logic)
+interface PlaceOrderVariables {
+  accountId: string;
+  orders: OrderPayload[]; // The payload is now an ARRAY of orders
+}
+
 export const usePlaceOrder = () => {
-  return useMutation<any, AxiosError<ErrorDetail>, PreviewOrderVariables>({
-    mutationFn: ({ accountId, order }) => 
+  return useMutation<any, AxiosError<ErrorDetail>, PlaceOrderVariables>({
+    mutationFn: ({ accountId, orders }) => 
       api.post(
         '/transactions/orders', 
-        order, 
-        { params: { accountId } }
+        orders, 
+        { params: { accountId } } 
       ),
   });
 };
 
-// Hook to reply to a confirmation (This one is likely fine as is)
 export const useConfirmOrder = () => {
   return useMutation<any, AxiosError<ErrorDetail>, any>({
     mutationFn: ({ replyId, confirmed }: { replyId: string, confirmed: boolean }) =>

@@ -462,10 +462,11 @@ class IBKRService:
             log.exception(f"Failed to preview order: {e}")
             raise HTTPException(status_code=500, detail="Could not preview order")
 
-    async def place_order(self, account_id: str, order: Dict[str, Any]) -> Dict[str, Any]:
-        """ Places an order """
+    async def place_order(self, account_id: str, orders: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """ Places one or more orders """
         try:
-            payload = {"orders": [order]}
+            # The payload is now the list of orders itself
+            payload = {"orders": orders}
             response = await self._req("POST", f"/iserver/account/{account_id}/orders", json=payload)
             return response
         except Exception as e:

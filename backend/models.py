@@ -214,6 +214,10 @@ class Order(BaseModel):
     quantity: float
     tif: str = "DAY"
     price: Optional[float] = None
+    auxPrice: float | None = None # Make sure this exists for STOP_LIMIT
+    cOID: str | None = None
+    parentId: str | None = None
+    isSingleGroup: bool | None = None
     
 class SearchResult(BaseModel):
     conid: int
