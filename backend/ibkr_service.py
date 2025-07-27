@@ -348,13 +348,17 @@ class IBKRService:
         return await self._req("GET", "/iserver/marketdata/history", params=q)
 
     # orders -------------------------------------------------------
-    @cached(ttl=60) # Cache for 1 minute
     async def get_live_orders(self) -> List[Dict[str, Any]]:
-        """ Fetches live orders from IBKR """
+        """ Fetches live orders from IBKR using the two-call method. """
         try:
-            # The 'force=true' parameter ensures we get a fresh list
-            orders_data = await self._req("GET", "/iserver/account/orders", params={"force": "true"})
+            # 1. First call with force=true to clear the cache. We ignore the response.
+            await self._req("GET", "/iserver/account/orders", params={"force": "true"})
+
+            # 2. Second call without 'force' to get the actual live orders.
+            orders_data = await self._req("GET", "/iserver/account/orders")
+            
             return orders_data.get("orders", [])
+            
         except Exception as e:
             log.exception("Failed to fetch live orders: %s", e)
             return []
@@ -369,12 +373,45 @@ class IBKRService:
             raise HTTPException(status_code=500, detail="Could not cancel order")
 
     async def modify_order(self, account_id: str, order_id: str, new_order_data: Dict[str, Any]) -> Dict[str, Any]:
-        """ Modifies an existing order """
+        """
+        Modifies an existing order by fetching the original, merging changes,
+        and submitting the complete order object as required by the IBKR API.
+        """
         try:
-            response = await self._req("POST", f"/iserver/account/{account_id}/order/{order_id}", json=new_order_data)
+            # Step 1: Fetch all live orders to find the one we need to modify.
+            log.info(f"Attempting to find original order for modification: {order_id}")
+            live_orders = await self.get_live_orders()
+            original_order = next((o for o in live_orders if str(o.get("orderId")) == order_id), None)
+
+            if not original_order:
+                log.error(f"Could not find live order with ID {order_id} to modify.")
+                raise HTTPException(status_code=404, detail=f"Live order with ID {order_id} not found.")
+
+            # Step 2: Build the modification payload by starting with the original order's essential data.
+            # This ensures we always include the required 'conid'.
+            order_payload = {
+                "conid": original_order.get("conid"),
+                "orderType": original_order.get("origOrderType"),
+                "side": original_order.get("side"),
+                "tif": original_order.get("timeInForce"),
+                "quantity": original_order.get("totalSize"), # Default to original quantity
+                "price": original_order.get("price") # Default to original price
+            }
+
+            # Step 3: Merge the new values (price, quantity) from the frontend request.
+            # This will overwrite the defaults if new values were provided.
+            order_payload.update(new_order_data)
+
+
+            # Step 4: Submit the complete, modified order object to the IBKR API.
+            response = await self._req("POST", f"/iserver/account/{account_id}/order/{order_id}", json=order_payload)
             return response
+
+        except HTTPException as http_exc:
+            # Re-raise HTTPException to show proper status codes to the client
+            raise http_exc
         except Exception as e:
-            log.exception(f"Failed to modify order {order_id}: {e}")
+            log.exception(f"An unexpected error occurred while modifying order {order_id}: {e}")
             raise HTTPException(status_code=500, detail="Could not modify order")
     
     async def preview_order(self, account_id: str, order: Dict[str, Any]) -> Dict[str, Any]:

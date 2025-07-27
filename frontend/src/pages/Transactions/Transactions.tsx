@@ -4,9 +4,7 @@ import { IbkrTrade, getIbkrRecentTrades } from "@/api/transaction";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+  CardHeader
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -25,18 +23,13 @@ import {
   Loader2
 } from "lucide-react";
 import React, { useMemo, useState } from "react";
-import {
-  Cell,
-  Legend,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
 import { LiveOrdersTable } from "./LiveOrdersTable";
+import { SummaryCards } from "./SummaryCards";
+import { SymbolActivityChart } from "./SymbolActivityChart";
+import { VolumeBySymbolChart } from "./VolumeBySymbolChart";
 
 /* ---------- SHAPES ---------- */
-interface ProcessedTrade {
+export interface ProcessedTrade {
   id: string;
   date: Date;
   symbol: string;
@@ -50,11 +43,11 @@ interface ProcessedTrade {
 }
 
 /* ---------- HELPERS ---------- */
-
-const fmt = (n: number) =>
+export const fmt = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
     n
   );
+
 const fmtDate = (d: Date) =>
   d.toLocaleDateString("en-US", {
     year: "numeric",
@@ -63,7 +56,7 @@ const fmtDate = (d: Date) =>
   });
 
 /* ---------- DATA HOOK ---------- */
-const useRecentTrades = (days = 7) => {
+export const useRecentTrades = (days = 7) => {
   const { data, isLoading, error } = useQuery({
     queryKey: ["ibkrRecentTrades", days],
     queryFn: () => getIbkrRecentTrades(days),
@@ -101,148 +94,7 @@ const useRecentTrades = (days = 7) => {
   return { trades, summary, isLoading, error };
 };
 
-/* ---------- SUMMARY CARDS ---------- */
-const SummaryCards: React.FC<{
-  s: ReturnType<typeof useRecentTrades>["summary"];
-}> = ({ s }) => {
-  const cashColor = s.netCash >= 0 ? "text-green-500" : "text-red-500";
-  return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Net&nbsp;Cash&nbsp;Flow</CardTitle>
-          {/* <TrendingUp className="absolute right-6 top-6 h-4 w-4 text-gray-400" /> / */}
-        </CardHeader>
-        <CardContent>
-          <CardDescription className={cashColor}>
-            {fmt(s.netCash)}
-          </CardDescription>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Total Volume Traded</CardTitle>
-          {/* <DollarSign className="absolute right-6 top-6 h-4 w-4 text-gray-400" /> */}
-        </CardHeader>
-        <CardContent>
-          <CardDescription>{fmt(s.totalVolume)}</CardDescription>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Total Trades</CardTitle>
-          {/* <ArrowLeftRight className="absolute right-6 top-6 h-4 w-4 text-gray-400" /> */}
-        </CardHeader>
-        <CardContent>
-          <CardDescription>{s.totalTrades}</CardDescription>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Total Commissions</CardTitle>
-          {/* <ReceiptText className="absolute right-6 top-6 h-4 w-4 text-gray-400" /> */}
-        </CardHeader>
-        <CardContent>
-          <CardDescription>{fmt(s.totalCommissions)}</CardDescription>
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
 
-/* ---------- VOLUME PIE ---------- */
-const VolumeBySymbolChart: React.FC<{ trades: ProcessedTrade[] }> = ({
-  trades,
-}) => {
-  const data = React.useMemo(() => {
-    const vol: Record<string, number> = {};
-    trades.forEach((t) => {
-      vol[t.symbol] = (vol[t.symbol] || 0) + Math.abs(t.netAmount);
-    });
-    return Object.entries(vol).map(([name, value]) => ({ name, value }));
-  }, [trades]);
-
-  const COLORS = ["#6366f1", "#10b981", "#fbbf24", "#ef4444", "#8b5cf6"];
-
-  return (
-    <Card className="lg:col-span-2">
-      <CardHeader>
-        <h3 className="text-lg font-semibold">Activity by Volume</h3>
-      </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={300}>
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              outerRadius={80}
-              dataKey="value"
-              labelLine={false}
-              label={({ name, percent }) =>
-                `${name} ${(percent * 100).toFixed(0)}%`
-              }
-            >
-              {data.map((_, i) => (
-                <Cell key={i} fill={COLORS[i % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip formatter={(v) => fmt(v as number)} />
-            <Legend iconSize={10} />
-          </PieChart>
-        </ResponsiveContainer>
-      </CardContent>
-    </Card>
-  );
-};
-
-/* ---------- SYMBOL PIE ---------- */
-const SymbolActivityChart: React.FC<{ trades: ProcessedTrade[] }> = ({
-  trades,
-}) => {
-  const data = useMemo(
-    () =>
-      Object.entries(
-        trades.reduce<Record<string, number>>(
-          (acc, t) => ({ ...acc, [t.symbol]: (acc[t.symbol] || 0) + 1 }),
-          {}
-        )
-      ).map(([name, value]) => ({ name, value })),
-    [trades]
-  );
-  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"];
-
-  return (
-    <Card className="lg:col-span-2">
-      <CardHeader>
-        <h3 className="text-lg font-semibold">Activity by Symbol</h3>
-      </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={300}>
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              outerRadius={80}
-              dataKey="value"
-              labelLine={false}
-              label={({ name, percent }) =>
-                `${name} ${(percent * 100).toFixed(0)}%`
-              }
-            >
-              {data.map((_, i) => (
-                <Cell key={i} fill={COLORS[i % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip formatter={(v) => `${v} trades`} />
-            <Legend iconSize={10} />
-          </PieChart>
-        </ResponsiveContainer>
-      </CardContent>
-    </Card>
-  );
-};
 
 /* ---------- TABLE ---------- */
 const TradesTable: React.FC<{ trades: ProcessedTrade[] }> = ({ trades }) => {
@@ -346,6 +198,7 @@ const TradesTable: React.FC<{ trades: ProcessedTrade[] }> = ({ trades }) => {
 /* ---------- PAGE ---------- */
 const TransactionsPage: React.FC = () => {
   const { trades, summary, isLoading, error } = useRecentTrades(7);
+  // console.log({trades, summary, isLoading})
   const { liveOrders, isLoading: ordersLoading, error: ordersError } = useLiveOrders();
 
   if (isLoading) {
@@ -379,28 +232,27 @@ const TransactionsPage: React.FC = () => {
 
   return (
     <div className="h-[80vh] overflow-y-auto">
-        <main className="container mx-auto space-y-6 p-4 md:p-8">
-            <Tabs defaultValue="trades">
-                <TabsList>
-                    <TabsTrigger value="trades">Recent Trades</TabsTrigger>
-                    <TabsTrigger value="orders">Live Orders</TabsTrigger>
-                </TabsList>
-                <TabsContent value="trades">
-                    <h1 className="text-2xl font-semibold ">Recent Trades (Last 7 days)</h1>
-                    <SummaryCards s={summary} />
-                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-                        <SymbolActivityChart trades={trades} />
-                        <VolumeBySymbolChart trades={trades} />
-                    </div>
-                    <TradesTable trades={trades} />
-                </TabsContent>
-                <TabsContent value="orders">
-                    <LiveOrdersTable orders={liveOrders} />
-                </TabsContent>
-            </Tabs>
-        </main>
+      <main className="container mx-auto p-4 md:p-8">
+        <Tabs defaultValue="trades">
+          <TabsList>
+            <TabsTrigger value="trades">Recent Trades</TabsTrigger>
+            <TabsTrigger value="orders">Live Orders</TabsTrigger>
+          </TabsList>
+          <TabsContent value="trades" className="space-y-6">
+            <h1 className="text-2xl font-semibold ">Recent Trades (Last 7 days)</h1>
+            <SummaryCards s={summary} />
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
+              <SymbolActivityChart trades={trades} />
+              <VolumeBySymbolChart trades={trades} />
+            </div>
+            <TradesTable trades={trades} />
+          </TabsContent>
+          <TabsContent value="orders">
+            <LiveOrdersTable orders={liveOrders} />
+          </TabsContent>
+        </Tabs>
+      </main>
     </div>
-);
-};
-
+  );
+}
 export default TransactionsPage;

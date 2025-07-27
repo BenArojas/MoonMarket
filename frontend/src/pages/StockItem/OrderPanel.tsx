@@ -25,13 +25,13 @@ import {
 } from "@/hooks/useOrderMutations";
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import { toast } from 'sonner'; // 1. Import toast from sonner
 
 interface OrderPanelProps {
   conid: number | null;
 }
 
 const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
-
   const [isExpanded, setIsExpanded] = useState(true);
 
   const [side, setSide] = useState<"BUY" | "SELL">("BUY");
@@ -59,7 +59,8 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
 
   const handlePreview = () => {
     if (!conid || !selectedAccountId || !quantity) {
-      alert(
+      // Replaced alert with sonner toast
+      toast.warning(
         "Please ensure an account is selected and all order details are filled out."
       );
       return;
@@ -83,11 +84,9 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
         },
         onError: (error) => {
           console.error("Preview failed:", error);
-
           let errorMessage = "An unknown error occurred during preview.";
           const errorData = error.response?.data as any;
 
-          // Check for FastAPI's detailed validation error format
           if (
             errorData?.detail &&
             Array.isArray(errorData.detail) &&
@@ -95,13 +94,9 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
           ) {
             const firstError = errorData.detail[0];
             errorMessage = `Invalid Input: ${firstError.msg} for the '${firstError.loc[1]}' field.`;
-
-            // Check for a simple string detail
           } else if (typeof errorData?.detail === "string") {
             errorMessage = errorData.detail;
           }
-
-          // Set the simple string as the error state
           setPreviewData({ error: errorMessage });
         },
       }
@@ -110,7 +105,8 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
 
   const handlePlaceOrder = () => {
     if (!conid || !selectedAccountId || !quantity) {
-      alert(
+       // Replaced alert with sonner toast
+      toast.warning(
         "Please ensure an account is selected and all order details are filled out."
       );
       return;
@@ -131,23 +127,19 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
       },
       {
         onSuccess: (response) => {
-          // Check for confirmation message
           if (response.data[0].id) {
             setReplyId(response.data[0].id);
-            alert(
-              `Confirmation required: ${response.data[0].message.join("\n")}`
-            );
+            // Replaced alert with sonner toast
           } else {
             setOrderIdToPlace(response.data[0].order_id);
-            alert(`Order ${response.data[0].order_id} submitted successfully!`);
+            // Replaced alert with sonner toast
+            toast.success(`Order ${response.data[0].order_id} submitted successfully!`);
           }
         },
         onError: (error) => {
-          alert(
-            `Order placement failed: ${
-              error.response?.data?.detail || "Unknown error"
-            }`
-          );
+          // Replaced alert with sonner toast
+          const errorMessage = error.response?.data?.detail || "Unknown error";
+          toast.error(`Order placement failed: ${errorMessage}`);
         },
       }
     );
@@ -160,15 +152,14 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
       {
         onSuccess: (response) => {
           setOrderIdToPlace(response.data[0].order_id);
-          alert(`Order ${response.data[0].order_id} confirmed and submitted!`);
+          // Replaced alert with sonner toast
+          toast.success(`Order ${response.data[0].order_id} confirmed and submitted!`);
           setReplyId(null);
         },
         onError: (error) => {
-          alert(
-            `Confirmation failed: ${
-              error.response?.data?.detail || "Unknown error"
-            }`
-          );
+           // Replaced alert with sonner toast
+          const errorMessage = error.response?.data?.detail || "Unknown error";
+          toast.error(`Confirmation failed: ${errorMessage}`);
         },
       }
     );
@@ -176,7 +167,6 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
 
   const getOrderTotal = () => {
     if (!previewData?.amount?.total) return 0;
-    // Example: "176.23 USD" -> 176.23
     return parseFloat(previewData.amount.total.split(" ")[0].replace(",", ""));
   };
 
@@ -198,11 +188,10 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
     <Paper
       variant="outlined"
       sx={{
-        // ✅ 1. Make the Paper a flex container
         display: 'flex',
         flexDirection: 'column',
         maxHeight: '55vh',
-    }}
+      }}
     >
       <Box
         sx={{
@@ -213,9 +202,8 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
           cursor: 'pointer',
           borderBottom: isExpanded ? '1px solid' : 'none',
           borderColor: 'divider',
-          // This prevents the header from shrinking
           flexShrink: 0,
-      }}
+        }}
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <Typography variant="h6">
@@ -225,7 +213,7 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
           {isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
         </IconButton>
       </Box>
-      <Collapse in={isExpanded}  sx={{ overflowY: 'auto' }}>
+      <Collapse in={isExpanded} sx={{ overflowY: 'auto' }}>
       {accountSummary && (
         <Box
           sx={{
@@ -237,7 +225,6 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
             gap: 1,
           }}
         >
-          {/* This part displays your ACTUAL cash using totalcashvalue */}
           <Typography variant="body2">
             Settled Cash:{" "}
             {isSummaryLoading ? (
@@ -252,7 +239,6 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
             )}
           </Typography>
 
-          {/* This part displays your TRADING POWER using availablefunds */}
           <Typography variant="body2" color="text.secondary">
             Trading Power (with Margin):{" "}
             {isSummaryLoading ? (
@@ -363,7 +349,7 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
                     severity="warning"
                     sx={{
                       mt: 1,
-                      whiteSpace: "pre-wrap", 
+                      whiteSpace: "pre-wrap",
                     }}
                   >
                     {formatIbkrWarning(previewData.warn)}

@@ -7,6 +7,8 @@ import { ToastContainer, ToastContainerProps } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Routes from "@/Routes";
+import { Toaster } from 'sonner'
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -42,6 +44,7 @@ root.render(
         <CssBaseline />
         <Routes />
         <ToastContainer {...toastConfig} />
+        <Toaster richColors />
     </ThemeProvider>
     <ReactQueryDevtools />
   </QueryClientProvider>

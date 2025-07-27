@@ -4,6 +4,7 @@ import asyncio
 import logging
 from typing import Any, Dict, List
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 from models import Order
 from deps import get_ibkr_service
 from ibkr_service import IBKRService
@@ -139,14 +140,16 @@ async def place_order_route(
 ):
     return await ibkr_service.place_order(accountId, order.model_dump())
 
+class ConfirmationReply(BaseModel):
+    confirmed: bool
+
 @router.post("/orders/reply/{reply_id}", summary="Reply to an order confirmation")
 async def reply_to_confirmation_route(
     reply_id: str,
-    confirmed: bool,
+    reply_data: ConfirmationReply,
     ibkr_service: IBKRService = Depends(get_ibkr_service)
 ):
-    # This endpoint takes the reply_id from the URL and 'confirmed' from the body
-    return await ibkr_service.reply_to_confirmation(reply_id, confirmed)
+    return await ibkr_service.reply_to_confirmation(reply_id, reply_data.confirmed)
 
 @router.delete("/orders/{order_id}", summary="Cancel an order")
 async def cancel_order_route(order_id: str, accountId: str, ibkr_service: IBKRService = Depends(get_ibkr_service)):

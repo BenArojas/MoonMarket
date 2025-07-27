@@ -1,6 +1,5 @@
-import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { toast } from 'sonner'; // Replaced react-toastify with sonner
 
 interface ApiConfig extends AxiosRequestConfig {
   baseURL: string;
@@ -29,9 +28,9 @@ api.interceptors.response.use(
     if (error.response?.status !== 401) {
       const message = (error.response?.data as { detail?: string })?.detail || 'An API error occurred';
       
-      // Use a toastId to prevent duplicate toasts
+      // Use sonner's 'id' property in the options object to prevent duplicates
       toast.error(message, {
-        toastId: API_ERROR_TOAST_ID,
+        id: API_ERROR_TOAST_ID,
       });
     }
     return Promise.reject(error);
