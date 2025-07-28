@@ -1,4 +1,5 @@
 # utils.py
+from datetime import datetime
 import logging
 import math
 import re
@@ -131,3 +132,46 @@ def parse_option_symbol(ticker: str):
             'right': right.upper()
         }
     return None
+
+def calculate_days_to_expiry(description: str) -> int | None:
+    """
+    Parses an IBKR option description using regex to find the YYMMDD date code
+    and calculates the days remaining until expiration.
+    """
+    try:
+        # Regex to find the 6-digit date code (yymmdd) inside the brackets []
+        match = re.search(r'\[.*?(\d{6})[CP]', description)
+        if not match:
+            return None
+
+        date_code = match.group(1) # Extracts '250905'
+        expiry_date = datetime.strptime(date_code, "%y%m%d")
+
+        # Calculate days remaining from today's date
+        # Current date: Monday, July 28, 2025
+        delta = expiry_date - datetime.now()
+        
+        return max(0, delta.days) # Return 0 if expired, otherwise the days left
+    except (ValueError, IndexError):
+        # Return None if parsing fails for any reason
+        return None
+    
+def format_option_description(description: str) -> str:
+    """
+    Cleans up an IBKR option contract description for display.
+    Example Input: "IBIT   SEP2025 71 C [IBIT  250905C00071000 100]"
+    Example Output: "IBIT SEP 2025 71 C"
+    """
+    if not description:
+        return ""
+    
+    # 1. Remove the bracketed OCC code at the end
+    cleaned = re.sub(r'\s*\[.*\]', '', description).strip()
+    
+    # 2. Normalize multiple spaces into a single space
+    normalized_space = re.sub(r'\s+', ' ', cleaned)
+    
+    # 3. Add a space between the 3-letter month and the 4-digit year (e.g., "SEP2025" -> "SEP 2025")
+    final_format = re.sub(r'([A-Z]{3})(\d{4})', r'\1 \2', normalized_space)
+    
+    return final_format

@@ -50,27 +50,32 @@ def option_key_builder(*args, **kwargs) -> str:
 
 def snapshot_key_builder(*args, **kwargs) -> str:
     """
-    Creates a unique cache key for the IBKRService.snapshot method.
-    The key is based on the conids.
+    Creates a unique cache key for the snapshot method based on both conids and fields.
     """
-    # The IBKRService instance is args[0]
     service_instance = args[0]
     fn_name = f"{service_instance.__class__.__name__}.{kwargs.get('func_name')}"
 
-    # The 'conids' are passed as a keyword argument from getStockQuote
+    # --- Get conids (no change here) ---
     conids = kwargs.get('conids')
     if not conids:
-        # Or they might be the second positional argument
         conids = args[1] if len(args) > 1 else None
-
     if not conids:
         raise ValueError("snapshot_key_builder requires a 'conids' argument.")
-
-    # Sort the conids so the key is consistent regardless of order
+    
+    # Sort conids for consistency
     sorted_conids = sorted(map(str, conids))
 
-    # The final key will look like: "IBKRService.snapshot:265598,76798642"
-    return f"{fn_name}:{','.join(sorted_conids)}"
+    # --- NEW: Get and process fields ---
+    fields_str = kwargs.get('fields')
+    if not fields_str:
+        fields_str = args[2] if len(args) > 2 else ""
+
+    # Sort fields for consistency (e.g., "31,55" becomes the same key as "55,31")
+    sorted_fields = sorted(field.strip() for field in fields_str.split(','))
+
+    # --- The final, corrected key ---
+    # Example: "IBKRService.snapshot:265598:31,55,84"
+    return f"{fn_name}:{','.join(sorted_conids)}:{','.join(sorted_fields)}"
 
 def history_cache_key_builder(*args, **kwargs) -> str:
     """

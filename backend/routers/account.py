@@ -4,12 +4,12 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from ibkr_service import IBKRService
-from models import AccountDetailsDTO, AllocationDTO, BriefAccountInfoDTO, ChartDataPoint, ComboDTO, LedgerDTO, PnlRow, PnlUpdate
+from models import AccountDetailsDTO, AccountPermissions, AllocationDTO, BriefAccountInfoDTO, ChartDataPoint, ComboDTO, LedgerDTO, PnlRow, PnlUpdate
 from typing import List
 from deps import get_ibkr_service 
 
 log = logging.getLogger(__name__)
-router = APIRouter(prefix="/account", tags=["Market"])
+router = APIRouter(prefix="/account", tags=["Account"])
 
 
 class _Series(BaseModel):
@@ -76,6 +76,14 @@ async def get_allocation(accountId: str,svc: IBKRService = Depends(get_ibkr_serv
 @router.get("/ledger", response_model=LedgerDTO)
 async def get_ledger(accountId: str, svc: IBKRService = Depends(get_ibkr_service)):
     return await svc.ledger(accountId)
+
+@router.get("/{account_id}/permissions", response_model=AccountPermissions)
+async def get_permissions(
+    account_id: str,
+    svc: IBKRService = Depends(get_ibkr_service)
+):
+    """Returns a simplified object of key trading permissions for the account."""
+    return await svc.get_account_permissions(account_id)
 
 @router.get("/account-details/", response_model=AccountDetailsDTO)
 async def get_account_details(accountId: str, svc: IBKRService = Depends(get_ibkr_service)):

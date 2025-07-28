@@ -12,8 +12,8 @@ import httpx
 from pydantic import BaseModel, Field
 from typing import Awaitable, Callable, Optional, List, Dict, Any, Set
 import websockets
-from utils import safe_float_conversion
-from models import AccountDetailsDTO, AccountInfoDTO, BriefAccountInfoDTO, FrontendMarketDataUpdate, LedgerDTO, LedgerEntry, LedgerUpdate, OwnerInfoDTO, PermissionsDTO, PnlRow, PnlUpdate, WebSocketRequest
+from utils import calculate_days_to_expiry, safe_float_conversion
+from models import AccountDetailsDTO, AccountInfoDTO, AccountPermissions, BriefAccountInfoDTO, FrontendMarketDataUpdate, LedgerDTO, LedgerEntry, LedgerUpdate, OwnerInfoDTO, PermissionsDTO, PnlRow, PnlUpdate, WebSocketRequest
 from cache import account_specific_key_builder, cached, history_cache_key_builder, option_key_builder, snapshot_key_builder
 from rate_control import paced
 from websockets.legacy.client import WebSocketClientProtocol
@@ -288,25 +288,24 @@ class IBKRService:
         return None
 
     # fields="31,84,86,7635,7741,83,70,71"
-    @cached(ttl=150, key_builder=snapshot_key_builder)
-    async def snapshot(self, conids, fields="31,84,86,7635,7741,83,70,71", timeout=5, interval=1):
+    # @cached(ttl=150, key_builder=snapshot_key_builder)
+    async def snapshot(self, conids, fields, timeout=5, interval=1):
         """
-        Get market data snapshot, polling until data is available or a timeout occurs.
+        Get market data snapshot, polling until ALL requested fields are available 
+        or a timeout occurs.
         """
         await self.ensure_accounts()
         q = {"conids": ",".join(map(str, conids)), "fields": fields}
         
         start_time = time.time()
-        final_response = []
-        
-        # List of fields we expect in the response
         requested_fields = fields.split(',')
+        
+        log.info(f"Starting snapshot poll for conids: {conids} with fields: {fields}")
 
         while time.time() - start_time < timeout:
             response = await self._req("GET", "/iserver/marketdata/snapshot", params=q)
             
             if response and isinstance(response, list):
-                # Check if ALL requested conids are in the response and have the necessary fields
                 all_data_present = True
                 conids_in_response = {str(item.get('conid')) for item in response}
 
@@ -314,24 +313,21 @@ class IBKRService:
                     all_data_present = False
                 else:
                     for item in response:
-                        # Check if at least one of the requested data fields is present.
-                        # Some fields like '31' (last price) might not be available for an
-                        # instrument that hasn't traded, but others like '84' (bid) should be.
-                        if not any(field in item for field in requested_fields):
+                        # --- THIS IS THE FIX ---
+                        # Use all() to confirm every requested field exists in the response item.
+                        if not all(field in item for field in requested_fields):
                             all_data_present = False
-                            break # This item is incomplete, so the whole response is incomplete for now
+                            break 
                 
                 if all_data_present:
-                    # Success! We got the data we need.
+                    log.info(f"Successfully received complete snapshot for conids: {conids}")
                     return response
 
-            # If data is not yet present, wait and try again
+            log.info(f"All requested fields not yet available. Retrying in {interval}s...")
             await asyncio.sleep(interval)
 
-        # If the loop finishes without returning, it timed out. Return the last response we got.
-        # The calling function will have to handle the potentially incomplete data.
         log.warning(f"Snapshot request for conids {conids} timed out after {timeout}s.")
-        return response # Return the last known response, even if incomplete
+        return response
     
     def _extract_price_from_snapshot(self, snapshot_data: dict) -> float:
         """
@@ -499,7 +495,7 @@ class IBKRService:
         self.state.positions[account_id] = all_positions
         return all_positions
 
-    def get_position_by_conid(self, account_id: str, conid: int) -> Optional[dict]:
+    async def get_position_by_conid(self, account_id: str, conid: int) -> Optional[dict]:
         """
         Finds a specific position for a given account ID and conid
         from the locally stored portfolio state.
@@ -514,6 +510,8 @@ class IBKRService:
         # First, get the list of all positions for the specified account.
         # self.state.positions is assumed to be a dict like: {'U123...': [pos1, pos2]}
         account_positions = self.state.positions.get(account_id)
+        if account_positions is None:
+            account_positions = await self.positions(account_id)
         
         if not account_positions:
             # If there are no positions for this account, we can't find it.
@@ -527,6 +525,34 @@ class IBKRService:
                 
         # If the loop completes without finding the conid, return None.
         return None
+    
+    async def get_related_positions(self, account_id: str, stock_conid: int, stock_ticker: str) -> Dict[str, Any]:
+        """
+        Finds the main stock position and all related option positions for a given ticker.
+
+        Returns:
+            A dictionary with 'stock' and 'options' keys.
+            e.g., {"stock": {...}, "options": [{...}, {...}]}
+        """
+        all_positions = self.state.positions.get(account_id)
+        if all_positions is None:
+            all_positions = await self.positions(account_id)
+        
+        stock_position = None
+        option_positions = []
+
+        for pos in all_positions:
+            # Check for the main stock position by its unique conid
+            if pos.get("conid") == stock_conid:
+                stock_position = pos
+            
+            # Check for related options by asset class and ticker symbol in the description
+            elif pos.get("assetClass") == "OPT" and stock_ticker in pos.get("contractDesc", ""):
+                # Add the days to expiration for convenience
+                pos["daysToExpire"] = calculate_days_to_expiry(pos.get("contractDesc", ""))
+                option_positions.append(pos)
+        
+        return {"stock": stock_position, "options": option_positions}
 
     # account ---------------------------------------------------------
     
@@ -551,6 +577,46 @@ class IBKRService:
             ))
             
         return accounts_list
+
+    @cached(ttl=1200, key_builder=account_specific_key_builder)
+    async def get_account_permissions(self, account_id: str) -> AccountPermissions:
+        """
+        Fetches and parses trading permissions for a specific account.
+        """
+        try:
+            data = await self._req("GET", "/iserver/accounts")
+            
+            acct_props = data.get("acctProps", {}).get(account_id, {})
+            allow_features = data.get("allowFeatures", {})
+            
+            # --- FIX #1: Get allowed_assets from the correct dictionary ('allowFeatures') ---
+            allowed_assets = allow_features.get("allowedAssetTypes", "")
+            
+            # This will now correctly evaluate to True if "OPT" is in the string
+            allow_options = "OPT" in allowed_assets.split(',')
+
+            # This will now correctly evaluate to True if the string is not empty
+            can_trade = bool(allowed_assets)
+
+            # --- FIX #2: Infer margin status from allowed asset types ---
+            # The 'tradingType' field isn't in this API response.
+            # We can infer margin if assets like FUT or CFD are permitted.
+            is_margin = "FUT" in allowed_assets or "CFD" in allowed_assets
+            
+            return AccountPermissions(
+                canTrade=can_trade,
+                allowOptionsTrading=allow_options,
+                allowCryptoTrading=allow_features.get("allowCrypto", False),
+                isMarginAccount=is_margin,
+                supportsFractions=acct_props.get("supportsFractions", False)
+            )
+        except Exception as e:
+            log.exception(f"Failed to parse account permissions for {account_id}: {e}")
+            return AccountPermissions(
+                canTrade=False, allowOptionsTrading=False, allowCryptoTrading=False,
+                isMarginAccount=False, supportsFractions=False
+            )
+
     
     @cached(ttl=120, key_builder=account_specific_key_builder) 
     async def get_account_summary(self, account_id: str) -> Dict[str, Any]:

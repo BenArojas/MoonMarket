@@ -5,7 +5,7 @@ import logging
 from typing import Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 import httpx
-from utils import price_delta, safe_float_conversion
+from utils import format_option_description, price_delta, safe_float_conversion
 from ibkr_service import IBKRService
 from models import ChartDataBars, ConidResponse, FilteredChainResponse, FullChainResponse, OptionContract, OptionsChainResponse, PositionInfo, QuoteInfo, SearchResult, SingleContractResponse, StaticInfo, StockDetailsResponse
 from deps import get_ibkr_service 
@@ -383,20 +383,7 @@ async def get_stock_details(
     try:
         # --- Task 1: Fetch Static Info & Quote from IBKR ---
         # A list of relevant IBKR field codes
-        fields_to_fetch = [
-            "55",   # Ticker Symbol
-            "7051", # Company Name
-            "6004", # Exchange
-            "6119", # secType
-            "6070", # Currency
-            "31",   # Last Price
-            "84",   # Bid
-            "86",   # Ask
-            "83",   # Change %
-            "82",   # Change Amount
-            "70",   # Day High
-            "71",   # Day Low
-        ]
+        fields_to_fetch = ["55", "7051", "6004", "6119", "6070", "31", "84", "86", "83", "82", "70", "71"]
         fields_str = ",".join(fields_to_fetch)
         
         # We expect a list with one item for our single conid
@@ -405,14 +392,17 @@ async def get_stock_details(
             raise HTTPException(status_code=404, detail="Instrument not found or no market data available.")
         
         data = snapshot_data[0]
+        ticker = data.get("55")
+        if not ticker:
+            raise HTTPException(status_code=404, detail="Could not resolve ticker symbol for the instrument.")
 
-        # --- Task 2: Find Position Info from Server State ---
-        position_dict = svc.get_position_by_conid(accountId, conid)
+        positions_data = await svc.get_related_positions(accountId, conid, ticker)
+        
 
         # --- Task 3: Assemble the Response ---
         static_info = StaticInfo(
             conid=conid,
-            ticker=data.get("55", "N/A"),
+            ticker=ticker,
             companyName=data.get("7051", "Unknown Company"),
             exchange=data.get("6004"),
             secType=data.get("6119"),
@@ -429,12 +419,40 @@ async def get_stock_details(
             dayLow=safe_float_conversion(data.get("71")),
         )
 
-        position_info = PositionInfo(**position_dict) if position_dict else None
+        stock_pos_dict = positions_data["stock"]
+        if stock_pos_dict:
+            # This part is fine, as 'name' is being added, not replaced.
+            stock_pos_dict['name'] = static_info.companyName
+
+        stock_pos_model = PositionInfo(**stock_pos_dict) if stock_pos_dict else None
+
+        # 2. For option positions, create the models in a more controlled way.
+        option_pos_models = []
+        if positions_data["options"]:
+            for pos in positions_data["options"]:
+                # Create a copy so we don't alter the original data
+                pos_data = pos.copy()
+                
+                # Safely remove the original 'name' key to prevent the conflict.
+                # It might not exist, so we provide a default `None` to pop.
+                pos_data.pop('name', None)
+
+                # Now create the model with the formatted name and the rest of the data.
+                model = PositionInfo(
+                    name=format_option_description(pos.get("contractDesc", "")),
+                    **pos_data
+                )
+                option_pos_models.append(model)
+        
+        # If the list is empty after the loop, set it to None.
+        if not option_pos_models:
+            option_pos_models = None
 
         return StockDetailsResponse(
             staticInfo=static_info,
             quote=quote_info,
-            positionInfo=position_info,
+            positionInfo=stock_pos_model,
+            optionPositions=option_pos_models,
         )
 
     except HTTPException as e:

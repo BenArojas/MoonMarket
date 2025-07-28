@@ -12,3 +12,16 @@ PERIOD_BAR = {
     "1Y": ("1y", "1d"),      # 1 year of data with daily bars
     "5Y": ("5y", "1w"),      # 5 years of data with weekly bars
 }
+
+DEFAULT_SNAPSHOT_FIELDS = [
+    "31",   # Last Price
+    "55",   # Ticker Symbol
+    "84",   # Bid
+    "86",   # Ask
+    "83",   # Change %
+    "82",   # Change Amount
+    "70",   # Day High
+    "71",   # Day Low
+    "7051", # Company Name
+]
+DEFAULT_SNAPSHOT_FIELDS_STR = ",".join(DEFAULT_SNAPSHOT_FIELDS)

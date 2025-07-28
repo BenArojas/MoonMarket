@@ -58,6 +58,20 @@ export async function fetchAccountDetails(
   return data;
 }
 
+export interface AccountPermissions {
+  canTrade: boolean;
+  allowOptionsTrading: boolean;
+  allowCryptoTrading: boolean;
+  isMarginAccount: boolean;
+  supportsFractions: boolean;
+}
+
+export async function fetchAccountPermissions(accountId: string | null): Promise<AccountPermissions | null> {
+  if (!accountId) return null;
+  const { data } = await api.get<AccountPermissions>(`/account/${accountId}/permissions`);
+  return data;
+}
+
 /**
  * Fetches the detailed, multi-currency balance ledger.
  */

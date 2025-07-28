@@ -280,9 +280,19 @@ class PositionInfo(BaseModel):
     avgCost: float   # Renamed from avg_bought_price
     unrealizedPnl: float
     mktValue: float  # Renamed from value
+    name: Optional[str] = None         
+    daysToExpire: Optional[int] = None
 
 # This is the final response model for our new endpoint
 class StockDetailsResponse(BaseModel):
     staticInfo: StaticInfo
     quote: QuoteInfo
     positionInfo: Optional[PositionInfo] = None
+    optionPositions: Optional[List[PositionInfo]] = None 
+    
+class AccountPermissions(BaseModel):
+    canTrade: bool
+    allowOptionsTrading: bool
+    allowCryptoTrading: bool
+    isMarginAccount: bool
+    supportsFractions: bool

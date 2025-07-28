@@ -1,6 +1,6 @@
 // src/stores/stockStore.ts
 import api from "@/api/axios";
-import { PositionInfo } from "@/pages/StockItem/StockItem";
+import { PositionInfo, StaticInfo } from "@/pages/StockItem/StockItem";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 /* -------------------------------- AllocationDTO ------------------------- */
@@ -127,6 +127,10 @@ export interface InitialQuoteData {
   changePercent?: number;
   changeAmount?: number;
 }
+export interface PositionsPayload {
+  stock: PositionInfo | null;
+  options: PositionInfo[] | null;
+}
 
 export interface ActiveStockUpdate {
   type: "active_stock_update";
@@ -165,8 +169,10 @@ interface StockState {
     quote: Quote;
     depth: PriceLadderRow[];
     chartData: ChartBar[];
-    position: PositionInfo | null; // ✅ ADD THIS LINE
-};
+    position: PositionInfo | null;
+    optionPositions: PositionInfo[] | null;
+    secType: string | null;
+  };
   watchlists: WatchlistDict;
   connectionStatus: "disconnected" | "connecting" | "connected" | "error";
   error?: string;
@@ -187,12 +193,16 @@ interface StockState {
   // Actions
   // chart bars
   setInitialChartData: (data: ChartBar[]) => void;
-  setInitialCoreTotals: (totals: { dailyRealized: number; unrealized: number; netLiq: number }) => void;
+  setInitialCoreTotals: (totals: {
+    dailyRealized: number;
+    unrealized: number;
+    netLiq: number;
+  }) => void;
   subscribeToStock: (conid: number) => void;
-  setInitialPosition: (position: PositionInfo | null) => void;
+  setPositions: (payload: PositionsPayload) => void;
   subscribeToAllocation: () => void;
   setInitialQuote: (data: InitialQuoteData) => void;
-  setPreloadedDetails: (details: { conid: number; companyName: string ; ticker: string }) => void;
+  setPreloadedDetails: (details:StaticInfo) => void;
   subscribeToPortfolio: () => void;
   unsubscribeFromPortfolio: () => void;
   unsubscribeFromStock: (conid: number) => void;
@@ -233,8 +243,10 @@ export const useStockStore = create<StockState>()(
         quote: {},
         depth: [],
         chartData: [],
-        position: null, // ✅ Set initial state to null
-    },
+        position: null,
+        optionPositions: null,
+        secType: null
+      },
       watchlists: {},
       pnl: {},
       allocation: undefined,
@@ -254,14 +266,18 @@ export const useStockStore = create<StockState>()(
         set((state) => ({
           activeStock: { ...state.activeStock, chartData: data },
         })),
-        setInitialPosition: (position) =>
-          set((state) => ({
-              activeStock: { ...state.activeStock, position: position },
-          })),
-        
-        setInitialCoreTotals: (totals) => {
-          set({ coreTotals: totals });
-        },
+      setPositions: (payload) =>
+        set((state) => ({
+          activeStock: {
+            ...state.activeStock,
+            position: payload.stock,
+            optionPositions: payload.options,
+          },
+        })),
+
+      setInitialCoreTotals: (totals) => {
+        set({ coreTotals: totals });
+      },
 
       setPnl: (rows) => {
         const coreKey = Object.keys(rows).find((k) => k.endsWith(".Core"));
@@ -273,13 +289,14 @@ export const useStockStore = create<StockState>()(
             : { dailyRealized: 0, unrealized: 0, netLiq: 0 },
         });
       },
-      setPreloadedDetails: (details: { conid: number; companyName: string | null; ticker: string | null }) =>
+      setPreloadedDetails: (details: StaticInfo) =>
         set((state) => ({
           activeStock: {
             ...state.activeStock,
             conid: details.conid,
             companyName: details.companyName,
             ticker: details.ticker,
+            secType: details.secType ?? null,
             quote: {
               ...state.activeStock.quote,
               lastPrice: undefined,
@@ -288,17 +305,17 @@ export const useStockStore = create<StockState>()(
             },
           },
         })),
-        setInitialQuote: (data: InitialQuoteData) =>
-          set((state) => ({ 
-            activeStock: {
-              ...state.activeStock, 
-              conid: data.conid,
-              quote: {
-                ...state.activeStock.quote, 
-                ...data,                   
-              },
+      setInitialQuote: (data: InitialQuoteData) =>
+        set((state) => ({
+          activeStock: {
+            ...state.activeStock,
+            conid: data.conid,
+            quote: {
+              ...state.activeStock.quote,
+              ...data,
             },
-          })),
+          },
+        })),
       setAreAiFeaturesEnabled: (enabled) =>
         set({ areAiFeaturesEnabled: enabled }),
       setAccountDetails: (details) => set({ accountDetails: details }),
@@ -362,7 +379,6 @@ export const useStockStore = create<StockState>()(
         set((state) => ({
           activeStock: {
             ...state.activeStock,
-            // The || operator ensures we don't nullify a value if the update doesn't contain it
             quote: {
               ...state.activeStock.quote,
               lastPrice: data.lastPrice ?? state.activeStock.quote.lastPrice,
@@ -390,8 +406,10 @@ export const useStockStore = create<StockState>()(
             quote: {},
             depth: [],
             chartData: [],
-            position: null, // Reset position
-        },
+            position: null,
+            optionPositions: null,
+            secType: null
+          },
         }),
       updateStock: (data: FrontendMarketDataUpdate) =>
         set((state) => {
@@ -492,7 +510,6 @@ function connectWebSocket(get: () => StockState) {
         get().updateActiveQuote(msg); // This now receives a clean, detailed object
         break;
 
-
       case "book_data":
         get().updateActiveDepth(msg.data);
         break;
@@ -502,7 +519,7 @@ function connectWebSocket(get: () => StockState) {
         break;
 
       case "pnl":
-        console.log("")
+        console.log("");
         get().setPnl(msg.data);
         break;
 

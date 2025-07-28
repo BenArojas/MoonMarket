@@ -44,11 +44,26 @@ const orderTypeHelp = {
 const bracketOrderHelp =
   "Automatically places a profit-taking limit order and a protective stop-loss order once your main order executes. If one exit order fills, the other is automatically canceled (OCA).";
 
-interface OrderPanelProps {
-  conid: number | null;
+interface TradingTarget {
+  conid: number;
+  name: string;
+  type: "STOCK" | "OPTION";
 }
 
-const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
+interface OrderPanelProps {
+  tradingTarget: TradingTarget | null;
+  onRevertToStock: () => void;
+  disabled?: boolean;
+  disabledReason?: string;
+}
+const OrderPanel: React.FC<OrderPanelProps> = ({
+  tradingTarget,
+  onRevertToStock,
+  disabled = false,
+  disabledReason = "",
+}) => {
+  const conid = tradingTarget?.conid ?? null;
+
   // --- Component State ---
   const [isExpanded, setIsExpanded] = useState(true);
   const [side, setSide] = useState<"BUY" | "SELL">("BUY");
@@ -87,7 +102,16 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
       setProfitTakerPrice("");
       setStopLossPrice("");
     }
-  }, [side, quantity, orderType, price, auxPrice, tif, isBracketOrder]);
+  }, [
+    side,
+    quantity,
+    orderType,
+    price,
+    auxPrice,
+    tif,
+    isBracketOrder,
+    tradingTarget,
+  ]);
 
   const handleOrderResponse = (response: any) => {
     const data = response.data[0];
@@ -121,19 +145,22 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
     }
     // Build the single order payload for preview
     const orderPayload: any = { conid, side, quantity, orderType, tif };
-    if (orderType === 'LMT') orderPayload.price = parseFloat(price);
-    if (orderType === 'STP') orderPayload.price = parseFloat(price);
-    if (orderType === 'STOP_LIMIT') {
+    if (orderType === "LMT") orderPayload.price = parseFloat(price);
+    if (orderType === "STP") orderPayload.price = parseFloat(price);
+    if (orderType === "STOP_LIMIT") {
       orderPayload.price = parseFloat(price);
       orderPayload.auxPrice = parseFloat(auxPrice);
     }
-    
+
     previewMutation.mutate(
       { accountId: selectedAccountId, order: orderPayload },
       {
         onSuccess: (response) => setPreviewData(response.data),
         onError: (error: any) => {
-          const errorMessage = error.response?.data?.error || error.response?.data?.detail || "Preview failed with an unknown error.";
+          const errorMessage =
+            error.response?.data?.error ||
+            error.response?.data?.detail ||
+            "Preview failed with an unknown error.";
           setPreviewData({ error: errorMessage });
         },
       }
@@ -157,13 +184,33 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
 
     if (isBracketOrder) {
       if (!profitTakerPrice || !stopLossPrice) {
-        toast.error("Please fill out both Profit Taker and Stop Loss prices for a bracket order.");
+        toast.error(
+          "Please fill out both Profit Taker and Stop Loss prices for a bracket order."
+        );
         return;
       }
       parentOrder.cOID = parentId;
 
-      const profitTakerOrder = { conid, parentId, side: oppositeSide, quantity, orderType: "LMT", price: parseFloat(profitTakerPrice), tif: "GTC", isSingleGroup: true };
-      const stopLossOrder = { conid, parentId, side: oppositeSide, quantity, orderType: "STP", price: parseFloat(stopLossPrice), tif: "GTC", isSingleGroup: true };
+      const profitTakerOrder = {
+        conid,
+        parentId,
+        side: oppositeSide,
+        quantity,
+        orderType: "LMT",
+        price: parseFloat(profitTakerPrice),
+        tif: "GTC",
+        isSingleGroup: true,
+      };
+      const stopLossOrder = {
+        conid,
+        parentId,
+        side: oppositeSide,
+        quantity,
+        orderType: "STP",
+        price: parseFloat(stopLossPrice),
+        tif: "GTC",
+        isSingleGroup: true,
+      };
 
       orders = [parentOrder, profitTakerOrder, stopLossOrder];
     } else {
@@ -175,7 +222,10 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
       {
         onSuccess: handleOrderResponse,
         onError: (error: any) => {
-          const errorMessage = error.response?.data?.error || error.response?.data?.detail || "Order placement failed.";
+          const errorMessage =
+            error.response?.data?.error ||
+            error.response?.data?.detail ||
+            "Order placement failed.";
           toast.error(`Error: ${errorMessage}`);
         },
       }
@@ -191,11 +241,15 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
     }
     confirmMutation.mutate(
       { replyId, confirmed: true },
-      { onSuccess: handleOrderResponse, onError: (error: any) => { /* ... */ } }
+      {
+        onSuccess: handleOrderResponse,
+        onError: (error: any) => {
+          /* ... */
+        },
+      }
     );
   };
-  
-  // --- ADDED BACK: Helper functions and calculations ---
+
   const getOrderTotal = () => {
     if (!previewData?.amount?.total) return 0;
     return parseFloat(previewData.amount.total.replace(/,/g, ""));
@@ -205,16 +259,29 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
     if (!rawWarning) return "";
     return rawWarning.replace(/^\d+\//, "").replace(/<[^>]*>/g, "");
   };
-  
+
   const cashBalance = accountSummary?.totalcashvalue?.amount ?? 0;
   const orderTotal = getOrderTotal();
   const usesMargin = orderTotal > cashBalance;
   const isLoading = placeMutation.isPending || confirmMutation.isPending;
 
+  if (disabled) {
+    return (
+      <Paper variant="outlined" sx={{ p: 2 }}>
+        <Alert severity="warning">
+          <Typography variant="h6" component="p" gutterBottom>
+            Trading Disabled
+          </Typography>
+          {disabledReason}
+        </Alert>
+      </Paper>
+    );
+  }
+
   return (
     <Paper
       variant="outlined"
-      sx={{ display: "flex", flexDirection: "column", maxHeight: "55vh" }}
+      sx={{ display: "flex", flexDirection: "column", maxHeight: "45vh" }}
     >
       <Box
         sx={{
@@ -235,6 +302,21 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
         </IconButton>
       </Box>
       <Collapse in={isExpanded} sx={{ overflowY: "auto" }}>
+      <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'action.hover' }}>
+          <Typography variant="subtitle2" color="text.secondary" sx={{ textTransform: 'uppercase' }}>
+            Trading
+          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h6" component="p" noWrap title={tradingTarget?.name}>
+              {tradingTarget?.name ?? 'No Instrument Selected'}
+            </Typography>
+            {tradingTarget?.type === 'OPTION' && (
+              <Button size="small" variant="outlined" onClick={onRevertToStock} sx={{ ml: 1, flexShrink: 0 }}>
+                Trade Stock
+              </Button>
+            )}
+          </Box>
+        </Box>
         {accountSummary && (
           <Box
             sx={{
@@ -382,58 +464,139 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
           <Divider />
           <Box>
             <FormControlLabel
-              control={<Switch checked={isBracketOrder} onChange={(e) => setIsBracketOrder(e.target.checked)} />}
+              control={
+                <Switch
+                  checked={isBracketOrder}
+                  onChange={(e) => setIsBracketOrder(e.target.checked)}
+                />
+              }
               label="Attach Bracket Order"
             />
             <Tooltip title={bracketOrderHelp}>
-              <IconButton size="small" sx={{ verticalAlign: 'middle' }}><HelpOutlineIcon fontSize="small" color="action" /></IconButton>
+              <IconButton size="small" sx={{ verticalAlign: "middle" }}>
+                <HelpOutlineIcon fontSize="small" color="action" />
+              </IconButton>
             </Tooltip>
           </Box>
           <Collapse in={isBracketOrder}>
-            <Box sx={{ display: 'flex', gap: 2, mt: 1, p: 2, border: '1px dashed', borderColor: 'divider', borderRadius: 1 }}>
-              <TextField label="Profit Taker (Limit Price)" type="number" value={profitTakerPrice} onChange={(e) => setProfitTakerPrice(e.target.value)} fullWidth required={isBracketOrder} />
-              <TextField label="Stop Loss (Stop Price)" type="number" value={stopLossPrice} onChange={(e) => setStopLossPrice(e.target.value)} fullWidth required={isBracketOrder} />
+            <Box
+              sx={{
+                display: "flex",
+                gap: 2,
+                mt: 1,
+                p: 2,
+                border: "1px dashed",
+                borderColor: "divider",
+                borderRadius: 1,
+              }}
+            >
+              <TextField
+                label="Profit Taker (Limit Price)"
+                type="number"
+                value={profitTakerPrice}
+                onChange={(e) => setProfitTakerPrice(e.target.value)}
+                fullWidth
+                required={isBracketOrder}
+              />
+              <TextField
+                label="Stop Loss (Stop Price)"
+                type="number"
+                value={stopLossPrice}
+                onChange={(e) => setStopLossPrice(e.target.value)}
+                fullWidth
+                required={isBracketOrder}
+              />
             </Box>
           </Collapse>
 
           {!isBracketOrder ? (
             // Flow for Simple Orders: Preview -> Place
-            <Button variant="contained" onClick={handlePreview} disabled={isLoading}>
-              {previewMutation.isPending ? <CircularProgress size={24} /> : "Preview Order"}
+            <Button
+              variant="contained"
+              onClick={handlePreview}
+              disabled={isLoading}
+            >
+              {previewMutation.isPending ? (
+                <CircularProgress size={24} />
+              ) : (
+                "Preview Order"
+              )}
             </Button>
           ) : (
             // Flow for Bracket Orders: Place Directly
-            <Button variant="contained" color="secondary" onClick={handlePlaceOrder} disabled={isLoading}>
-              {placeMutation.isPending ? <CircularProgress size={24} /> : "Place Bracket Order"}
+            <Button
+              variant="contained"
+              color="secondary"
+              onClick={handlePlaceOrder}
+              disabled={isLoading}
+            >
+              {placeMutation.isPending ? (
+                <CircularProgress size={24} />
+              ) : (
+                "Place Bracket Order"
+              )}
             </Button>
           )}
 
           {/* --- ADDED BACK: Preview display for simple orders --- */}
           {previewData && (
-            <Box sx={{ mt: 2, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
-              <Typography variant="subtitle1" gutterBottom>Order Preview</Typography>
+            <Box
+              sx={{
+                mt: 2,
+                p: 2,
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 1,
+              }}
+            >
+              <Typography variant="subtitle1" gutterBottom>
+                Order Preview
+              </Typography>
               <Divider sx={{ mb: 1 }} />
               {previewData.error ? (
                 <Alert severity="error">{previewData.error}</Alert>
               ) : (
                 <>
-                  <Typography variant="body2">Total Cost: <strong>{previewData.amount?.total}</strong></Typography>
-                  <Typography variant="body2">Commission: <strong>{previewData.amount?.commission}</strong></Typography>
-                  <Typography variant="body2">Equity After: <strong>{previewData.equity?.after}</strong></Typography>
-                  
+                  <Typography variant="body2">
+                    Total Cost: <strong>{previewData.amount?.total}</strong>
+                  </Typography>
+                  <Typography variant="body2">
+                    Commission:{" "}
+                    <strong>{previewData.amount?.commission}</strong>
+                  </Typography>
+                  <Typography variant="body2">
+                    Equity After: <strong>{previewData.equity?.after}</strong>
+                  </Typography>
+
                   {usesMargin && cashBalance > 0 && (
-                    <Alert severity="info" sx={{ mt: 1 }}>This order will use margin.</Alert>
+                    <Alert severity="info" sx={{ mt: 1 }}>
+                      This order will use margin.
+                    </Alert>
                   )}
                   {previewData.warn && (
-                    <Alert severity="warning" sx={{ mt: 1, whiteSpace: "pre-wrap" }}>
+                    <Alert
+                      severity="warning"
+                      sx={{ mt: 1, whiteSpace: "pre-wrap" }}
+                    >
                       {formatIbkrWarning(previewData.warn)}
                     </Alert>
                   )}
-                  
+
                   {!orderIdToPlace && !replyId && (
-                     <Button variant="contained" color="primary" onClick={handlePlaceOrder} disabled={isLoading} fullWidth sx={{ mt: 2 }}>
-                       {placeMutation.isPending ? <CircularProgress size={24} /> : "Place Order"}
-                     </Button>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={handlePlaceOrder}
+                      disabled={isLoading}
+                      fullWidth
+                      sx={{ mt: 2 }}
+                    >
+                      {placeMutation.isPending ? (
+                        <CircularProgress size={24} />
+                      ) : (
+                        "Place Order"
+                      )}
+                    </Button>
                   )}
                 </>
               )}
@@ -443,19 +606,35 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ conid }) => {
           {/* --- Confirmation and Final Success UI (works for both flows) --- */}
           {replyId && (
             <Box sx={{ mt: 2 }}>
-              <Alert severity="warning" sx={{ mb: 2 }}>Please confirm the action to submit your order.</Alert>
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                Please confirm the action to submit your order.
+              </Alert>
               <ButtonGroup fullWidth>
-                <Button color="success" onClick={() => handleConfirm(true)} disabled={confirmMutation.isPending}>
-                  {confirmMutation.isPending ? <CircularProgress size={24} color="inherit" /> : "Confirm & Submit"}
+                <Button
+                  color="success"
+                  onClick={() => handleConfirm(true)}
+                  disabled={confirmMutation.isPending}
+                >
+                  {confirmMutation.isPending ? (
+                    <CircularProgress size={24} color="inherit" />
+                  ) : (
+                    "Confirm & Submit"
+                  )}
                 </Button>
-                <Button color="error" onClick={() => handleConfirm(false)} disabled={confirmMutation.isPending}>
+                <Button
+                  color="error"
+                  onClick={() => handleConfirm(false)}
+                  disabled={confirmMutation.isPending}
+                >
                   Cancel
                 </Button>
               </ButtonGroup>
             </Box>
           )}
           {orderIdToPlace && (
-            <Alert severity="success" sx={{ mt: 2 }}>Order Submitted! ID: {orderIdToPlace}</Alert>
+            <Alert severity="success" sx={{ mt: 2 }}>
+              Order Submitted! ID: {orderIdToPlace}
+            </Alert>
           )}
         </Box>
       </Collapse>

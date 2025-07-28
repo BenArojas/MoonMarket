@@ -78,89 +78,50 @@ interface StrikeRowProps {
   put: OptionContract | undefined;
   isLoading: boolean;
   currentPrice: number;
-  onClick: () => void;
+  onFetchData: () => void; // Prop to request data for this strike
+  onSelectContract: (type: 'call' | 'put') => void; // Prop to select a loaded contract
+  isTradingEnabled: boolean;
 }
 
-// A new sub-component for rendering a single row in our options table
+// --- UPDATED StrikeRow sub-component ---
 const StrikeRow = React.forwardRef<HTMLDivElement, StrikeRowProps>(
-  ({ strike, call, put, isLoading, currentPrice, onClick }, ref) => {
+  ({ strike, call, put, isLoading, currentPrice, onFetchData, onSelectContract, isTradingEnabled }, ref) => {
+    const hasData = !!call || !!put;
     const isCallItm = strike < currentPrice;
     const isPutItm = strike > currentPrice;
+    const itmGreen = "rgba(38, 166, 154, 0.15)";
+    const otmRed = "rgba(239, 83, 80, 0.15)";
 
-    // New semi-transparent colors for the row backgrounds
-    const itmGreen = "rgba(38, 166, 154, 0.15)"; // A darker, more subtle green
+    // Define styles for clickable areas when trading is enabled
+    const interactiveSx = isTradingEnabled 
+        ? { cursor: 'pointer', '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.05)' } } 
+        : { cursor: 'not-allowed' };
 
     return (
-      <Box
-        ref={ref}
-        onClick={onClick}
-        sx={{
-          cursor: "pointer",
-          "&:hover": {
-            ".call-half, .put-half": {
-              backgroundColor: "rgba(255, 255, 255, 0.05)",
-            },
-          },
-          borderBottom: "1px solid #333",
-        }}
-      >
-        <Grid container alignItems="center" justifyContent="center">
-          {/* CALLS Column */}
-          <Grid
-            item
-            xs={5}
-            className="call-half"
-            sx={{
-              p: 1.5,
-              // Use the new green for ITM calls
-              backgroundColor: isCallItm ? itmGreen : "transparent",
-            }}
-          >
-            {isLoading ? (
-              <Skeleton variant="text" width="90%" />
-            ) : (
-              call && <ContractData contract={call} type="call" />
-            )}
-          </Grid>
+      <Box ref={ref} sx={{ borderBottom: "1px solid #333" }}>
+        {/* If data is NOT loaded, the entire row fetches data. */}
+        {!hasData && (
+          <Box onClick={onFetchData} sx={{ cursor: 'pointer' }}>
+            <Grid container alignItems="center" justifyContent="center">
+              <Grid item xs={5} sx={{ p: 1.5 }}><Skeleton variant="text" width="90%" /></Grid>
+              <Grid item xs={2} textAlign="center"><Chip label={strike.toFixed(2)} /* ... */ /></Grid>
+              <Grid item xs={5} sx={{ p: 1.5 }}><Skeleton variant="text" width="90%" sx={{ ml: "auto" }} /></Grid>
+            </Grid>
+          </Box>
+        )}
 
-          {/* STRIKE Column */}
-          <Grid item xs={2} textAlign="center">
-            <Chip
-              label={strike.toFixed(2)}
-              size="small"
-              sx={{
-                fontWeight: "bold",
-                width: "90px",
-                color: "white",
-                // Use new, more subtle colors for the Chip
-                // Green for ITM calls, Red for OTM calls (and ATM strikes)
-                backgroundColor: isCallItm
-                  ? "rgba(38, 166, 154, 0.25)"
-                  : "rgba(239, 83, 80, 0.25)",
-              }}
-            />
+        {/* If data IS loaded, the sides become individually clickable to select a contract. */}
+        {hasData && (
+          <Grid container alignItems="center" justifyContent="center">
+            <Grid item xs={5} onClick={() => call && onSelectContract('call')} sx={{ ...interactiveSx, p: 1.5, backgroundColor: isCallItm ? itmGreen : 'transparent' }}>
+              {isLoading ? <Skeleton variant="text" width="90%" /> : (call && <ContractData contract={call} type="call" />)}
+            </Grid>
+            <Grid item xs={2} textAlign="center"><Chip label={strike.toFixed(2)} /* ... */ /></Grid>
+            <Grid item xs={5} onClick={() => put && onSelectContract('put')} sx={{ ...interactiveSx, p: 1.5, backgroundColor: isPutItm ? otmRed : 'transparent' }}>
+              {isLoading ? <Skeleton variant="text" width="90%" sx={{ ml: "auto" }} /> : (put && <ContractData contract={put} type="put" />)}
+            </Grid>
           </Grid>
-
-          {/* PUTS Column */}
-          <Grid
-            item
-            xs={5}
-            className="put-half"
-            sx={{
-              p: 1.5,
-              // CORRECTED: Use the new green for ITM puts
-              backgroundColor: isPutItm
-                ? "rgba(239, 83, 80, 0.25)"
-                : "transparent",
-            }}
-          >
-            {isLoading ? (
-              <Skeleton variant="text" width="90%" sx={{ ml: "auto" }} />
-            ) : (
-              put && <ContractData contract={put} type="put" />
-            )}
-          </Grid>
-        </Grid>
+        )}
       </Box>
     );
   }
@@ -177,25 +138,15 @@ interface OptionsChainProps {
   isLoading: boolean;
   error: string | null;
   currentPrice: number;
+  onOptionSelect: (option: OptionContract, type: 'call' | 'put') => void;
+  isTradingEnabled: boolean;
 }
 
 export default function OptionsChain({
-  allStrikes,
-  ticker,
-  onChainUpdate,
-  chainData,
-  expirations,
-  selectedExpiration,
-  onExpirationChange,
-  isLoading,
-  error,
-  currentPrice,
+  allStrikes, ticker, onChainUpdate, chainData, expirations,
+  selectedExpiration, onExpirationChange, isLoading, error, currentPrice,
+  onOptionSelect, isTradingEnabled
 }: OptionsChainProps) {
-  console.log({
-    allStrikes,
-    chainData,
-    expirations,
-  });
   const atmStrikeRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -254,6 +205,17 @@ export default function OptionsChain({
     // We no longer need to manage a 'selected' state, just fetch if needed
     if (!chainData?.[strike]) {
       mutate(strike);
+    }
+  };
+
+  const handleSelectContract = (strike: number, type: 'call' | 'put') => {
+    if (!isTradingEnabled) return; // Prevent selection if trading is disabled
+
+    const strikeData = chainData?.[strike.toFixed(2)];
+    const contract = type === 'call' ? strikeData?.call : strikeData?.put;
+    
+    if (contract) {
+      onOptionSelect(contract, type);
     }
   };
 
@@ -360,33 +322,26 @@ export default function OptionsChain({
             </Grid>
           </Grid>
 
-          <Box
-            ref={scrollContainerRef}
-            sx={{
-              height: "350px",
-              overflowY: "auto",
-              display: "flex",
-              flexDirection: "column",
-              gap: "8px", // This adds the space between rows
-            }}
-          >
-            {allStrikes.map((strike) => {
-              const strikeKey = strike.toFixed(2);
-              return (
-                // Remove the extra Box wrapper and pass the ref directly
-                <StrikeRow
-                  key={strike}
-                  ref={strike === closestStrike ? atmStrikeRef : null}
-                  strike={strike}
-                  call={chainData?.[strikeKey]?.call}
-                  put={chainData?.[strikeKey]?.put}
-                  isLoading={isPending && pendingStrike === strike}
-                  currentPrice={currentPrice}
-                  onClick={() => handleStrikeClick(strike)}
-                />
-              );
-            })}
-          </Box>
+          <Box ref={scrollContainerRef} sx={{ height: "350px", overflowY: "auto" }}>
+          {allStrikes.map((strike) => {
+            const strikeKey = strike.toFixed(2);
+            return (
+              <StrikeRow
+                key={strike}
+                ref={strike === closestStrike ? atmStrikeRef : null}
+                strike={strike}
+                call={chainData?.[strikeKey]?.call}
+                put={chainData?.[strikeKey]?.put}
+                isLoading={isPending && pendingStrike === strike}
+                currentPrice={currentPrice}
+                isTradingEnabled={isTradingEnabled}
+                // Pass the two different handlers down to the row
+                onFetchData={() => handleStrikeClick(strike)}
+                onSelectContract={(type) => handleSelectContract(strike, type)}
+              />
+            );
+          })}
+        </Box>
         </Box>
       )}
     </Paper>
