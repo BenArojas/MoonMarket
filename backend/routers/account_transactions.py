@@ -130,7 +130,7 @@ async def preview_order_route(
     order: Order,
     ibkr_service: IBKRService = Depends(get_ibkr_service)
 ):
-    return await ibkr_service.preview_order(accountId, order.model_dump())
+    return await ibkr_service.preview_order(accountId, order.model_dump(exclude_none=True))
 
 @router.post("/orders", summary="Place one or more orders (including Brackets/OCA)")
 async def place_order_route(

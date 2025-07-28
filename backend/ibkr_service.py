@@ -415,7 +415,6 @@ class IBKRService:
         
         account_positions = self.state.positions.get(account_id, [])
 
-        # --- NEW SAFEGUARD ---
         if not account_positions:
             account_positions = await self.positions(account_id)
         try:
@@ -445,6 +444,7 @@ class IBKRService:
                             f"Warning: You are trying to sell {order_quantity} shares but you only own {shares_owned}. "
                             f"This will sell all your shares and open a new short position of {short_amount} shares."
                         )
+                        log.warning(f"[{account_id}] PARTIAL SHORT SALE DETECTED: Owns {shares_owned}, selling {order_quantity} of conid {order_conid}.")
 
             if custom_warning:
                 existing_warning = response.get("warn")

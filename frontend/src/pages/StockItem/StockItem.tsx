@@ -2,7 +2,6 @@ import api from "@/api/axios";
 import { ChartBar, useStockStore } from "@/stores/stockStore";
 import { startTransition, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-
 import CandleStickChart from "@/components/charts/CandleSticksChart";
 import {
   Box,
@@ -15,49 +14,16 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import DepthOfBookTable from "./DepthOfBookTable";
 import LiveQuoteDisplay from "./LiveQuoteDisplay";
-import OptionsChain from "./OptionsChain";
-import OrderPanel from "./OrderPanel";
 import { PositionDetails } from "./PositionDetails";
 import { useAccountPermissions } from "@/hooks/useAccountPermissions";
 import { toast } from "sonner";
+import OptionsChain from "./options/OptionsChain";
+import { FilteredChainResponse, OptionContract, OptionsChainData } from "@/types/options";
+import OrderPanel from "./trading/OrderPanel";
 
 const timePeriods = ["1D", "7D", "1M", "3M", "YTD", "1Y", "5Y"];
 
-// --- TYPE DEFINITIONS ---
-export interface OptionContract {
-  contractId: number;
-  strike: number;
-  type: "call" | "put";
-  lastPrice?: number;
-  bid?: number;
-  ask?: number;
-  volume?: number;
-  delta?: number;
-  bidSize?: number;
-  askSize?: number;
-}
 
-export type OptionsChainData = Record<
-  string,
-  {
-    call?: OptionContract;
-    put?: OptionContract;
-  }
->;
-
-// Add these new types for our API responses
-export interface FilteredChainResponse {
-  all_strikes: number[];
-  chain: OptionsChainData;
-}
-
-export interface SingleContractResponse {
-  strike: number;
-  data: {
-    call?: OptionContract;
-    put?: OptionContract;
-  };
-}
 
 export interface StaticInfo {
   conid: number;
