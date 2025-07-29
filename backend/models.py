@@ -1,7 +1,8 @@
 # models.py
 import logging
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Dict, Any, List, Literal, Optional
+from pydantic.alias_generators import to_camel
 log = logging.getLogger("models")   # dedicate a channel for WS payloads
 
 
@@ -99,16 +100,31 @@ class AllocationDTO(BaseModel):
 
 # ---------- LedgerDTO --------------------------------------------------------
 class LedgerEntry(BaseModel):
-    currency: str = Field(alias="secondKey")
-    cashBalance: float = Field(alias="cashbalance") # Maps incoming 'cashbalance' to 'cashBalance'
-    settledCash: float
-    unrealizedPnl: float
-    dividends: float
-    exchangeRate: float
+    # No alias_generator needed here because we want our Pydantic fields
+    # to be exactly what IBKR sends (snake_case).
+    # No explicit aliases needed either.
+    model_config = ConfigDict(
+        extra='ignore', # Ignore any extra fields in the incoming data
+        # 'populate_by_name=True' is the default in Pydantic v2 and not strictly needed here
+        # but doesn't hurt.
+    )
+
+    # These fields are named exactly as they appear in the IBKR response (snake_case)
+    secondkey: str
+    cashbalance: float = Field(default=0.0) # Add default to make it optional if not always present
+    settledcash: float = Field(default=0.0)
+    unrealizedpnl: float = Field(default=0.0)
+    dividends: float = Field(default=0.0)
+    exchangerate: float = Field(default=1.0)
+
+    # The 'currency' field from IBKR is redundant if 'secondkey' is used for the symbol
+    # but we can include it as Optional if you want to store it.
+    currency: Optional[str] = None # Optional, as secondkey is the primary identifier for us
 
 class LedgerDTO(BaseModel):
-    baseCurrency: str
+    baseCurrency: str # This remains camelCase for the DTO as it's a direct field, not from LedgerEntry
     ledgers: List[LedgerEntry]
+
 
 class LedgerUpdate(BaseModel):
     type: str = "ledger"

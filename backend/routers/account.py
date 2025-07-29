@@ -113,6 +113,8 @@ class PnlSnapshotDTO(BaseModel):
     dailyRealized: float
     unrealized: float 
     netLiq: float 
+    marketValue: float  # Corresponds to 'mv' from IBKR
+    equityWithLoanValue: float # Corresponds to 'el' from IBKR
     
 @router.get("/pnl", response_model=PnlSnapshotDTO)
 async def get_pnl_snapshot(
@@ -126,6 +128,7 @@ async def get_pnl_snapshot(
     try:
         # 1. Make a single call to the correct endpoint
         pnl_response = await svc.get_pnl()
+        log.info(pnl_response)
 
         # 2. Navigate the correct JSON structure: upnl -> {accountId}.Core
         upnl_data = pnl_response.get("upnl", {})
@@ -141,9 +144,17 @@ async def get_pnl_snapshot(
         dpl = core_data.get("dpl", 0.0)
         upl = core_data.get("upl", 0.0)
         nl = core_data.get("nl", 0.0)
+        mv = core_data.get("mv", 0.0) # Market Value
+        el = core_data.get("el", 0.0) # Equity with Loan Value
         
         # 5. Return the data in our simple DTO format
-        return PnlSnapshotDTO(dailyRealized=dpl, unrealized=upl, netLiq=nl)
+        return PnlSnapshotDTO(
+            dailyRealized=dpl,
+            unrealized=upl,
+            netLiq=nl,
+            marketValue=mv,       
+            equityWithLoanValue=el 
+        )
 
     except Exception as e:
         log.error(f"Failed to create PnL snapshot for {accountId}: {e}")

@@ -14,19 +14,27 @@ import PortfolioValue from "./AnimatedNumber";
 
 function Greetings() {
   const { coreTotals } = useStockStore();
-  const { unrealized, dailyRealized, netLiq } = coreTotals;
+  const { unrealized, dailyRealized, netLiq, marketValue } = coreTotals;
   const theme = useTheme();
   const isMobileScreen = useMediaQuery(theme.breakpoints.down("sm"));
 
   const colorFor = (v: number) => (v >= 0 ? "primary" : "error");
-  const arrowFor = (v: number) => (v >= 0 ? <ArrowUp size={16} /> : <ArrowDown size={16} />);
+  const arrowFor = (v: number) =>
+    v >= 0 ? <ArrowUp size={16} /> : <ArrowDown size={16} />;
   const fmt = (v: number) =>
-    v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  
+    v.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
   const PLChip = ({ label, value }: { label: string; value: number }) => (
     <Stack direction="row" spacing={0.5} alignItems="center">
       <Typography color={colorFor(value)}>{arrowFor(value)}</Typography>
-      <Typography variant="body2" color={colorFor(value)} sx={{ fontWeight: 600 }}>
+      <Typography
+        variant="body2"
+        color={colorFor(value)}
+        sx={{ fontWeight: 600 }}
+      >
         {label}: {fmt(value)}$
       </Typography>
     </Stack>
@@ -66,22 +74,18 @@ function Greetings() {
             maxWidth: isMobileScreen ? "100%" : "auto", // Ensure full width on mobile
           }}
         >
-          <Stack
-            direction={"column"}
-            // alignItems={ "center"}
-            spacing={1}
-          >
+          <Stack direction={"column"} spacing={1}>
             <Stack direction="row" spacing={1} alignItems="center">
-              <Typography variant={"h5"}>
-                Portfolio Value
-              </Typography>
+              <Typography variant={"h5"}>Net Liquidation Value</Typography>
               <PortfolioValue value={netLiq} />
             </Stack>
+
+            <Typography variant={"h5"}>Market Value: {marketValue}</Typography>
 
             <PLChip label="Unrealized" value={unrealized} />
             <PLChip label="Daily Realized" value={dailyRealized} />
           </Stack>
-          <MarketStatus  date={formattedDate}/>
+          <MarketStatus date={formattedDate} />
         </Box>
 
         <Box

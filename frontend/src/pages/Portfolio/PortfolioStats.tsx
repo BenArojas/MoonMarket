@@ -1,3 +1,4 @@
+import { fetchBalances, LedgerDTO } from "@/api/user";
 import AiInsightsDialog from "@/components/AiInsightsDialog";
 import { useStockStore } from "@/stores/stockStore";
 import {
@@ -10,6 +11,7 @@ import {
     useMediaQuery,
     useTheme,
 } from "@mui/material";
+import { useQuery } from "@tanstack/react-query";
 import { Brain } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -32,9 +34,21 @@ function PortfolioStats({
 
   const [isAiDialogOpen, setIsAiDialogOpen] = useState(false);
   const areAiFeaturesEnabled = useStockStore((s) => s.areAiFeaturesEnabled);
+  const selectedAccountId = useStockStore((state) => state.selectedAccountId);
+
+  const {
+    data: balancesData,
+    isLoading: isBalancesLoading,
+    error: balancesError,
+  } = useQuery<LedgerDTO | undefined, Error>({ 
+    queryKey: ["balances", selectedAccountId], 
+    queryFn: () => fetchBalances(selectedAccountId),
+    enabled: !!selectedAccountId, 
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const stocks = useStockStore((s) => s.stocks);
-  const balances = useStockStore((s) => s.balances);
   const netLiq = useStockStore((s) => s.coreTotals.netLiq);
   const allocation = useStockStore((s) => s.allocation);
 
@@ -47,8 +61,8 @@ function PortfolioStats({
     }));
   
     // Find the 'BASE' summary ledger to get the total cash value
-    const baseLedger = balances?.ledgers.find(
-      (ledger) => ledger.secondKey === "BASE"
+    const baseLedger = balancesData?.ledgers.find(
+      (ledger) => ledger.secondkey === "BASE"
     );
   
     // If we found the BASE ledger and it has a positive cash balance, add it
@@ -60,7 +74,7 @@ function PortfolioStats({
     }
   
     return holdings;
-  }, [stocks, balances]);
+  }, [stocks, balancesData]);
 
   
   return (

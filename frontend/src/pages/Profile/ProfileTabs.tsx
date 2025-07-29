@@ -1,4 +1,4 @@
-import { fetchAccountDetails, fetchBalances } from "@/api/user";
+import { fetchAccountDetails, fetchBalances, LedgerDTO } from "@/api/user";
 import {
   Box,
   Tab,
@@ -12,7 +12,7 @@ import React, { useState } from "react";
 import { AccountDetailsTabContent } from "./profileTabs/AccountTab";
 import { BalancesTabContent } from "./profileTabs/BalancesTab";
 import { DashboardTabContent } from "./profileTabs/DashboardTab";
-import { useStockStore } from "@/stores/stockStore";
+import {  useStockStore } from "@/stores/stockStore";
 
 // --- TabPanel Component (unchanged) ---
 interface TabPanelProps {
@@ -64,12 +64,12 @@ export const ProfileTabs = () => {
     data: balancesData,
     isLoading: isBalancesLoading,
     error: balancesError,
-  } = useQuery({
-    queryKey: ["balances"],
+  } = useQuery<LedgerDTO | undefined, Error>({ 
+    queryKey: ["balances", selectedAccountId], 
     queryFn: () => fetchBalances(selectedAccountId),
-    enabled: !!selectedAccountId,
-    refetchOnWindowFocus: false, 
-    staleTime: 5 * 60 * 1000, 
+    enabled: !!selectedAccountId, 
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000,
   });
 
 

@@ -9,7 +9,7 @@ import re
 import ssl
 from fastapi import HTTPException
 import httpx
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 from typing import Awaitable, Callable, Optional, List, Dict, Any, Set
 import websockets
 from utils import calculate_days_to_expiry, safe_float_conversion
@@ -84,37 +84,53 @@ class IBKRService:
     # ---------- low-level helpers ----------
     @paced("dynamic")
     async def _req(self, method: str, ep: str, **kw):
-        max_retries = 3
-        retry_delay = 2  # seconds
+        max_retries = 5  # Increased retries for session warm-up
+        initial_retry_delay = 0.5  # seconds
+        backoff_factor = 2 # e.g., 1s, 2s, 4s, 8s...
 
         for attempt in range(max_retries):
+            current_delay = initial_retry_delay * (backoff_factor ** attempt)
             try:
                 r = await self.http.request(method, ep, **kw)
                 
-                # Check for 503 specifically on the history endpoint
-                if r.status_code == 503 and "/iserver/marketdata/history" in ep:
+                # Check for specific transient errors (404 and 503) that might benefit from retrying
+                if r.status_code in [404, 503]:
+                    # Only retry if it's not the last attempt
                     if attempt < max_retries - 1:
-                        log.warning(f"Received 503 for {ep}. Retrying in {retry_delay}s... ({attempt + 1}/{max_retries})")
-                        await asyncio.sleep(retry_delay)
+                        log.warning(f"Received {r.status_code} for {ep}. Retrying in {current_delay:.1f}s... (Attempt {attempt + 1}/{max_retries})")
+                        await asyncio.sleep(current_delay)
                         continue # Go to the next iteration of the loop to retry
                     else:
-                        log.error(f"Failed to fetch {ep} after {max_retries} attempts due to 503 error.")
-
-                if r.status_code >= 400:
-                    log.error("IBKR %s %s → %s", method, ep, r.text)
+                        # If it's the last attempt and we still got 404/503, log and raise
+                        log.error(f"Failed to fetch {ep} after {max_retries} attempts due to {r.status_code} error.")
+                        r.raise_for_status() # Re-raise to propagate the specific HTTP error
                 
-                r.raise_for_status()
+                # If status code indicates a client or server error (but not 404/503 for retries), log and raise immediately
+                if r.status_code >= 400:
+                    log.error("IBKR %s %s → %s (Status: %s)", method, ep, r.text, r.status_code)
+                    r.raise_for_status() # This will raise httpx.HTTPStatusError
+                
+                # If successful, return JSON
                 return r.json()
 
             except httpx.ConnectError as e:
-                log.error(f"Connection error on attempt {attempt + 1}: {e}")
+                # This catches network-level connection issues
+                log.error(f"Connection error on attempt {attempt + 1} for {ep}: {e}")
                 if attempt < max_retries - 1:
-                    await asyncio.sleep(retry_delay)
+                    await asyncio.sleep(current_delay)
                 else:
-                    raise # Re-raise the exception if all retries fail
-        
-        # This part will be reached if all retries fail with 503
-        raise HTTPException(status_code=503, detail="The data provider is temporarily unavailable.")
+                    raise # Re-raise the exception if all retries fail for connection errors
+            except httpx.HTTPStatusError as e:
+                # This catches HTTP errors (4xx, 5xx) that were not specifically handled for retries above
+                # or that persisted after retries.
+                log.error(f"HTTP Status Error on attempt {attempt + 1} for {ep}: {e.response.status_code} - {e.response.text}")
+                raise # Re-raise to propagate the specific HTTP error to the caller
+
+        # This part should ideally not be reached if the loop logic is correct
+        # It means all retries failed but no exception was explicitly re-raised in the loop.
+        # Adding it for completeness, but `raise_for_status()` on the last attempt
+        # or the final `raise` in ConnectError block should prevent this.
+        raise HTTPException(status_code=500, detail="An unknown error occurred after all retries.")
 
     # ---------- auth flow ----------
     async def sso_validate(self) -> bool:
@@ -775,30 +791,32 @@ class IBKRService:
     # --------------------------------------------------------------- ledger
     @cached(ttl=300, key_builder=account_specific_key_builder)
     async def ledger(self, account_id: str) -> LedgerDTO:
-        """
-        Fetches the complete ledger for a given account.
-        The response format is massaged into our LedgerDTO.
-        """
-        # The raw ledger data from IBKR is a dict with currency keys
-        raw_data = await self._req("GET", f"/portfolio/{account_id}/ledger")
+        raw_data: Dict[str, Dict[str, Any]] = await self._req("GET", f"/portfolio/{account_id}/ledger")
         
-        base_currency = raw_data.get("BASE", {}).get("currency", "USD")
-        ledgers = []
+        base_currency_entry = raw_data.get("BASE", {})
+        base_currency = base_currency_entry.get("currency") or base_currency_entry.get("secondkey")
         
-        for currency, data in raw_data.items():
-            # Skip if essential data is missing
-            if "cashbalance" not in data and "settledcash" not in data:
+        if not base_currency or base_currency == "BASE":
+            log.warning(f"Could not conclusively determine base currency from IBKR ledger data for account {account_id}. Defaulting to USD.")
+            base_currency = "USD"
+
+        ledgers: List[LedgerEntry] = []
+        
+        for currency_key, data_payload in raw_data.items():
+            if not isinstance(data_payload, dict) or not data_payload:
+                log.warning(f"Skipping non-dictionary or empty ledger entry for key '{currency_key}'. Data: {data_payload}")
                 continue
-                
-            ledgers.append(LedgerEntry(
-                currency=data.get("currency", currency),
-                cashBalance=data.get("cashbalance", 0.0),
-                settledCash=data.get("settledcash", 0.0),
-                unrealizedPnl=data.get("unrealizedpnl", 0.0),
-                dividends=data.get("dividends", 0.0),
-                exchangeRate=data.get("exchangerate", 1.0)
-            ))
             
+            try:
+                # model_validate will now map snake_case payload keys to snake_case model fields directly
+                ledgers.append(LedgerEntry.model_validate(data_payload))
+            except ValidationError as e:
+                log.error(f"Pydantic validation error for ledger entry '{currency_key}': {e}. Raw data: {data_payload}")
+                continue
+            except Exception as e:
+                log.error(f"Unexpected error processing ledger entry '{currency_key}': {e}. Raw data: {data_payload}")
+                continue
+
         return LedgerDTO(baseCurrency=base_currency, ledgers=ledgers)
 
 

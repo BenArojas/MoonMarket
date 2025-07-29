@@ -1,5 +1,5 @@
 import api from "@/api/axios";
-import { AccountDetailsDTO, LedgerDTO } from "@/stores/stockStore";
+import { AccountDetailsDTO } from "@/stores/stockStore";
 import "react-toastify/dist/ReactToastify.css";
 
 
@@ -43,9 +43,9 @@ export const fetchPerformance = async (
  */
 export async function fetchAccountDetails(
   accountId: string | null
-): Promise<AccountDetailsDTO | null> {
+): Promise<AccountDetailsDTO | undefined> {
   if (!accountId) {
-    return null;
+    return undefined;
   }
   const { data } = await api.get<AccountDetailsDTO>(
     `/account/account-details`,
@@ -72,14 +72,35 @@ export async function fetchAccountPermissions(accountId: string | null): Promise
   return data;
 }
 
+/* -------------------------------- LedgerDTO ----------------------------- */
+
+export interface LedgerEntry {
+  // These names MUST now match the snake_case names of your Python LedgerEntry model
+  // as that's what Pydantic will serialize to JSON.
+  secondkey: string;     // Matches Python's secondkey
+  cashbalance: number;   // Matches Python's cashbalance
+  settledcash: number;   // Matches Python's settledcash
+  unrealizedpnl: number; // Matches Python's unrealizedpnl
+  dividends: number;
+  exchangerate: number;  // Matches Python's exchangerate
+
+  // If you included 'currency: Optional[str]' in Python, add it here too
+  currency?: string;
+}
+
+export interface LedgerDTO {
+  baseCurrency: string; // This remains camelCase as it's a direct property of LedgerDTO
+  ledgers: LedgerEntry[];
+}
+
 /**
  * Fetches the detailed, multi-currency balance ledger.
  */
 export async function fetchBalances(
   accountId: string | null
-): Promise<LedgerDTO | null> {
+): Promise<LedgerDTO | undefined> {
   if (!accountId) {
-    return null;
+    return undefined;
   }
   // Assuming your endpoint is /ledger and takes an 'acct' query param
   const { data } = await api.get<LedgerDTO>("/account/ledger", {

@@ -8,12 +8,12 @@ import Greetings from "./Greetings";
 import { WebSocketManager } from "@/hooks/WebSocketManager";
 import { useStockStore } from "@/stores/stockStore";
 import { useQuery } from "@tanstack/react-query";
-import { checkAiFeatures } from "@/api/user";
+import { checkAiFeatures, fetchBalances, LedgerDTO } from "@/api/user";
 import api from "@/api/axios";
 
 export const fetchPnlSnapshot = async (accountId: string) => {
   const response = await api.get(`/account/pnl?accountId=${accountId}`);
-  return response.data; // The payload with { type: 'pnl', data: { ... } }
+  return response.data; 
 };
 
 const Layout: React.FC = () => {
@@ -38,18 +38,26 @@ const Layout: React.FC = () => {
     refetchOnWindowFocus: false,
   });
 
+  const {} = useQuery<LedgerDTO | undefined, Error>({ 
+    queryKey: ["balances", selectedAccountId], 
+    queryFn: () => fetchBalances(selectedAccountId),
+    enabled: !!selectedAccountId, 
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000,
+  });
+
   // 2. A useEffect hook handles the side effect of updating the store.
   useEffect(() => {
-    // When the 'data' object is populated by a successful query...
     if (pnlData) {
-      // ...update the Zustand store.
       setInitialCoreTotals({
         dailyRealized: pnlData.dailyRealized,
         unrealized: pnlData.unrealized,
         netLiq: pnlData.netLiq,
+        marketValue: pnlData.marketValue,       // Pass new fields
+        equityWithLoanValue: pnlData.equityWithLoanValue, // Pass new fields
       });
     }
-  }, [data,pnlData, setInitialCoreTotals]);
+  }, [pnlData, setInitialCoreTotals]);
   
   useEffect(() => {
     if (data) {

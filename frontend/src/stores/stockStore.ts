@@ -1,5 +1,4 @@
 // src/stores/stockStore.ts
-import api from "@/api/axios";
 import { PositionInfo, StaticInfo } from "@/pages/StockItem/StockItem";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
@@ -17,21 +16,7 @@ export interface AllocationDTO {
 }
 export type AllocationView = "assetClass" | "sector" | "group";
 
-/* -------------------------------- LedgerDTO ----------------------------- */
 
-export interface LedgerEntry {
-  secondKey: string;
-  cashbalance: number;
-  settledCash: number;
-  unrealizedPnl: number;
-  dividends: number;
-  exchangeRate: number;
-}
-
-export interface LedgerDTO {
-  baseCurrency: string;
-  ledgers: LedgerEntry[];
-}
 
 /* --------------------------- PnL DTO --------------------------- */
 export interface PnlRow {
@@ -39,7 +24,8 @@ export interface PnlRow {
   dpl: number; // daily realised P&L
   nl: number; // net liquidity
   upl: number; // unrealised P&L
-  uel: number; // excess liquidity (un-rounded)
+  uel: number; // excess liquidity 
+  el: number; // excess liquidity 
   mv: number; // margin value
 }
 
@@ -179,12 +165,13 @@ interface StockState {
   allocation?: AllocationDTO;
   allocationView: AllocationView;
   accountDetails: AccountDetailsDTO | null;
-  balances: LedgerDTO | null;
   pnl: Record<string, PnlRow>;
   coreTotals: {
     dailyRealized: number;
     unrealized: number;
     netLiq: number;
+    marketValue: number; // Add this
+    equityWithLoanValue: number; // Add this
   };
   allAccounts: BriefAccountInfo[];
   selectedAccountId: string | null;
@@ -197,6 +184,8 @@ interface StockState {
     dailyRealized: number;
     unrealized: number;
     netLiq: number;
+    marketValue: number; 
+    equityWithLoanValue: number; 
   }) => void;
   subscribeToStock: (conid: number) => void;
   setPositions: (payload: PositionsPayload) => void;
@@ -214,7 +203,6 @@ interface StockState {
   setAllocation: (a: AllocationDTO) => void;
   setAllocationView: (v: AllocationView) => void;
   setAccountDetails: (details: AccountDetailsDTO) => void;
-  setBalances: (balances: LedgerDTO) => void;
   setAllAccounts: (accounts: BriefAccountInfo[]) => void;
   setSelectedAccountId: (accountId: string) => void;
   setConnectionStatus: (status: StockState["connectionStatus"]) => void;
@@ -251,11 +239,16 @@ export const useStockStore = create<StockState>()(
       pnl: {},
       allocation: undefined,
       allocationView: "assetClass",
-      coreTotals: { dailyRealized: 0, unrealized: 0, netLiq: 0 },
+      coreTotals: {
+        dailyRealized: 0,
+        unrealized: 0,
+        netLiq: 0,
+        marketValue: 0, // Initialize new fields
+        equityWithLoanValue: 0, // Initialize new fields
+      },
       connectionStatus: "disconnected",
       error: undefined,
       accountDetails: null,
-      balances: null,
       allAccounts: [],
       selectedAccountId: null,
       areAiFeaturesEnabled: null,
@@ -285,8 +278,14 @@ export const useStockStore = create<StockState>()(
         set({
           pnl: rows,
           coreTotals: core
-            ? { dailyRealized: core.dpl, unrealized: core.upl, netLiq: core.nl }
-            : { dailyRealized: 0, unrealized: 0, netLiq: 0 },
+        ? {
+            dailyRealized: core.dpl ?? 0,
+            unrealized: core.upl ?? 0,
+            netLiq: core.nl ?? 0,
+            marketValue: core.mv ?? 0,       // Update this if PnL WebSocket also uses mv
+            equityWithLoanValue: core.el ?? 0, // Update this if PnL WebSocket also uses el
+          }
+        : { dailyRealized: 0, unrealized: 0, netLiq: 0, marketValue: 0, equityWithLoanValue: 0 },
         });
       },
       setPreloadedDetails: (details: StaticInfo) =>
@@ -319,7 +318,6 @@ export const useStockStore = create<StockState>()(
       setAreAiFeaturesEnabled: (enabled) =>
         set({ areAiFeaturesEnabled: enabled }),
       setAccountDetails: (details) => set({ accountDetails: details }),
-      setBalances: (balances) => set({ balances }),
       setAllAccounts: (accounts) => set({ allAccounts: accounts }),
       setSelectedAccountId: (accountId) =>
         set({ selectedAccountId: accountId }),
@@ -519,12 +517,8 @@ function connectWebSocket(get: () => StockState) {
         break;
 
       case "pnl":
-        console.log("");
+        console.log(msg.data);
         get().setPnl(msg.data);
-        break;
-
-      case "ledger":
-        get().setBalances(msg.data);
         break;
 
       case "allocation":
