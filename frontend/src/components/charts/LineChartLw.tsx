@@ -1,18 +1,17 @@
-import React, { useRef, useEffect, useMemo } from "react";
+import { formatDate } from "@/utils/dataProcessing";
+import { useTheme } from "@mui/material";
 import {
-  createChart,
+  BusinessDay,
   ColorType,
+  createChart,
   CrosshairMode,
   IChartApi,
   ISeriesApi,
   Time,
-  BusinessDay,
-  ChartOptions,
-  DeepPartial,
+  MouseEventParams
 } from "lightweight-charts";
-import { useTheme } from "@mui/material";
 import { debounce } from "lodash";
-import { formatDate } from "@/utils/dataProcessing";
+import React, { useEffect, useMemo, useRef } from "react";
 
 export interface ChartDataPoint {
   time: Time;
@@ -24,19 +23,21 @@ interface PerformanceChartProps {
   height: number;
 }
 
+// <-- MOVED: Define tooltip constants here for component-wide scope
+const toolTipWidth = 96;
+const toolTipHeight = 80; // Adjusted height for better fit
+const toolTipMargin = 15;
+
 const PerformanceChart = ({ data, height }: PerformanceChartProps) => {
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<IChartApi>();
-  const seriesRef = useRef<ISeriesApi<"Baseline">>();
-  const tooltipRef = useRef<HTMLDivElement>();
+  const chartRef = useRef<IChartApi | null>(null);
+  const seriesRef = useRef<ISeriesApi<"Baseline"> | null>(null);
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
 
   /* ─────────────────────────── % conversion ─────────────────────────── */
   const pctData = useMemo<ChartDataPoint[]>(() => {
     if (!data.length) return [];
-
-    // The incoming data's `value` is already the cumulative return as a decimal (e.g., 0.0639 for 6.39%).
-    // We just need to multiply by 100 to get the percentage value for the chart axis.
     return data.map((p) => ({
       ...p,
       value: p.value * 100,
@@ -47,31 +48,26 @@ const PerformanceChart = ({ data, height }: PerformanceChartProps) => {
   useEffect(() => {
     if (!containerRef.current) return;
 
-    const chartOptions: DeepPartial<ChartOptions> = {
+    const chart = createChart(containerRef.current, {
       width: containerRef.current.clientWidth,
       height,
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
         textColor: theme.palette.text.primary,
-        attributionLogo: false,
+        attributionLogo: false
       },
       grid: { horzLines: { visible: false }, vertLines: { visible: false } },
       crosshair: {
         mode: CrosshairMode.Normal,
-        // Hide the crosshair lines and labels
-        horzLine: {
-          visible: false,
-          labelVisible: false,
-        },
+        horzLine: { visible: false, labelVisible: false },
         vertLine: {
-          // Keep the vertical line, but hide its label
           labelVisible: false,
           width: 1,
           color: theme.palette.text.secondary,
           style: 2,
         },
       },
-      rightPriceScale: { borderVisible: false},
+      rightPriceScale: { borderVisible: false },
       timeScale: {
         borderVisible: false,
         timeVisible: true,
@@ -81,22 +77,14 @@ const PerformanceChart = ({ data, height }: PerformanceChartProps) => {
               ? new Date(t * 1000)
               : typeof t === "string"
               ? new Date(t)
-              : new Date(
-                  (t as BusinessDay).year,
-                  (t as BusinessDay).month - 1,
-                  (t as BusinessDay).day
-                );
-          return `${d.getUTCDate()} ${d.toLocaleString("default", {
-            month: "short",
-          })}`;
+              : new Date((t as BusinessDay).year, (t as BusinessDay).month - 1, (t as BusinessDay).day);
+          return `${d.getUTCDate()} ${d.toLocaleString("default", { month: "short" })}`;
         },
       },
       handleScroll: false,
       handleScale: false,
       localization: { priceFormatter: (p: number) => `${p.toFixed(2)} %` },
-    };
-
-    const chart = createChart(containerRef.current, chartOptions);
+    });
     chartRef.current = chart;
 
     const series = chart.addBaselineSeries({
@@ -113,13 +101,10 @@ const PerformanceChart = ({ data, height }: PerformanceChartProps) => {
     });
     seriesRef.current = series;
 
-    /* ─────────────────────────── Tooltip ────────────────────────── */
+    /* ─────────────────────────── Tooltip setup ────────────────────────── */
     const toolTip = document.createElement("div");
-    const toolTipWidth = 96;
-    const toolTipHeight = 96;
-    const toolTipMargin = 15;
     toolTip.style.width = `${toolTipWidth}px`;
-    toolTip.style.height = `${toolTipHeight}px`;
+    // toolTip.style.height = `${toolTipHeight}px`; // Height can be automatic
     toolTip.style.position = "absolute";
     toolTip.style.display = "none";
     toolTip.style.padding = "8px";
@@ -132,116 +117,124 @@ const PerformanceChart = ({ data, height }: PerformanceChartProps) => {
     toolTip.style.pointerEvents = "none";
     toolTip.style.border = `1px solid ${theme.palette.divider}`;
     toolTip.style.borderRadius = "4px";
-    toolTip.style.fontFamily =
-      "-apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif";
-    toolTip.style.background = theme.palette.trinary.main;
+    toolTip.style.fontFamily = "-apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif";
+    toolTip.style.background = theme.palette.background.paper;
     toolTip.style.color = theme.palette.text.primary;
     containerRef.current.appendChild(toolTip);
     tooltipRef.current = toolTip;
 
-    const handleCrosshair = debounce((param) => {
-      if (
-        !param.point ||
-        !param.time ||
-        !seriesRef.current ||
-        !chartRef.current ||
-        !containerRef.current
-      ) {
-        toolTip.style.display = "none";
-        return;
-      }
-      const data = param.seriesData.get(seriesRef.current) as
-        | ChartDataPoint
-        | undefined;
-      if (!data) {
-        toolTip.style.display = "none";
-        return;
-      }
-
-      toolTip.style.display = "block";
-      const price = data.value;
-      const dateStr = formatDate(data.time);
-
-      toolTip.innerHTML = `
-        <div style="color: ${theme.palette.text.primary}; font-weight: bold;">Return</div>
-        <div style="font-size: 18px; margin: 4px 0px;">
-          ${price.toFixed(2)}%
-        </div>
-        <div>
-          ${dateStr}
-        </div>
-      `;
-
-      const coordinate = seriesRef.current.priceToCoordinate(price);
-      if (coordinate === null) {
-        return;
-      }
-
-      let shiftedCoordinate = param.point.x - toolTipWidth / 2;
-      shiftedCoordinate = Math.max(
-        0,
-        Math.min(
-          containerRef.current.clientWidth - toolTipWidth,
-          shiftedCoordinate
-        )
-      );
-
-      const coordinateY =
-        coordinate - toolTipHeight - toolTipMargin > 0
-          ? coordinate - toolTipHeight - toolTipMargin
-          : Math.max(
-              0,
-              Math.min(
-                containerRef.current.clientHeight -
-                  toolTipHeight -
-                  toolTipMargin,
-                coordinate + toolTipMargin
-              )
-            );
-
-      toolTip.style.left = shiftedCoordinate + "px";
-      toolTip.style.top = coordinateY + "px";
-    }, 0); // Debounce with 0ms to defer execution to the next tick
-
-    chart.subscribeCrosshairMove(handleCrosshair);
-
-    /* resize */
     const onResize = () => {
-      if (containerRef.current) {
-        chart.applyOptions({ width: containerRef.current.clientWidth });
+      if (chartRef.current && containerRef.current) {
+        chartRef.current.applyOptions({ width: containerRef.current.clientWidth });
       }
     };
     window.addEventListener("resize", onResize);
 
-    /* cleanup */
     return () => {
       window.removeEventListener("resize", onResize);
-      chart.unsubscribeCrosshairMove(handleCrosshair);
+      if (chartRef.current) {
+        // <-- REMOVED: The incorrect unsubscribe call is gone from here.
+        chartRef.current.remove();
+        chartRef.current = null;
+      }
       if (tooltipRef.current && containerRef.current?.contains(tooltipRef.current)) {
         containerRef.current.removeChild(tooltipRef.current);
+        tooltipRef.current = null;
       }
-      chart.remove();
     };
-  }, [theme, height]); // Only re-run if theme or height changes
+  }, []); // Runs only ONCE
 
-  /* ─────────── update data + axis range when pctData changes ────────── */
+  /* ───────────────────── Update chart options on theme/height change ───────────────────── */
   useEffect(() => {
-    if (!seriesRef.current || !chartRef.current) return;
+    if (chartRef.current) {
+      chartRef.current.applyOptions({
+        layout: { textColor: theme.palette.text.primary },
+        crosshair: { vertLine: { color: theme.palette.text.secondary } },
+        height,
+      });
+    }
+    if (tooltipRef.current) {
+      tooltipRef.current.style.border = `1px solid ${theme.palette.divider}`;
+      tooltipRef.current.style.background = theme.palette.background.paper;
+      tooltipRef.current.style.color = theme.palette.text.primary;
+    }
+  }, [theme, height]);
 
-    seriesRef.current.setData(pctData);
-
-    chartRef.current.timeScale().fitContent();
+  /* ─────────────────────────── Update data ────────────────────────── */
+  useEffect(() => {
+    if (seriesRef.current && chartRef.current) {
+      seriesRef.current.setData(pctData);
+      chartRef.current.timeScale().fitContent();
+    }
   }, [pctData]);
 
-  /* ─────────────────────────────────────────────────────────────────── */
+  /* ─────────────────────────── Crosshair / Tooltip logic ────────────────────────── */
+  useEffect(() => {
+    const currentChart = chartRef.current;
+    const currentSeries = seriesRef.current;
+    const currentTooltip = tooltipRef.current;
+    const currentContainer = containerRef.current;
+
+    if (!currentChart || !currentSeries || !currentTooltip || !currentContainer) {
+      return;
+    }
+
+    const handleCrosshair = debounce((param: MouseEventParams) => {
+      if (!param.point || !param.time || !param.seriesData.has(currentSeries)) {
+        currentTooltip.style.display = "none";
+        return;
+      }
+      const dataPoint = param.seriesData.get(currentSeries) as ChartDataPoint;
+      if (!dataPoint) {
+        currentTooltip.style.display = "none";
+        return;
+      }
+
+      currentTooltip.style.display = "block";
+      const price = dataPoint.value;
+      const dateStr = formatDate(dataPoint.time);
+
+      currentTooltip.innerHTML = `
+        <div style="color: ${theme.palette.text.primary}; font-weight: bold;">Return</div>
+        <div style="font-size: 18px; margin: 4px 0px;">
+          ${price.toFixed(2)}%
+        </div>
+        <div style="color: ${theme.palette.text.secondary};">
+          ${dateStr}
+        </div>
+      `;
+
+      const coordinate = currentSeries.priceToCoordinate(price);
+      if (coordinate === null) return;
+
+      let shiftedCoordinateX = param.point.x - toolTipWidth / 2;
+      shiftedCoordinateX = Math.max(0, Math.min(currentContainer.clientWidth - toolTipWidth, shiftedCoordinateX));
+
+      // Use the actual height of the tooltip for more accurate positioning
+      const currentTooltipHeight = currentTooltip.clientHeight;
+      let shiftedCoordinateY = coordinate - currentTooltipHeight - toolTipMargin;
+      if (shiftedCoordinateY < 0) {
+        shiftedCoordinateY = coordinate + toolTipMargin;
+      }
+
+      currentTooltip.style.left = shiftedCoordinateX + "px";
+      currentTooltip.style.top = shiftedCoordinateY + "px";
+    }, 0);
+
+    currentChart.subscribeCrosshairMove(handleCrosshair);
+
+    return () => {
+      // Cleanup for THIS effect
+      handleCrosshair.cancel(); // Cancel any pending debounced calls
+      currentChart.unsubscribeCrosshairMove(handleCrosshair);
+    };
+  }, [theme]); // Rerun when theme changes to update tooltip colors
 
   return (
     <div
       ref={containerRef}
       style={{ position: "relative", width: "100%", minWidth: 260, height }}
-    >
-      {/* Tooltip is now a direct child of this div, managed via refs */}
-    </div>
+    />
   );
 };
 

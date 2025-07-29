@@ -47,7 +47,7 @@ function GraphMenu({
         flexDirection: "row",
         justifyContent: "space-between",
         width: "100%",
-        padding: "10px 0",
+        padding: "5px 0",
         mb: 1,
       }}
     >

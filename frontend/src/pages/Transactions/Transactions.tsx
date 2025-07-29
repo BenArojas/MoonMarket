@@ -62,14 +62,16 @@ export const useRecentTrades = (days = 7) => {
     queryFn: () => getIbkrRecentTrades(days),
   });
 
+  console.log("Raw API data:", data);
+
   const trades = useMemo<ProcessedTrade[]>(() => {
     if (!data) return [];
     return (data as IbkrTrade[]).map((t) => ({
       id: t.execution_id,
-      date: new Date(t.trade_time_r), // ✅ fixed
+      date: new Date(t.trade_time_r), 
       symbol: t.symbol.toUpperCase(),
       description: t.order_description,
-      side: t.side === "B" ? "Buy" : "Sell", // ✅ fixed mapping
+      side: t.side === "B" ? "Buy" : "Sell", 
       quantity: t.size,
       price: +t.price,
       netAmount: t.net_amount,

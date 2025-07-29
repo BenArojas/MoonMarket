@@ -11,6 +11,8 @@ import Navbar from "@/pages/Layout/Navbar";
 import { useStockStore } from "@/stores/stockStore";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import PortfolioValue from "./AnimatedNumber";
+import { formatCurrency } from '@/utils/dataProcessing';
+
 
 function Greetings() {
   const { coreTotals } = useStockStore();
@@ -76,14 +78,16 @@ function Greetings() {
         >
           <Stack direction={"column"} spacing={1}>
             <Stack direction="row" spacing={1} alignItems="center">
-              <Typography variant={"h5"}>Net Liquidation Value</Typography>
+              <Typography variant={"h5"}>Net Liquidation Value:</Typography>
               <PortfolioValue value={netLiq} />
             </Stack>
 
-            <Typography variant={"h5"}>Market Value: {marketValue}</Typography>
+            <Typography variant={"h6"}>{`Market Value: ${formatCurrency(marketValue)}`}</Typography>
+            <Stack direction={"row"} spacing={1}>
 
             <PLChip label="Unrealized" value={unrealized} />
             <PLChip label="Daily Realized" value={dailyRealized} />
+            </Stack>
           </Stack>
           <MarketStatus date={formattedDate} />
         </Box>

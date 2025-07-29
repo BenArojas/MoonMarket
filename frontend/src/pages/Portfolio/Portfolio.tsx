@@ -29,13 +29,13 @@ function Portfolio() {
   useEffect(() => {
     // Only try to subscribe if the connection is actually active.
     if (connectionStatus === 'connected') {
-      console.log("Portfolio page is visible and connected, subscribing to data...");
+      // console.log("Portfolio page is visible and connected, subscribing to data...");
       subscribeToPortfolio();
     }
 
     // When the component unmounts (you navigate away), unsubscribe.
     return () => {
-      console.log("Portfolio page is hidden, unsubscribing from data...");
+      // console.log("Portfolio page is hidden, unsubscribing from data...");
       unsubscribeFromPortfolio();
     };
   }, [connectionStatus, subscribeToPortfolio, unsubscribeFromPortfolio]);

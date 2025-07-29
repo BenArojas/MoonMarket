@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from ibkr_service import IBKRService
 from models import AccountDetailsDTO, AccountPermissions, AllocationDTO, BriefAccountInfoDTO, ChartDataPoint, ComboDTO, LedgerDTO, PnlRow, PnlUpdate
-from typing import List
+from typing import Any, Dict, List, Optional
 from deps import get_ibkr_service 
 
 log = logging.getLogger(__name__)
@@ -120,42 +120,96 @@ class PnlSnapshotDTO(BaseModel):
 async def get_pnl_snapshot(
     accountId: str,
     svc: IBKRService = Depends(get_ibkr_service),
+    max_retries: int = 3,
+    retry_delay_seconds: int = 2
 ):
     """
     Fetches a simple snapshot of the account's core PnL values
-    from the dedicated PnL endpoint.
+    from the dedicated PnL endpoint, with retry mechanism for incomplete data.
+    After max_retries, returns the latest available data.
     """
-    try:
-        # 1. Make a single call to the correct endpoint
-        pnl_response = await svc.get_pnl()
-        log.info(pnl_response)
+    latest_valid_pnl_dto: Optional[PnlSnapshotDTO] = None
+    
+    for attempt in range(max_retries):
+        try:
+            log.info(f"Attempt {attempt + 1}/{max_retries} to fetch PnL for account {accountId}")
+            pnl_response: Dict[str, Any] = await svc.get_pnl()
 
-        # 2. Navigate the correct JSON structure: upnl -> {accountId}.Core
-        upnl_data = pnl_response.get("upnl", {})
-        
-        # 3. Find the data for the specific account we want
-        core_key = f"{accountId}.Core"
-        core_data = upnl_data.get(core_key)
+            upnl_data = pnl_response.get("upnl", {})
+            core_key = f"{accountId}.Core"
+            core_data = upnl_data.get(core_key)
 
-        if not core_data:
-            raise HTTPException(status_code=404, detail=f"PnL data not found for account {accountId}")
+            if not core_data:
+                log.warning(f"Attempt {attempt + 1}: PnL core data not found for account {accountId}.")
+                if attempt < max_retries - 1:
+                    log.info(f"Retrying in {retry_delay_seconds} seconds...")
+                    await asyncio.sleep(retry_delay_seconds)
+                    continue
+                else:
+                    # If core_data is missing after all retries, raise an error
+                    raise HTTPException(status_code=404, detail=f"PnL data not found for account {accountId} after {max_retries} attempts.")
 
-        # 4. Extract the values we need from the .Core object
-        dpl = core_data.get("dpl", 0.0)
-        upl = core_data.get("upl", 0.0)
-        nl = core_data.get("nl", 0.0)
-        mv = core_data.get("mv", 0.0) # Market Value
-        el = core_data.get("el", 0.0) # Equity with Loan Value
-        
-        # 5. Return the data in our simple DTO format
-        return PnlSnapshotDTO(
-            dailyRealized=dpl,
-            unrealized=upl,
-            netLiq=nl,
-            marketValue=mv,       
-            equityWithLoanValue=el 
-        )
+            # Extract values, defaulting to 0.0 if missing
+            dpl = core_data.get("dpl", 0.0)
+            upl = core_data.get("upl", 0.0)
+            nl = core_data.get("nl", 0.0)
+            mv = core_data.get("mv", 0.0) # Market Value
+            el = core_data.get("el", 0.0) # Equity with Loan Value
 
-    except Exception as e:
-        log.error(f"Failed to create PnL snapshot for {accountId}: {e}")
-        raise HTTPException(status_code=502, detail="Could not fetch PnL data.")
+            # Check if any of the critical fields are 0.0
+            is_data_incomplete = False
+            missing_fields = []
+
+            if dpl == 0.0: missing_fields.append("dailyRealized (dpl)")
+            if upl == 0.0: missing_fields.append("unrealized (upl)")
+            if nl == 0.0: missing_fields.append("netLiq (nl)")
+            if mv == 0.0: missing_fields.append("marketValue (mv)")
+            if el == 0.0: missing_fields.append("equityWithLoanValue (el)")
+
+            if missing_fields:
+                is_data_incomplete = True
+                log.warning(f"Attempt {attempt + 1}: Incomplete PnL data for account {accountId}. Fields with 0.0: {', '.join(missing_fields)}")
+
+            current_pnl_dto = PnlSnapshotDTO(
+                dailyRealized=dpl,
+                unrealized=upl,
+                netLiq=nl,
+                marketValue=mv,
+                equityWithLoanValue=el
+            )
+            
+            # If the current data is complete, return it immediately
+            if not is_data_incomplete:
+                log.info(f"Attempt {attempt + 1}: All PnL fields valid for account {accountId}. Returning current data.")
+                return current_pnl_dto
+            else:
+                # Store the latest, even if incomplete, for eventual return
+                latest_valid_pnl_dto = current_pnl_dto 
+                
+                if attempt < max_retries - 1:
+                    log.info(f"Retrying in {retry_delay_seconds} seconds...")
+                    await asyncio.sleep(retry_delay_seconds)
+                    continue # Continue to the next attempt
+                else:
+                    log.warning(f"Max retries ({max_retries}) reached. Returning the latest available PnL data for account {accountId}, which may be incomplete.")
+                    return latest_valid_pnl_dto # Return the latest data after all retries
+
+        except HTTPException as he:
+            # Re-raise explicit HTTPExceptions (e.g., 404 for missing core data after retries)
+            raise he
+        except Exception as e:
+            log.error(f"Attempt {attempt + 1}: Unexpected error fetching PnL snapshot for {accountId}: {e}")
+            if attempt < max_retries - 1:
+                log.info(f"Retrying in {retry_delay_seconds} seconds due to error...")
+                await asyncio.sleep(retry_delay_seconds)
+                continue
+            else:
+                # If an unexpected error persists after retries, raise a generic 502
+                raise HTTPException(status_code=502, detail=f"Could not fetch PnL data after {max_retries} attempts due to an unexpected error.")
+
+    # This part should ideally not be reached if latest_valid_pnl_dto is always set
+    # or an HTTPException is raised. But as a fallback:
+    if latest_valid_pnl_dto:
+        return latest_valid_pnl_dto
+    else:
+        raise HTTPException(status_code=500, detail="An unrecoverable error occurred and no PnL data could be retrieved.")

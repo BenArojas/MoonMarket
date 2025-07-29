@@ -38,6 +38,7 @@ const Layout: React.FC = () => {
     refetchOnWindowFocus: false,
   });
 
+
   const {} = useQuery<LedgerDTO | undefined, Error>({ 
     queryKey: ["balances", selectedAccountId], 
     queryFn: () => fetchBalances(selectedAccountId),

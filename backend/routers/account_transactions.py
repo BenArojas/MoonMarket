@@ -113,6 +113,8 @@ async def get_trades(
             "/iserver/account/trades",
             params={"days": days}
         )
+        
+        logging.info(f"trades_data are {trades_data}")
         return trades_data
 
     except Exception as exc:
