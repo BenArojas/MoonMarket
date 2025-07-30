@@ -67,11 +67,12 @@ const WatchlistPage: React.FC = () => {
   useEffect(() => {
     if (fetchedWatchlists) {
       setWatchlists(fetchedWatchlists);
-      if (!selectedId) {
-        setSelectedId(Object.keys(fetchedWatchlists)[0] ?? "");
+      // Only set a new ID if one isn't already selected AND the new list has items.
+      if (!selectedId && Object.keys(fetchedWatchlists).length > 0) {
+        setSelectedId(Object.keys(fetchedWatchlists)[0]);
       }
     }
-  }, [fetchedWatchlists, setWatchlists]);
+  }, [fetchedWatchlists, setWatchlists, selectedId]);
 
    /* --- 2. Fetch Watchlist Details --- */
   const { data: watchlistDetail, isPending: detailIsPending } = useQuery({

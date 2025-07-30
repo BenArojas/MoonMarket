@@ -35,7 +35,7 @@ const DepthOfBookTable: React.FC<DepthOfBookTableProps> = ({ depth }) => {
 
             <Collapse in={isExpanded}>
                 {/* ✅ FIX: Add a Box with a fixed height and flex properties */}
-                <Box sx={{ height: 220, display: 'flex', flexDirection: 'column' }}>
+                <Box sx={{ height: 180, display: 'flex', flexDirection: 'column' }}>
                     {/* ✅ FIX: Remove maxHeight from here and let it fill the Box */}
                     <TableContainer sx={{ overflowY: 'auto' }}>
                         <Table stickyHeader size="small">

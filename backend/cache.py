@@ -3,7 +3,7 @@ import os, json, logging, asyncio
 from functools import wraps
 from typing import Callable, Awaitable
 from aiocache import Cache
-from auth_secrets import REDIS_URL, REDIS_PASSWORD
+from config import REDIS_PASSWORD, REDIS_URL
 
 log = logging.getLogger(__name__)
 try:

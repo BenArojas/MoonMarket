@@ -16,16 +16,14 @@ export interface AllocationDTO {
 }
 export type AllocationView = "assetClass" | "sector" | "group";
 
-
-
 /* --------------------------- PnL DTO --------------------------- */
 export interface PnlRow {
   rowType: number; // always 1 (single account)
   dpl: number; // daily realised P&L
   nl: number; // net liquidity
   upl: number; // unrealised P&L
-  uel: number; // excess liquidity 
-  el: number; // excess liquidity 
+  uel: number; // excess liquidity
+  el: number; // excess liquidity
   mv: number; // margin value
 }
 
@@ -184,14 +182,14 @@ interface StockState {
     dailyRealized: number;
     unrealized: number;
     netLiq: number;
-    marketValue: number; 
-    equityWithLoanValue: number; 
+    marketValue: number;
+    equityWithLoanValue: number;
   }) => void;
   subscribeToStock: (conid: number) => void;
   setPositions: (payload: PositionsPayload) => void;
   subscribeToAllocation: () => void;
   setInitialQuote: (data: InitialQuoteData) => void;
-  setPreloadedDetails: (details:StaticInfo) => void;
+  setPreloadedDetails: (details: StaticInfo) => void;
   subscribeToPortfolio: () => void;
   unsubscribeFromPortfolio: () => void;
   unsubscribeFromStock: (conid: number) => void;
@@ -233,7 +231,7 @@ export const useStockStore = create<StockState>()(
         chartData: [],
         position: null,
         optionPositions: null,
-        secType: null
+        secType: null,
       },
       watchlists: {},
       pnl: {},
@@ -278,14 +276,20 @@ export const useStockStore = create<StockState>()(
         set({
           pnl: rows,
           coreTotals: core
-        ? {
-            dailyRealized: core.dpl ?? 0,
-            unrealized: core.upl ?? 0,
-            netLiq: core.nl ?? 0,
-            marketValue: core.mv ?? 0,       // Update this if PnL WebSocket also uses mv
-            equityWithLoanValue: core.el ?? 0, // Update this if PnL WebSocket also uses el
-          }
-        : { dailyRealized: 0, unrealized: 0, netLiq: 0, marketValue: 0, equityWithLoanValue: 0 },
+            ? {
+                dailyRealized: core.dpl ?? 0,
+                unrealized: core.upl ?? 0,
+                netLiq: core.nl ?? 0,
+                marketValue: core.mv ?? 0, // Update this if PnL WebSocket also uses mv
+                equityWithLoanValue: core.el ?? 0, // Update this if PnL WebSocket also uses el
+              }
+            : {
+                dailyRealized: 0,
+                unrealized: 0,
+                netLiq: 0,
+                marketValue: 0,
+                equityWithLoanValue: 0,
+              },
         });
       },
       setPreloadedDetails: (details: StaticInfo) =>
@@ -406,7 +410,7 @@ export const useStockStore = create<StockState>()(
             chartData: [],
             position: null,
             optionPositions: null,
-            secType: null
+            secType: null,
           },
         }),
       updateStock: (data: FrontendMarketDataUpdate) =>
@@ -482,7 +486,9 @@ function connectWebSocket(get: () => StockState) {
     return;
   }
   //use env var here
-  ws = new WebSocket(`ws://localhost:8000/ws?accountId=${selectedAccountId}`);
+  const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const wsURL = `${wsProtocol}//${window.location.host}/ws?accountId=${selectedAccountId}`;
+  ws = new WebSocket(wsURL);
 
   ws.onopen = () => {
     reconnectAttempts = 0;

@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  # IBKR Gateway Service (replaces IBeam)
+  ibkr-gateway:
+    build:
+      context: ./ibkr-gateway
+    container_name: ibkr-gateway
+    restart: unless-stopped
+    ports:
+      # Map container port 5000 to host port 5000
+      # This is CRUCIAL for you to access the web UI and log in
+      - "5000:5000"
+
+  # Your FastAPI backend service
+  backend:
+    build:
+      context: ./backend
+    container_name: backend
+    environment:
+      # Tell the backend where to find the gateway
+      - IBKR_GATEWAY_URL=https://ibkr-gateway:5000
+      # Pass through your other backend .env variables if needed
+    env_file:
+      - ./backend/.env
+    restart: unless-stopped
+    depends_on:
+      - ibkr-gateway
+
+  # Nginx service to serve the frontend and act as a reverse proxy
+  nginx:
+    build:
+      context: ./frontend
+    container_name: nginx
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+networks:
+  default:
+    driver: bridge

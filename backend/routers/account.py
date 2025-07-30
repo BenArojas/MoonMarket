@@ -1,5 +1,4 @@
 import asyncio
-from datetime import datetime, timezone
 import logging
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -85,7 +84,7 @@ async def get_permissions(
     """Returns a simplified object of key trading permissions for the account."""
     return await svc.get_account_permissions(account_id)
 
-@router.get("/account-details/", response_model=AccountDetailsDTO)
+@router.get("/account-details", response_model=AccountDetailsDTO)
 async def get_account_details(accountId: str, svc: IBKRService = Depends(get_ibkr_service)):
     """
     Provides a consolidated view of account details, including owner info,

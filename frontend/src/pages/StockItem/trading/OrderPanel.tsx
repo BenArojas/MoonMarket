@@ -104,7 +104,7 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ tradingTarget, onRevertToStock,
   }
 
   return (
-    <Paper variant="outlined" sx={{ display: "flex", flexDirection: "column", maxHeight: "45vh" }}>
+    <Paper variant="outlined" sx={{ display: "flex", flexDirection: "column", maxHeight: "50vh" }}>
       <OrderPanelHeader isExpanded={isExpanded} toggleExpand={() => setIsExpanded(!isExpanded)} />
       <Collapse in={isExpanded} sx={{ overflowY: "auto" }}>
         <OrderInfoDisplay tradingTarget={tradingTarget} onRevertToStock={onRevertToStock} accountSummary={accountSummary} isSummaryLoading={isSummaryLoading} />

@@ -1,6 +1,5 @@
 # models.py  – pydantic versions
 import asyncio
-import contextlib
 import time
 import json
 import logging
@@ -12,19 +11,17 @@ import httpx
 from pydantic import BaseModel, Field, ValidationError
 from typing import Awaitable, Callable, Optional, List, Dict, Any, Set
 import websockets
+from config import GATEWAY_BASE_URL
 from utils import calculate_days_to_expiry, safe_float_conversion
-from models import AccountDetailsDTO, AccountInfoDTO, AccountPermissions, BriefAccountInfoDTO, FrontendMarketDataUpdate, LedgerDTO, LedgerEntry, LedgerUpdate, OwnerInfoDTO, PermissionsDTO, PnlRow, PnlUpdate, WebSocketRequest
+from models import AccountDetailsDTO, AccountInfoDTO, AccountPermissions, AuthStatusDTO, BriefAccountInfoDTO, FrontendMarketDataUpdate, LedgerDTO, LedgerEntry, LedgerUpdate, OwnerInfoDTO, PermissionsDTO, PnlRow, PnlUpdate, WebSocketRequest
 from cache import account_specific_key_builder, cached, history_cache_key_builder, option_key_builder, snapshot_key_builder
 from rate_control import paced
 from websockets.legacy.client import WebSocketClientProtocol
 
 
         
-log = logging.getLogger("ibkr.ws")   # dedicate a channel for WS payloads
+log = logging.getLogger("ibkr.ws")
 
-class IBKRConfig(BaseModel):
-    host: str                  = Field(..., examples=["127.0.0.1"])
-    port: int                  = Field(..., examples=[4002])
 
 class IBKRState(BaseModel):
     shutdown_signal: asyncio.Event = Field(default_factory=asyncio.Event)
@@ -44,20 +41,16 @@ class IBKRState(BaseModel):
     active_stock_conid: Optional[int] = None
     chart_subscriptions: Dict[int, str] = Field(default_factory=dict) # Key: conid, Value: serverId
     pnl_subscribed: bool = False
-    
     portfolio_subscriptions: Set[int] = Field(default_factory=set)
     
     
     class Config:
         arbitrary_types_allowed = True
 
-class AuthStatusDTO(BaseModel):
-    authenticated: bool
-    websocket_ready: bool
-    message: str
+
 
 class IBKRService:
-    def __init__(self, base_url: str = "https://localhost:5000/v1/api"):
+    def __init__(self, base_url: str = f"{GATEWAY_BASE_URL}/v1/api"):
         self.base_url = base_url.rstrip("/")
         self.state = IBKRState()
         self.http = httpx.AsyncClient(base_url=self.base_url, verify=False,
@@ -353,7 +346,7 @@ class IBKRService:
         price = _extract_best_price_from_snapshot(snapshot_data)
         return price if price is not None else float('nan')
 
-    @cached(ttl=150, key_builder=history_cache_key_builder)
+    @cached(ttl=1500, key_builder=history_cache_key_builder)
     async def history(self, conid, period="1w", bar="15min"):
         await self.ensure_accounts()
         q = {"conid": conid, "period": period, "bar": bar, "outsideRth": "true"}
@@ -658,17 +651,18 @@ class IBKRService:
             return {} # Return an empty dict on failure
 
     
-    async def get_account_details(self, acct: str | None = None) -> AccountDetailsDTO:
+    async def get_account_details(self, accountId: str ) -> AccountDetailsDTO:
         """Fetch complete account details from multiple endpoints"""
         # Run all three API calls concurrently
         results = await asyncio.gather(
-            self._req("GET", f"/acesws/{acct}/signatures-and-owners"),
+            self._req("GET", f"/acesws/{accountId}/signatures-and-owners"),
             self._req("GET", "/portfolio/accounts"),
             self._req("GET", "/iserver/accounts"),
             return_exceptions=True # Prevents one failure from stopping others
         )
 
         owner_resp, portfolio_resp, accounts_resp = results
+        
         
         # --- Process owner_resp ---
         if isinstance(owner_resp, Exception):
@@ -695,14 +689,14 @@ class IBKRService:
         if isinstance(portfolio_resp, Exception):
             log.error(f"Failed to fetch account info: {portfolio_resp}")
             account_info = AccountInfoDTO(
-                accountId=acct, accountTitle="", accountType="", 
+                accountId=accountId, accountTitle="", accountType="", 
                 tradingType="", baseCurrency="USD", ibEntity="", 
                 clearingStatus="", isPaper=False
             )
         else:
-            account_data = next((acc for acc in portfolio_resp if acc.get("accountId") == acct), {})
+            account_data = next((acc for acc in portfolio_resp if acc.get("accountId") == accountId), {})
             account_info = AccountInfoDTO(
-                accountId=account_data.get("accountId", acct),
+                accountId=account_data.get("accountId", accountId),
                 accountTitle=account_data.get("accountTitle", ""),
                 accountType=account_data.get("type", ""),
                 tradingType=account_data.get("tradingType", ""),
@@ -721,7 +715,7 @@ class IBKRService:
             )
         else:
             permissions_data = accounts_resp.get("allowFeatures", {})
-            acct_props = accounts_resp.get("acctProps", {}).get(acct, {})
+            acct_props = accounts_resp.get("acctProps", {}).get(accountId, {})
             permissions = PermissionsDTO(
                 allowFXConv=permissions_data.get("allowFXConv", False),
                 allowCrypto=permissions_data.get("allowCrypto", False),
@@ -1205,7 +1199,8 @@ class IBKRService:
         Maintains a persistent connection to the IBKR WebSocket.
         Its ONLY job is to connect, run background tasks, and process incoming messages.
         """
-        uri = "wss://localhost:5000/v1/api/ws"
+        gateway_ws_url = GATEWAY_BASE_URL.replace("https", "wss")
+        uri = f"{gateway_ws_url}/v1/api/ws"
         cookie = f'api={{"session":"{self.state.ibkr_session_token}"}}'
         ssl_ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         ssl_ctx.check_hostname = False

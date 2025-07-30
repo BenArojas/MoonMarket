@@ -9,7 +9,11 @@ log = logging.getLogger("models")  # dedicate a channel for WS payloads
 # =============================================================================
 #  Core Infrastructure & Generic Models
 # =============================================================================
-
+class AuthStatusDTO(BaseModel):
+    authenticated: bool
+    websocket_ready: bool
+    message: str
+    
 class AuthStatus(BaseModel):
     authenticated: bool
     session_active: Optional[bool] = None

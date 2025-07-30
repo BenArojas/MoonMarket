@@ -44,7 +44,7 @@ def _row_to_point(row: dict) -> HistoricalPoint:
 
 # ---------------------- routes ------------------------------
 
-@router.get("/", response_model=dict[str, str])
+@router.get("", response_model=dict[str, str])
 async def list_watchlists(svc: IBKRService = Depends(get_ibkr_service)):
     data = await svc.account_watchlists()
     if data is None:

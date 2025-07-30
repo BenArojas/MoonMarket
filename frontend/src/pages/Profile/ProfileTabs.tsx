@@ -59,6 +59,8 @@ export const ProfileTabs = () => {
     enabled: !!selectedAccountId,
   });
 
+  console.log(accountDetailsData)
+
 
   const {
     data: balancesData,

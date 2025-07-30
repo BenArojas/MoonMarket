@@ -25,8 +25,8 @@ const StockDetailPopup: React.FC<Props> = ({
   const navigate = useNavigate();
   
   const handleNavigate = () => {
-    if(symbol!= null){
-      navigate(Paths.protected.app.stock(symbol));
+    if(symbol!= null && conId!=null){
+      navigate(Paths.protected.app.stock(`${conId}`));
     }
   };
   // This check correctly prevents rendering if the essential symbol is missing
