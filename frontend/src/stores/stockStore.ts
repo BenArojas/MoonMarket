@@ -1,14 +1,21 @@
 // src/stores/stockStore.ts
 import { ChartDataBars } from "@/types/chart";
-import { AllocationDTO, AllocationView, PositionInfo, PositionsPayload } from "@/types/position";
-import { InitialQuoteData, PriceLadderRow, QuoteInfo, StaticInfo, StockData } from "@/types/stock";
+import {
+  AllocationDTO,
+  AllocationView,
+  PositionInfo,
+  PositionsPayload,
+} from "@/types/position";
+import {
+  InitialQuoteData,
+  PriceLadderRow,
+  QuoteInfo,
+  StaticInfo,
+  StockData,
+} from "@/types/stock";
 import { AccountDetailsDTO, BriefAccountInfo, PnlRow } from "@/types/user";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-
-
-
-
 
 interface FrontendMarketDataUpdate {
   type: "market_data";
@@ -22,7 +29,6 @@ interface FrontendMarketDataUpdate {
   daily_change_percent?: number;
   daily_change_amount?: number;
 }
-
 
 export interface ActiveStockUpdate {
   type: "active_stock_update";
@@ -49,6 +55,7 @@ interface StockState {
     position: PositionInfo | null;
     optionPositions: PositionInfo[] | null;
     secType: string | null;
+    selectedPeriod: string;
   };
   watchlists: Record<string, string>;
   connectionStatus: "disconnected" | "connecting" | "connected" | "error";
@@ -87,6 +94,8 @@ interface StockState {
   unsubscribeFromPortfolio: () => void;
   unsubscribeFromStock: (conid: number) => void;
   updateActiveQuote: (data: any) => void;
+  updateLiveChartBar: (data: { timestamp: number; lastPrice: number }) => void;
+  setSelectedPeriod: (period: string) => void;
   updateActiveDepth: (data: PriceLadderRow[]) => void;
   clearActiveStock: () => void;
   setPnl: (rows: Record<string, PnlRow>) => void;
@@ -125,6 +134,7 @@ export const useStockStore = create<StockState>()(
         position: null,
         optionPositions: null,
         secType: null,
+        selectedPeriod: "7D",
       },
       watchlists: {},
       pnl: {},
@@ -162,6 +172,10 @@ export const useStockStore = create<StockState>()(
       setInitialCoreTotals: (totals) => {
         set({ coreTotals: totals });
       },
+      setSelectedPeriod: (period: string) =>
+        set((state) => ({
+          activeStock: { ...state.activeStock, selectedPeriod: period },
+        })),
 
       setPnl: (rows) => {
         const coreKey = Object.keys(rows).find((k) => k.endsWith(".Core"));
@@ -184,6 +198,49 @@ export const useStockStore = create<StockState>()(
                 equityWithLoanValue: 0,
               },
         });
+      },
+      updateLiveChartBar: (data) => {
+        // Only proceed if the 1D period is selected and we have data
+        if (
+          get().activeStock.selectedPeriod !== "1D" ||
+          get().activeStock.chartData.length === 0
+        ) {
+          return;
+        }
+
+        const { lastPrice, timestamp } = data;
+        const chartData = [...get().activeStock.chartData]; // Create a mutable copy
+        const lastBar = chartData[chartData.length - 1];
+
+        // Timestamps are in seconds. Check if the new tick is in the same minute as the last bar.
+        const lastBarMinute = Math.floor(lastBar.time / 60);
+        const tickMinute = Math.floor(timestamp / 60);
+
+        if (tickMinute === lastBarMinute) {
+          // --- UPDATE the last bar ---
+          lastBar.close = lastPrice;
+          lastBar.high = Math.max(lastBar.high, lastPrice);
+          lastBar.low = Math.min(lastBar.low, lastPrice);
+          // Note: Real-time volume is not provided per tick, so we leave it as is.
+        } else {
+          // --- CREATE a new bar ---
+          // The new bar starts at the beginning of the current minute
+          const newBarTimestamp = tickMinute * 60;
+          const newBar: ChartDataBars = {
+            time: newBarTimestamp,
+            open: lastPrice,
+            high: lastPrice,
+            low: lastPrice,
+            close: lastPrice,
+            volume: 0,
+          };
+          chartData.push(newBar);
+        }
+
+        // Update the state with the new chart data array
+        set((state) => ({
+          activeStock: { ...state.activeStock, chartData: chartData },
+        }));
       },
       setPreloadedDetails: (details: StaticInfo) =>
         set((state) => ({
@@ -304,6 +361,7 @@ export const useStockStore = create<StockState>()(
             position: null,
             optionPositions: null,
             secType: null,
+            selectedPeriod: "7D",
           },
         }),
       updateStock: (data: FrontendMarketDataUpdate) =>
@@ -403,7 +461,10 @@ function connectWebSocket(get: () => StockState) {
         break;
 
       case "active_stock_update":
-        get().updateActiveQuote(msg); // This now receives a clean, detailed object
+        get().updateActiveQuote(msg);
+        if (msg.lastPrice && msg.timestamp) {
+          get().updateLiveChartBar(msg);
+        }
         break;
 
       case "book_data":

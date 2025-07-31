@@ -10,6 +10,7 @@ export type ChartDataBars = {
     close: number;
     volume: number;
   };
+  
   export type ChartDataPoint = {
     time: Time;
     value: number

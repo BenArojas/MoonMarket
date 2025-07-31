@@ -1,4 +1,11 @@
-import { fetchExpirations, fetchHistoricalStockDataBars, fetchOptionChain, fetchStockDetails, StockDetailsResponse } from "@/api/stock";
+import api from "@/api/axios";
+import {
+  fetchExpirations,
+  fetchOptionChain,
+  fetchStockDetails,
+  StockDetailsResponse
+} from "@/api/stock";
+import BlinkingDot from '@/components/BlinkingDot';
 import CandleStickChart from "@/components/charts/CandleSticksChart";
 import { useAccountPermissions } from "@/hooks/useAccountPermissions";
 import { useStockStore } from "@/stores/stockStore";
@@ -23,33 +30,51 @@ import OrderPanel from "./trading/OrderPanel";
 
 const timePeriods = ["1D", "7D", "1M", "3M", "YTD", "1Y", "5Y"];
 
+export interface ChartBar {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
 
 interface TradingTarget {
   conid: number;
-  name: string;      // A clean name for display, e.g., "Stock: AAPL" or "Option: AAPL..."
-  type: 'STOCK' | 'OPTION';
+  name: string; // A clean name for display, e.g., "Stock: AAPL" or "Option: AAPL..."
+  type: "STOCK" | "OPTION";
 }
 
 export default function StockItem() {
+
+  const [isChartLoading,setIsChartLoading] = useState<boolean>(true)
   const { conid: conidFromUrl } = useParams<{ conid: string }>();
   const [view, setView] = useState<"chart" | "options">("chart");
-  const [tradingTarget, setTradingTarget] = useState<TradingTarget | null>(null);
+  const [tradingTarget, setTradingTarget] = useState<TradingTarget | null>(
+    null
+  );
 
   // Chart State
-  const [isChartLoading, setIsChartLoading] = useState(true);
-  const [selectedPeriod, setSelectedPeriod] = useState("7D");
+  const selectedPeriod = useStockStore((state) => state.activeStock.selectedPeriod);
+  const setSelectedPeriod = useStockStore((state) => state.setSelectedPeriod);
 
   // Options State
-
   const [selectedExpiration, setSelectedExpiration] = useState<string>("");
   const [optionsChainData, setOptionsChainData] =
     useState<OptionsChainData | null>(null);
 
-  const activeStock = useStockStore((state) => state.activeStock);
+  // --- Granular Store Subscriptions (The Fix) ---
+  const companyName = useStockStore((state) => state.activeStock.companyName);
+  const ticker = useStockStore((state) => state.activeStock.ticker);
+  const quote = useStockStore((state) => state.activeStock.quote);
+  const depth = useStockStore((state) => state.activeStock.depth);
+  const selectedAccountId = useStockStore((state) => state.selectedAccountId);
+
+  // Actions from the store
   const setInitialQuote = useStockStore((state) => state.setInitialQuote);
   const setInitialChartData = useStockStore(
     (state) => state.setInitialChartData
-  ); // Assuming this is the correct function
+  );
   const subscribeToStock = useStockStore((state) => state.subscribeToStock);
   const unsubscribeFromStock = useStockStore(
     (state) => state.unsubscribeFromStock
@@ -58,14 +83,10 @@ export default function StockItem() {
     (state) => state.setPreloadedDetails
   );
   const setPositions = useStockStore((state) => state.setPositions);
-  const selectedAccountId = useStockStore((state) => state.selectedAccountId);
 
-  const { ticker } = activeStock;
   const conid = conidFromUrl ? parseInt(conidFromUrl, 10) : null;
 
-  const { data: permissions, isLoading: isPermissionsLoading } =
-    useAccountPermissions();
-  
+  const { data: permissions } = useAccountPermissions();
 
   const { data: stockDetails, isLoading: isDetailsLoading } =
     useQuery<StockDetailsResponse>({
@@ -73,8 +94,9 @@ export default function StockItem() {
       queryFn: () => fetchStockDetails(conid!, selectedAccountId!),
       enabled: !!conid && !!selectedAccountId,
     });
-    
-  const isDataStale = stockDetails?.staticInfo?.conid !== conid;
+
+  const isPageLoading =
+    isDetailsLoading || stockDetails?.staticInfo?.conid !== conid;
 
   useEffect(() => {
     if (stockDetails) {
@@ -82,8 +104,8 @@ export default function StockItem() {
       startTransition(() => {
         setPreloadedDetails(stockDetails.staticInfo);
         setInitialQuote({
-          ...stockDetails.quote, // Spread the quote data (price, bid, ask...)
-          conid: stockDetails.staticInfo.conid, // Add the conid from staticInfo
+          ...stockDetails.quote,
+          conid: stockDetails.staticInfo.conid,
         });
         setPositions({
           stock: stockDetails.positionInfo,
@@ -94,7 +116,7 @@ export default function StockItem() {
         setTradingTarget({
           conid: stockDetails.staticInfo.conid,
           name: `Stock: ${stockDetails.staticInfo.ticker}`,
-          type: 'STOCK',
+          type: "STOCK",
         });
       }
 
@@ -120,15 +142,12 @@ export default function StockItem() {
     enabled: view === "options" && !!ticker,
   });
 
-
   useEffect(() => {
-    // If we have expiration dates but none is selected yet, select the first one.
     if (expirations && expirations.length > 0 && !selectedExpiration) {
       setSelectedExpiration(expirations[0]);
     }
   }, [expirations, selectedExpiration]);
 
-  // --- Query 2: Fetch Filtered Option Chain ---
   const {
     data: chainResponse,
     isLoading: isChainLoading,
@@ -149,81 +168,78 @@ export default function StockItem() {
     setOptionsChainData(updatedChain);
   };
 
-  // --- EFFECT 2: Handles fetching historical chart data ---
-  // This runs whenever the conid or the selectedPeriod changes.
-  const {
-    data: chartData,
-    isLoading: isLoadingChart,
-    isSuccess, 
-    isError,   
-    error,    
-  } = useQuery({
-    queryKey: ["historicalStockData", conid, selectedPeriod],
-    queryFn: () => fetchHistoricalStockDataBars(conid!, selectedPeriod),
-    staleTime: 1000 * 60 * 5,
-    enabled: !!conid,
-    // No onSuccess or onError callbacks here
-  });
-  
-  // This is the correct pattern for performing side effects in v5
   useEffect(() => {
-    if (isSuccess) {
-      // When the query succeeds, update your store with the fetched data
-      startTransition(() => {
-        setInitialChartData(chartData);
-      });
-    } else if (isError) {
-      // When the query fails, log the error and clear the store
-      console.error("Failed to fetch chart history:", error);
-      startTransition(() => {
-        setInitialChartData([]);
-      });
-    }
-  }, [isSuccess, isError, chartData, error, setInitialChartData]);
+    if (!conid) return;
+ 
+    const fetchChartData = async () => {
+      setIsChartLoading(true);
+      try {
+        const historyResponse = await api.get<ChartBar[]>("/market/history", {
+          params: { conid, period: selectedPeriod },
+        });
+ 
+        // BUG FIX: Set the chart data in the store with the fetched data
+        startTransition(() => {
+          setInitialChartData(historyResponse.data);
+        });
+      } catch (error) {
+        console.error("Failed to fetch chart history:", error);
+        // Optionally clear data or show an error state
+        startTransition(() => {
+          setInitialChartData([]);
+        });
+      } finally {
+        startTransition(() => setIsChartLoading(false));
+      }
+    };
+ 
+    fetchChartData();
+    // This effect depends on the selected time period
+  }, [conid, selectedPeriod, setInitialChartData]);
+
 
   const { isTradingDisabled, disabledReason } = useMemo(() => {
-    // Default to disabled until all data is loaded
     if (!permissions || !tradingTarget) {
-      return { 
-        isTradingDisabled: true, 
-        disabledReason: "Loading account permissions..." 
+      return {
+        isTradingDisabled: true,
+        disabledReason: "Loading account permissions...",
       };
     }
-    
-    // Check based on the CURRENT trading target
-    if (tradingTarget.type === 'STOCK') {
-      if (!permissions.canTrade) {
-        return { 
-          isTradingDisabled: true, 
-          disabledReason: "Stock trading is not permitted on this account." 
-        };
-      }
-    }
-    
-    if (tradingTarget.type === 'OPTION') {
-      if (!permissions.allowOptionsTrading) {
-        return { 
-          isTradingDisabled: true, 
-          disabledReason: "Options trading is not permitted on this account." 
-        };
-      }
-    }
-    
-    // If all checks pass, trading is enabled
-    return { isTradingDisabled: false, disabledReason: "" };
 
+    if (tradingTarget.type === "STOCK") {
+      if (!permissions.canTrade) {
+        return {
+          isTradingDisabled: true,
+          disabledReason: "Stock trading is not permitted on this account.",
+        };
+      }
+    }
+
+    if (tradingTarget.type === "OPTION") {
+      if (!permissions.allowOptionsTrading) {
+        return {
+          isTradingDisabled: true,
+          disabledReason: "Options trading is not permitted on this account.",
+        };
+      }
+    }
+    return { isTradingDisabled: false, disabledReason: "" };
   }, [permissions, tradingTarget]);
 
-  const handleOptionSelect = (option: OptionContract, optionType: 'call' | 'put') => {
-    // A simple formatter for the option name
-    const optionName = `${ticker} ${selectedExpiration} ${option.strike} ${optionType.toUpperCase()}`;
-    
+  const handleOptionSelect = (
+    option: OptionContract,
+    optionType: "call" | "put"
+  ) => {
+    const optionName = `${ticker} ${selectedExpiration} ${
+      option.strike
+    } ${optionType.toUpperCase()}`;
+
     setTradingTarget({
       conid: option.contractId,
       name: `Option: ${optionName}`,
-      type: 'OPTION',
+      type: "OPTION",
     });
-    
+
     toast.info(`Trading target set to: ${optionName}`);
   };
 
@@ -232,13 +248,13 @@ export default function StockItem() {
       setTradingTarget({
         conid: stockDetails.staticInfo.conid,
         name: `Stock: ${stockDetails.staticInfo.ticker}`,
-        type: 'STOCK',
+        type: "STOCK",
       });
       toast.info("Trading target reset to stock.");
     }
   };
 
-  if (isDataStale) {
+  if (isPageLoading) {
     return (
       <Box
         sx={{
@@ -258,15 +274,11 @@ export default function StockItem() {
       className="layoutContainer"
       sx={{
         p: 2,
-        // Define the master grid layout for the whole page
         display: "grid",
-        // Two rows: header (auto height), main content (fills remaining space)
         gridTemplateRows: "auto 1fr",
-        // Two columns: main (2fr), sidebar (1fr)
         gridTemplateColumns: "2fr 1fr",
-        gap: "0 20px", // 0px row gap, 20px column gap
-        // Set a height boundary for the entire component
-        height: "calc(100vh - 80px)", // Adjust 80px to match your navbar height
+        gap: "0 20px",
+        height: "calc(100vh - 80px)",
       }}
     >
       <Typography
@@ -275,20 +287,20 @@ export default function StockItem() {
         gutterBottom
         sx={{ gridColumn: "1 / -1" }}
       >
-        {activeStock.companyName} ({activeStock.ticker})
+        {companyName} ({ticker})
       </Typography>
 
       <div
         className="chart-and-info"
         style={{
-          gridRow: 2, // Place in the second row
-          gridColumn: 1, // Place in the first column
+          gridRow: 2,
+          gridColumn: 1,
           display: "flex",
           flexDirection: "column",
-          minHeight: 0, // Prevents flex items from overflowing
+          minHeight: 0,
         }}
       >
-        <LiveQuoteDisplay quote={activeStock.quote} />
+        <LiveQuoteDisplay quote={quote} />
         <Stack
           sx={{ my: 2 }}
           direction="row-reverse"
@@ -309,6 +321,16 @@ export default function StockItem() {
             </Button>
           </ButtonGroup>
           {view === "chart" && (
+            <Stack direction="row" alignItems="center" spacing={2}>
+            {/* Show the indicator when the 1D period is selected */}
+            {selectedPeriod === '1D' && (
+              <Stack direction="row" alignItems="center" spacing={0.5}>
+                <BlinkingDot />
+                <Typography variant="caption" color="text.secondary">
+                  Live
+                </Typography>
+              </Stack>
+            )}
             <ButtonGroup variant="outlined" aria-label="time period selector">
               {timePeriods.map((period) => (
                 <Button
@@ -320,23 +342,25 @@ export default function StockItem() {
                 </Button>
               ))}
             </ButtonGroup>
+          </Stack>
           )}
         </Stack>
 
-        {/* This loader is now controlled by the chart-specific loading state */}
-        {view === "chart" && !isChartLoading && <CandleStickChart />}
-        {isChartLoading && (
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              height: "80vh",
-            }}
-          >
-            <CircularProgress />
-          </Box>
-        )}
+        {view === "chart" &&
+          (isChartLoading ? (
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                height: "500px",
+              }}
+            >
+              <CircularProgress />
+            </Box>
+          ) : (
+            <CandleStickChart />
+          ))}
 
         {view === "options" && (
           <OptionsChain
@@ -349,7 +373,7 @@ export default function StockItem() {
             onExpirationChange={(e) => setSelectedExpiration(e.target.value)}
             isLoading={isExpirationsLoading || isChainLoading}
             error={expirationsError?.message || chainError?.message || null}
-            currentPrice={activeStock.quote.lastPrice || 0}
+            currentPrice={quote.lastPrice || 0}
             onOptionSelect={handleOptionSelect}
             isTradingEnabled={permissions?.allowOptionsTrading ?? false}
           />
@@ -358,8 +382,8 @@ export default function StockItem() {
       <div
         className="trading-panel"
         style={{
-          gridRow: 2, // Place in the second row
-          gridColumn: 2, // Place in the second column
+          gridRow: 2,
+          gridColumn: 2,
           display: "flex",
           flexDirection: "column",
           minHeight: 0,
@@ -368,7 +392,7 @@ export default function StockItem() {
         }}
       >
         <PositionDetails />
-        <DepthOfBookTable depth={activeStock.depth} />
+        <DepthOfBookTable depth={depth} />
         <OrderPanel
           tradingTarget={tradingTarget}
           onRevertToStock={handleRevertToStock}
