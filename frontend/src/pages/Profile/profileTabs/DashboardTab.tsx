@@ -49,14 +49,20 @@ export const DashboardTabContent = () => {
   );
 };
 
-// StatCard component remains the same
+interface StatCardProps{
+  title: string
+  value: number
+  isCurrency?: boolean
+  positiveGood?: boolean
+  showSign?: boolean
+}
 const StatCard = ({
   title,
   value,
   isCurrency = true,
   positiveGood = true,
   showSign = false,
-}) => {
+}: StatCardProps) => {
   const theme = useTheme();
   const formatValue = (num: number) => {
     if (typeof num !== "number") return num;

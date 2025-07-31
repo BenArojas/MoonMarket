@@ -1,5 +1,6 @@
-import api from "@/api/axios";
-import { BriefAccountInfo, useStockStore } from "@/stores/stockStore";
+import { fetchAvailableAccounts } from "@/api/user";
+import { useStockStore } from "@/stores/stockStore";
+import { BriefAccountInfo } from "@/types/user";
 import {
   Alert,
   Box,
@@ -14,11 +15,6 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useTransition } from "react";
 
-// This function would live in an API service file, e.g., src/api/user.ts
-const fetchAvailableAccounts = async (): Promise<BriefAccountInfo[]> => {
-  const { data } = await api.get("/account/accounts");
-  return data;
-};
 
 const AccountSelectionPage = () => {
   const [isPending, startTransition] = useTransition();

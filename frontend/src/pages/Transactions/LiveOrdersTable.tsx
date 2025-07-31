@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { LiveOrder } from "@/api/transaction";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
@@ -23,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useStockStore } from "@/stores/stockStore";
 import { useLiveOrders } from "@/hooks/useLiveOrders";
+import { LiveOrder } from "@/types/transaction";
 
 // Define the set of statuses where orders cannot be modified or cancelled.
 const NON_ACTIONABLE_STATUSES = new Set([

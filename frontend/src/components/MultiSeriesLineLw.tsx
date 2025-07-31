@@ -1,12 +1,13 @@
 // components/charts/MultiSeriesLineLw.tsx
 
-import {  ReturnSeries } from '@/api/user'; 
 import { fetchConidForTicker, fetchHistoricalStockData } from '@/api/stock'; 
 import { toSeries } from '@/utils/lwHelpers';
 import { Skeleton, useTheme } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
-import { ChartDataPoint, MultiSeriesLineChart } from './charts/MultiSeriesLineChart';
+import {  MultiSeriesLineChart } from './charts/MultiSeriesLineChart';
+import { ChartDataPoint } from '@/types/chart';
+import { ReturnSeries } from '@/types/perfromance';
 
 // Helper to normalize data series for comparison (only needed for absolute price data)
 const normalizeData = (data: ChartDataPoint[]): ChartDataPoint[] => {
@@ -52,7 +53,7 @@ const MultiSeriesLineLw = ({ portfolioSeries, period }: Props) => {
     const { data: spyData, isLoading: isLoadingHistory, error } = useQuery({
         queryKey: ["historicalData", spyConid, historyPeriod],
         queryFn: () => fetchHistoricalStockData(spyConid!, historyPeriod),
-        staleTime: 1000 * 60 * 60, // 1-hour cache
+        staleTime: 1000 * 60 * 60, 
         enabled: !!spyConid,
       });
 

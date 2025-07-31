@@ -89,8 +89,6 @@ async def batch_history(req: HistoricalReq, svc: IBKRService = Depends(get_ibkr_
                 return None
 
             try:
-                # Add a small delay to be even more gentle on the API
-                await asyncio.sleep(0.5) 
                 raw = await svc.history(conid, period=per, bar=bar)
                 if not raw.get("data"):
                     return None

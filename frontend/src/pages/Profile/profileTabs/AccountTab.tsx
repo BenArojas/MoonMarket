@@ -1,7 +1,7 @@
 import {
-    AccountDetailsDTO,
     useStockStore
 } from "@/stores/stockStore";
+import { AccountDetailsDTO } from "@/types/user";
 import {
     Alert,
     Box,

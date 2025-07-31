@@ -4,11 +4,12 @@ import GraphMenu, { GraphType } from "@/pages/Portfolio/GraphMenu";
 import { HistoricalDataCard } from "@/pages/Portfolio/HistoricalDataCard";
 import PerformanceCards from "@/pages/Portfolio/PerformanceCards";
 import useGraphData from "@/hooks/useGraphData";
-import { StockData, useStockStore } from "@/stores/stockStore";
+import {  useStockStore } from "@/stores/stockStore";
 import "@/styles/App.css";
 import { Box, Stack, useMediaQuery, useTheme } from "@mui/material";
 import { useEffect, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
+import { StockData } from "@/types/stock";
 
 function Portfolio() {
   const theme = useTheme();

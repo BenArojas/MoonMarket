@@ -1,10 +1,10 @@
 // src/components/DepthOfBookTable.tsx
 
-import { PriceLadderRow } from '@/stores/stockStore';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography, Box, Collapse, IconButton } from '@mui/material';
 import React, { useState } from 'react';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import { PriceLadderRow } from '@/types/stock';
 
 interface DepthOfBookTableProps {
     depth: PriceLadderRow[];

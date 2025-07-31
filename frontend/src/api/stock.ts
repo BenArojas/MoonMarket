@@ -1,18 +1,10 @@
 import api from "@/api/axios";
-import { ChartDataPoint } from "@/components/charts/AreaChartLw";
+import { ChartDataBars, ChartDataPoint } from "@/types/chart";
+import { FilteredChainResponse, SingleContractResponse } from "@/types/options";
+import { PositionInfo } from "@/types/position";
+import { QuoteInfo, StaticInfo } from "@/types/stock";
 import { Time } from "lightweight-charts";
 
-
-export type StockData = {
-  last_price: number;
-  previous_close: number;
-  change_amount: number
-  change_percent: number;
-  calculated_change_percent: number
-  dayHigh: number;
-  dayLow: number;
-  ticker: string
-}
 
 export async function getStockData(ticker: string) {
   const stock = await api.get(
@@ -21,23 +13,14 @@ export async function getStockData(ticker: string) {
     return stock.data;
 }
 
-export type ChartDataBars = {
-  time: number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-};
-
 export const fetchHistoricalStockDataBars = async (
-  ticker: string,
+  conid: number,
   period: string
 ): Promise<ChartDataBars[]> => {
   try {
     const response = await api.get("/market/history", {
       params: {
-        ticker,
+        conid,
         period,
       },
     });
@@ -73,4 +56,47 @@ export const fetchHistoricalStockData = async (
 export const fetchConidForTicker = async (ticker: string): Promise<{ conid: number; companyName: string }> => {
   const { data } = await api.get(`/market/conid/${ticker}`);
   return data;
+};
+
+
+export interface StockDetailsResponse {
+  staticInfo: StaticInfo;
+  quote: QuoteInfo;
+  positionInfo: PositionInfo | null;
+  optionPositions: PositionInfo[] | null;
+}
+
+export const fetchStockDetails = async (conid: number, accountId: string) => {
+  const { data } = await api.get<StockDetailsResponse>(`/market/stock/${conid}/details`, {
+    params: { accountId },
+  });
+  return data;
+};
+
+export const fetchExpirations = async (ticker: string) => {
+  const { data } = await api.get<string[]>(`market/options/expirations/${ticker}`);
+  return data;
+};
+
+
+export const fetchOptionChain = async (ticker: string, expiration: string) => {
+  const { data } = await api.get<FilteredChainResponse>(`market/options/chain/${ticker}`, {
+    params: { expiration_month: expiration },
+  });
+  return data;
+};
+
+export const fetchSingleContract = async (params: {
+  ticker: string;
+  expiration: string;
+  strike: number;
+}) => {
+  const { ticker, expiration, strike } = params;
+  const response = await api.get<SingleContractResponse>(
+    `market/options/contract/${ticker}`,
+    {
+      params: { expiration_month: expiration, strike },
+    }
+  );
+  return response.data;
 };

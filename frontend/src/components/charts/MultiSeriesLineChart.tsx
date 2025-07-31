@@ -1,5 +1,6 @@
 // components/charts/MultiSeriesLineChart.tsx
 
+import { ChartDataPoint } from "@/types/chart";
 import { useTheme } from "@mui/material";
 import {
     ColorType,
@@ -7,14 +8,10 @@ import {
     CrosshairMode,
     IChartApi,
     LineSeriesPartialOptions,
-    Time
 } from "lightweight-charts";
 import { FC, useEffect, useRef } from "react";
 
-export type ChartDataPoint = {
-    time: Time;
-    value: number;
-};
+
 
 export interface SeriesData {
     data: ChartDataPoint[];

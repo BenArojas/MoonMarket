@@ -1,24 +1,21 @@
-import { fetchBalances, LedgerDTO } from "@/api/user";
+import { fetchBalances } from "@/api/user";
 import AiInsightsDialog from "@/components/AiInsightsDialog";
 import { useStockStore } from "@/stores/stockStore";
+import { LedgerDTO } from "@/types/user";
 import {
-    Box,
-    IconButton,
-    MenuItem,
-    TextField,
-    Tooltip,
-    Typography,
-    useMediaQuery,
-    useTheme,
+  Box,
+  IconButton,
+  MenuItem,
+  TextField,
+  Tooltip,
+  Typography,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import { Brain } from "lucide-react";
 import { useMemo, useState } from "react";
 
-const mockPortfolioData = [
-  { ticker: "AAPL", value: 15000 },
-  { ticker: "TSLA", value: 10000 },
-];
 
 
 interface PortfolioStatsProps {
@@ -38,8 +35,6 @@ function PortfolioStats({
 
   const {
     data: balancesData,
-    isLoading: isBalancesLoading,
-    error: balancesError,
   } = useQuery<LedgerDTO | undefined, Error>({ 
     queryKey: ["balances", selectedAccountId], 
     queryFn: () => fetchBalances(selectedAccountId),
@@ -49,8 +44,6 @@ function PortfolioStats({
   });
 
   const stocks = useStockStore((s) => s.stocks);
-  const netLiq = useStockStore((s) => s.coreTotals.netLiq);
-  const allocation = useStockStore((s) => s.allocation);
 
 
   const portfolioDataForApi = useMemo(() => {

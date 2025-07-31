@@ -1,4 +1,5 @@
-import { StockData, useStockStore } from "@/stores/stockStore";
+import { useStockStore } from "@/stores/stockStore";
+import { StockData } from "@/types/stock";
 import {
   processAllocationData,
   processCircularData,

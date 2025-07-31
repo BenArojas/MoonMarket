@@ -1,6 +1,6 @@
 import React from 'react';
-import { Quote } from '@/stores/stockStore'; // Import the interface from Zustand
 import { Box, Paper, Typography, Grid } from '@mui/material';
+import { QuoteInfo } from '@/types/stock';
 
 // A small, reusable card for displaying a single statistic.
 const StatCard: React.FC<{ label: string; value?: string | number; color?: string }> = ({ label, value, color }) => (
@@ -15,7 +15,7 @@ const StatCard: React.FC<{ label: string; value?: string | number; color?: strin
 );
 
 interface LiveQuoteDisplayProps {
-  quote: Quote;
+  quote: QuoteInfo;
 }
 
 const LiveQuoteDisplay: React.FC<LiveQuoteDisplayProps> = ({ quote }) => {

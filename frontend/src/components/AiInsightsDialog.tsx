@@ -11,17 +11,15 @@ import {
   Tabs,
   Tooltip,
 } from "@mui/material";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import ReactMarkdown from "react-markdown";
-// Assume you have a way to get portfolio data, e.g., from your Zustand store
-// import { useStockStore } from "@/stores/stockStore";
 
 interface AiInsightsDialogProps {
   open: boolean;
   onClose: () => void;
-  portfolioData: any[]; // Pass portfolio data as a prop
+  portfolioData: any[]; 
 }
 
 const AiInsightsDialog = ({
@@ -32,18 +30,17 @@ const AiInsightsDialog = ({
   const [activeTab, setActiveTab] = useState(0);
   const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-  // --- 2. Revert to a smarter useQuery for both ---
   const {
     data: analysisData,
     isLoading: isAnalysisLoading,
     error: analysisError,
-    refetch: refetchAnalysis, // We get a refetch function
+    refetch: refetchAnalysis, 
   } = useQuery({
-    queryKey: ["portfolioAnalysis"], // Stable key
-    queryFn: () => fetchPortfolioAnalysis(portfolioData), // Pass data via closure
+    queryKey: ["portfolioAnalysis"],
+    queryFn: () => fetchPortfolioAnalysis(portfolioData), 
     enabled: open && activeTab === 0, // Only fetch when dialog is open and tab is active
-    staleTime: CACHE_DURATION, // This IS the cache duration
-    gcTime: CACHE_DURATION + (5 * 60 * 1000), // Keep in memory after it becomes stale
+    staleTime: CACHE_DURATION, 
+    gcTime: CACHE_DURATION + (5 * 60 * 1000), 
     refetchOnWindowFocus: false, // Prevents refetching on window focus
   });
 
@@ -53,7 +50,7 @@ const AiInsightsDialog = ({
     error: reportError,
     refetch: refetchReport,
   } = useQuery({
-    queryKey: ["marketReport"], // Stable key
+    queryKey: ["marketReport"], 
     queryFn: fetchMarketReport,
     enabled: open && activeTab === 1,
     staleTime: CACHE_DURATION,

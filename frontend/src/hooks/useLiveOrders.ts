@@ -1,4 +1,5 @@
-import { cancelOrder, CancelOrderPayload, getLiveOrders, modifyOrder, ModifyOrderPayload } from "@/api/transaction";
+import { cancelOrder, getLiveOrders, modifyOrder } from "@/api/transaction";
+import { CancelOrderPayload, ModifyOrderPayload } from "@/types/transaction";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 

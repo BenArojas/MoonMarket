@@ -1,82 +1,14 @@
 // src/stores/stockStore.ts
-import { PositionInfo, StaticInfo } from "@/pages/StockItem/StockItem";
+import { ChartDataBars } from "@/types/chart";
+import { AllocationDTO, AllocationView, PositionInfo, PositionsPayload } from "@/types/position";
+import { InitialQuoteData, PriceLadderRow, QuoteInfo, StaticInfo, StockData } from "@/types/stock";
+import { AccountDetailsDTO, BriefAccountInfo, PnlRow } from "@/types/user";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-/* -------------------------------- AllocationDTO ------------------------- */
 
-export interface LongShort {
-  long: Record<string, number>; // e.g. { STK: 12345.67, OPT: 9876 }
-  short: Record<string, number>; // (may be an empty object)
-}
 
-export interface AllocationDTO {
-  assetClass: LongShort; // STK / OPT / CASH …
-  sector: LongShort; // Technology / Financial …
-  group: LongShort; // Semiconductors / Banks …
-}
-export type AllocationView = "assetClass" | "sector" | "group";
 
-/* --------------------------- PnL DTO --------------------------- */
-export interface PnlRow {
-  rowType: number; // always 1 (single account)
-  dpl: number; // daily realised P&L
-  nl: number; // net liquidity
-  upl: number; // unrealised P&L
-  uel: number; // excess liquidity
-  el: number; // excess liquidity
-  mv: number; // margin value
-}
 
-/* --------------------------- AccountSummary DTO --------------------------- */
-export interface BriefAccountInfo {
-  accountId: string;
-  accountTitle: string;
-  displayName: string;
-}
-
-export interface OwnerInfoDTO {
-  userName: string;
-  entityName: string;
-  roleId: string;
-}
-
-export interface AccountInfoDTO {
-  accountId: string;
-  accountTitle: string;
-  accountType: string;
-  tradingType: string;
-  baseCurrency: string;
-  ibEntity: string;
-  clearingStatus: string;
-  isPaper: boolean;
-}
-
-export interface PermissionsDTO {
-  allowFXConv: boolean;
-  allowCrypto: boolean;
-  allowEventTrading: boolean;
-  supportsFractions: boolean;
-}
-
-export interface AccountDetailsDTO {
-  owner: OwnerInfoDTO;
-  account: AccountInfoDTO;
-  permissions: PermissionsDTO;
-}
-
-// --- 1. Define the state and action types ---
-export interface StockData {
-  symbol: string;
-  last_price: number;
-  avg_bought_price: number;
-  quantity: number;
-  value: number;
-  unrealizedPnl: number;
-  daily_change_percent?: number;
-  daily_change_amount?: number;
-}
-
-type WatchlistDict = Record<string, string>;
 
 interface FrontendMarketDataUpdate {
   type: "market_data";
@@ -91,30 +23,6 @@ interface FrontendMarketDataUpdate {
   daily_change_amount?: number;
 }
 
-// For the live quote data on the stock page
-
-export interface Quote {
-  lastPrice?: number;
-  bid?: number;
-  ask?: number;
-  changePercent?: number;
-  changeAmount?: number;
-  dayHigh?: number;
-  dayLow?: number;
-}
-
-export interface InitialQuoteData {
-  conid: number;
-  lastPrice?: number;
-  bid?: number;
-  ask?: number;
-  changePercent?: number;
-  changeAmount?: number;
-}
-export interface PositionsPayload {
-  stock: PositionInfo | null;
-  options: PositionInfo[] | null;
-}
 
 export interface ActiveStockUpdate {
   type: "active_stock_update";
@@ -128,21 +36,6 @@ export interface ActiveStockUpdate {
   dayLow?: number;
 }
 
-export interface ChartBar {
-  time: number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-}
-
-export interface PriceLadderRow {
-  price: number;
-  bidSize?: number;
-  askSize?: number;
-}
-
 interface StockState {
   // State
   stocks: { [symbol: string]: StockData };
@@ -150,14 +43,14 @@ interface StockState {
     conid: number | null;
     ticker: string | null;
     companyName: string | null;
-    quote: Quote;
+    quote: QuoteInfo;
     depth: PriceLadderRow[];
-    chartData: ChartBar[];
+    chartData: ChartDataBars[];
     position: PositionInfo | null;
     optionPositions: PositionInfo[] | null;
     secType: string | null;
   };
-  watchlists: WatchlistDict;
+  watchlists: Record<string, string>;
   connectionStatus: "disconnected" | "connecting" | "connected" | "error";
   error?: string;
   allocation?: AllocationDTO;
@@ -177,7 +70,7 @@ interface StockState {
 
   // Actions
   // chart bars
-  setInitialChartData: (data: ChartBar[]) => void;
+  setInitialChartData: (data: ChartDataBars[]) => void;
   setInitialCoreTotals: (totals: {
     dailyRealized: number;
     unrealized: number;
@@ -207,7 +100,7 @@ interface StockState {
   setError: (errorMsg: string) => void;
   clearError: () => void;
   updateStock: (data: FrontendMarketDataUpdate) => void;
-  setWatchlists: (w: WatchlistDict) => void;
+  setWatchlists: (w: Record<string, string>) => void;
   clearAllData: () => void;
 
   // Connection management actions

@@ -1,20 +1,16 @@
+import { checkAiFeatures, fetchBalances, fetchPnlSnapshot } from "@/api/user";
+import { PercentageChangeProvider } from "@/contexts/PercentageChangeContext";
+import { WebSocketManager } from "@/hooks/WebSocketManager";
 import Sidebar from "@/pages/Layout/Sidebar";
-import { PercentageChange, PercentageChangeProvider } from "@/contexts/PercentageChangeContext";
+import { useStockStore } from "@/stores/stockStore";
 import "@/styles/global.css";
 import { Box, useMediaQuery, useTheme } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import Greetings from "./Greetings";
-import { WebSocketManager } from "@/hooks/WebSocketManager";
-import { useStockStore } from "@/stores/stockStore";
-import { useQuery } from "@tanstack/react-query";
-import { checkAiFeatures, fetchBalances, LedgerDTO } from "@/api/user";
-import api from "@/api/axios";
+import { LedgerDTO } from "@/types/user";
 
-export const fetchPnlSnapshot = async (accountId: string) => {
-  const response = await api.get(`/account/pnl?accountId=${accountId}`);
-  return response.data; 
-};
 
 const Layout: React.FC = () => {
   const theme = useTheme();

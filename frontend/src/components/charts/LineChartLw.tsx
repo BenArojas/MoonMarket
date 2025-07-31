@@ -1,3 +1,4 @@
+import { ChartDataPoint } from "@/types/chart";
 import { formatDate } from "@/utils/dataProcessing";
 import { useTheme } from "@mui/material";
 import {
@@ -13,10 +14,6 @@ import {
 import { debounce } from "lodash";
 import React, { useEffect, useMemo, useRef } from "react";
 
-export interface ChartDataPoint {
-  time: Time;
-  value: number;
-}
 
 interface PerformanceChartProps {
   data: ChartDataPoint[];

@@ -1,22 +1,6 @@
 import api from "@/api/axios";
-import { AccountDetailsDTO } from "@/stores/stockStore";
+import { AccountDetailsDTO, AccountPermissions, BriefAccountInfo, LedgerDTO } from "@/types/user";
 import "react-toastify/dist/ReactToastify.css";
-
-
-export interface NAVSeries {
-  dates: string[];
-  navs: number[];
-}
-export interface ReturnSeries {
-  dates: string[];
-  returns: number[];
-}
-
-export interface Performance {
-  nav: NAVSeries;
-  cps: ReturnSeries;
-  tpps: ReturnSeries;
-}
 
 export const fetchPerformance = async (
   accountId: string | null,
@@ -58,13 +42,7 @@ export async function fetchAccountDetails(
   return data;
 }
 
-export interface AccountPermissions {
-  canTrade: boolean;
-  allowOptionsTrading: boolean;
-  allowCryptoTrading: boolean;
-  isMarginAccount: boolean;
-  supportsFractions: boolean;
-}
+
 
 export async function fetchAccountPermissions(accountId: string | null): Promise<AccountPermissions | null> {
   if (!accountId) return null;
@@ -74,24 +52,7 @@ export async function fetchAccountPermissions(accountId: string | null): Promise
 
 /* -------------------------------- LedgerDTO ----------------------------- */
 
-export interface LedgerEntry {
-  // These names MUST now match the snake_case names of your Python LedgerEntry model
-  // as that's what Pydantic will serialize to JSON.
-  secondkey: string;     // Matches Python's secondkey
-  cashbalance: number;   // Matches Python's cashbalance
-  settledcash: number;   // Matches Python's settledcash
-  unrealizedpnl: number; // Matches Python's unrealizedpnl
-  dividends: number;
-  exchangerate: number;  // Matches Python's exchangerate
 
-  // If you included 'currency: Optional[str]' in Python, add it here too
-  currency?: string;
-}
-
-export interface LedgerDTO {
-  baseCurrency: string; // This remains camelCase as it's a direct property of LedgerDTO
-  ledgers: LedgerEntry[];
-}
 
 /**
  * Fetches the detailed, multi-currency balance ledger.
@@ -160,9 +121,8 @@ export interface TweetInfo {
   retweets: number;
 }
 
-// This matches the SentimentResponse Pydantic model
 export interface SentimentResponse {
-  sentiment: "positive" | "negative" | "neutral"; // Be specific about the possible string values
+  sentiment: "positive" | "negative" | "neutral"; 
   score: number;
   score_label: string;
   tweets_analyzed: number;
@@ -176,4 +136,19 @@ export interface SentimentResponse {
 export const fetchStockSentiment = async (ticker: string): Promise<SentimentResponse> => {
   const { data } = await api.get(`/ai/stock/${ticker}/sentiment`);
   return data; 
+};
+
+export const fetchAvailableAccounts = async (): Promise<BriefAccountInfo[]> => {
+  const { data } = await api.get("/account/accounts");
+  return data;
+};
+
+export const fetchPnlSnapshot = async (accountId: string) => {
+  const response = await api.get(`/account/pnl?accountId=${accountId}`);
+  return response.data; 
+};
+
+export const fetchAccountSummary = async (accountId: string) => {
+  const { data } = await api.get(`/account/accounts/${accountId}/summary`);
+  return data;
 };

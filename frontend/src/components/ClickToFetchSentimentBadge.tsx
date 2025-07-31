@@ -31,7 +31,7 @@ const ClickToFetchSentimentBadge = ({ ticker }: StockSentimentBadgeProps) => {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["stockSentiment", ticker],
     queryFn: () => fetchStockSentiment(ticker),
-    enabled: false, // <-- This is the key: The query will NOT run automatically.
+    enabled: false, 
     staleTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
     retry: 1,
@@ -139,11 +139,9 @@ const ClickToFetchSentimentBadge = ({ ticker }: StockSentimentBadgeProps) => {
   }
 
   if (isLoading) {
-    // --- State 2: Fetching is in progress ---
     return <CircularProgress size={20} sx={{ ml: 1 }} />;
   }
 
-  // --- State 1: Initial state (or an error occurred) ---
   return (
     <Tooltip title="Check sentiment on X">
       <IconButton onClick={handleFetchClick} size="small" sx={{ ml: 0.5 }}>

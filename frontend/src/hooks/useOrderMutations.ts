@@ -1,27 +1,10 @@
-// In your useOrderMutations.ts file
-
 import { useMutation, useQuery } from '@tanstack/react-query';
 import api from '@/api/axios';
 import { AxiosError } from 'axios';
+import { fetchAccountSummary } from '@/api/user';
+import { OrderPayload, PreviewOrderVariables } from '@/types/transaction';
 
-// Define the shape of the order part of the payload
-interface OrderPayload {
-  conid: number;
-  orderType: string;
-  side: 'BUY' | 'SELL';
-  quantity: number;
-  tif: string;
-  price?: number;
-  auxPrice?: number;
-  cOID?: string;
-  parentId?: string;
-  isSingleGroup?: boolean;
-}
 
-interface PreviewOrderVariables {
-  accountId: string;
-  order: OrderPayload;
-}
 
 interface ErrorDetail {
   detail?: string;
@@ -66,11 +49,8 @@ export const useConfirmOrder = () => {
 export const useAccountSummary = (accountId: string | null) => {
   return useQuery({
     queryKey: ["accountSummary", accountId],
-    queryFn: async () => {
-      const { data } = await api.get(`/account/accounts/${accountId}/summary`);
-      return data;
-    },
+    queryFn: () => fetchAccountSummary(accountId!),
     enabled: !!accountId,
-    staleTime: 1000 * 60 * 2, 
+    staleTime: 1000 * 60 * 2,
   });
 };

@@ -1,10 +1,10 @@
-import api from '@/api/axios';
 import { fetchHistoricalStockData, fetchConidForTicker } from '@/api/stock'; 
-import { AreaChart, ChartDataPoint } from "@/components/charts/AreaChartLw";
+import { AreaChart } from "@/components/charts/AreaChartLw";
 import { ErrorFallback } from "@/components/ErrorFallBack";
 import { useAuth } from '@/contexts/AuthContext';
 import GraphSkeleton from "@/Skeletons/GraphSkeleton";
 import "@/styles/App.css";
+import { ChartDataPoint } from '@/types/chart';
 import { Button, Card, MenuItem, Stack, TextField, Typography } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -35,13 +35,12 @@ export function HistoricalDataCard() {
   const { data: conidData, isLoading: isLoadingConid } = useQuery({
     queryKey: ['conidForTicker', ticker],
     queryFn: () => fetchConidForTicker(ticker),
-    enabled:  !!ticker && isAuth, // Only run if a ticker is present
+    enabled:  !!ticker && isAuth,
   });
 
   const conid = conidData?.conid;
   const companyName = conidData?.companyName || ticker;
 
-  // Step 2: Second query for historical data, which now depends on the conid.
   const {
     data: chartData,
     isLoading: isLoadingHistory,
@@ -49,9 +48,7 @@ export function HistoricalDataCard() {
     error,
   } = useQuery<ChartDataPoint[], Error>({
     queryKey: ["historicalStockData", conid, selectedPeriod],
-    // Use the fetched conid to call the API function we updated earlier.
     queryFn: () => fetchHistoricalStockData(conid!, selectedPeriod),
-    // IMPORTANT: This query will only run if the 'conid' has been successfully fetched.
     enabled: !!conid,
   });
 

@@ -1,6 +1,6 @@
 /*  src/pages/TransactionsPage.tsx */
 
-import { IbkrTrade, getIbkrRecentTrades } from "@/api/transaction";
+import {  getIbkrRecentTrades } from "@/api/transaction";
 import {
   Card,
   CardContent,
@@ -27,6 +27,7 @@ import { LiveOrdersTable } from "./LiveOrdersTable";
 import { SummaryCards } from "./SummaryCards";
 import { SymbolActivityChart } from "./SymbolActivityChart";
 import { VolumeBySymbolChart } from "./VolumeBySymbolChart";
+import { IbkrTrade } from "@/types/transaction";
 
 /* ---------- SHAPES ---------- */
 export interface ProcessedTrade {

@@ -1,7 +1,7 @@
 // src/components/options/OptionsChain.tsx
 
-import api from "@/api/axios";
-import { OptionContract, OptionsChainData, SingleContractResponse } from "@/types/options";
+import { fetchSingleContract } from "@/api/stock";
+import { OptionContract, OptionsChainData } from "@/types/options";
 import { Alert, Box, CircularProgress, FormControl, InputLabel, MenuItem, Paper, Select, SelectChangeEvent, Typography } from "@mui/material";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef } from "react";
@@ -49,9 +49,7 @@ export default function OptionsChain({
 
   const { mutate, isPending, variables: pendingStrike } = useMutation({
     mutationFn: (strike: number) =>
-      api.get<SingleContractResponse>(`market/options/contract/${ticker}`, {
-        params: { expiration_month: selectedExpiration, strike },
-      }).then((res) => res.data),
+      fetchSingleContract({ ticker, expiration: selectedExpiration, strike }),
     onSuccess: (newData) => {
       const strikeKey = newData.strike.toFixed(2);
       onChainUpdate({ ...(chainData || {}), [strikeKey]: newData.data });

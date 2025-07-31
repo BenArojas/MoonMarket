@@ -1,38 +1,12 @@
 import api from "@/api/axios";
+import { CancelOrderPayload, IbkrTrade, LiveOrder, ModifyOrderPayload } from "@/types/transaction";
 
-
-export interface IbkrTrade {
-  execution_id: string;
-  symbol: string;
-  side: 'B' | 'S'; // Buy or Sell
-  order_description: string;
-  trade_time_r: number; // epoch time
-  size: number;
-  price: string;
-  commission: string;
-  net_amount: number;
-  company_name: string;
-  conid: number;
-  sec_type: 'STK' | 'OPT' | string;
-}
 
 export async function getIbkrRecentTrades(days: number = 7): Promise<IbkrTrade[]> {
   const { data } = await api.get("/transactions/trades",
     { params: { days } }  
   )
   return data;
-}
-
-export interface LiveOrder {
-  orderId: number;
-  ticker: string;
-  side: "BUY" | "SELL";
-  orderType: string;
-  quantity: number; // Mapped from remainingQuantity
-  limitPrice: string; // Mapped from price
-  status: string;
-  orderDesc: string; // e.g., "Buy 1 TSLA Limit 200.00, Day"
-  conid: number;
 }
 
 export const getLiveOrders = async (): Promise<LiveOrder[]> => {
@@ -58,19 +32,6 @@ export const getLiveOrders = async (): Promise<LiveOrder[]> => {
   }));
 };
 
-export interface ModifyOrderPayload {
-  orderId: number;
-  newOrderData: {
-    price?: number;
-    quantity?: number;
-  };
-  accountId: string;
-}
-
-export interface CancelOrderPayload {
-  orderId: number;
-  accountId: string;
-}
 
 export const cancelOrder = async ({ orderId, accountId }: CancelOrderPayload) => {
   // Add the accountId as a URL query parameter

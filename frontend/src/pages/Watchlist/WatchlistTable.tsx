@@ -1,10 +1,10 @@
+import { watchListStockData } from '@/types/watchlist';
 import { useTheme } from '@mui/material/styles';
-import { StockData } from '@/pages/Watchlist/Watchlist';
 
 /* ---------- props ---------- */
 export interface WatchlistTableProps {
   watchlist: string[];
-  stocksData: StockData[] | undefined;
+  stocksData: watchListStockData[] | undefined;
   timeRange: string;
 
   /* simulation */

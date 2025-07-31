@@ -1,8 +1,7 @@
-import React, { useEffect, useRef, useMemo, useState } from "react";
-import * as d3 from "d3";
-import { useTheme } from "@mui/material";
 import { CircularData, StockChild } from "@/utils/dataProcessing";
-import CustomTooltip from "./CustomToolTip";
+import { useTheme } from "@mui/material";
+import * as d3 from "d3";
+import React, { useEffect, useMemo, useRef } from "react";
 
 // Define props for CircularPacking
 interface CircularPackingProps {

@@ -1,8 +1,8 @@
-import api from "@/api/axios";
-import { ChartBar, useStockStore } from "@/stores/stockStore";
-import { startTransition, useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { fetchExpirations, fetchHistoricalStockDataBars, fetchOptionChain, fetchStockDetails, StockDetailsResponse } from "@/api/stock";
 import CandleStickChart from "@/components/charts/CandleSticksChart";
+import { useAccountPermissions } from "@/hooks/useAccountPermissions";
+import { useStockStore } from "@/stores/stockStore";
+import { OptionContract, OptionsChainData } from "@/types/options";
 import {
   Box,
   Button,
@@ -12,54 +12,17 @@ import {
   Typography,
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
+import { startTransition, useEffect, useMemo, useState } from "react";
+import { useParams } from "react-router-dom";
+import { toast } from "sonner";
 import DepthOfBookTable from "./DepthOfBookTable";
 import LiveQuoteDisplay from "./LiveQuoteDisplay";
-import { PositionDetails } from "./PositionDetails";
-import { useAccountPermissions } from "@/hooks/useAccountPermissions";
-import { toast } from "sonner";
 import OptionsChain from "./options/OptionsChain";
-import { FilteredChainResponse, OptionContract, OptionsChainData } from "@/types/options";
+import { PositionDetails } from "./PositionDetails";
 import OrderPanel from "./trading/OrderPanel";
 
 const timePeriods = ["1D", "7D", "1M", "3M", "YTD", "1Y", "5Y"];
 
-
-
-export interface StaticInfo {
-  conid: number;
-  ticker: string;
-  companyName: string;
-  exchange?: string;
-  secType?: string;
-  currency?: string;
-}
-
-export interface QuoteInfo {
-  lastPrice?: number;
-  bid?: number;
-  ask?: number;
-  changePercent?: number;
-  changeAmount?: number;
-  dayHigh?: number;
-  dayLow?: number;
-}
-
-export interface PositionInfo {
-  position: number;
-  avgCost: number;
-  unrealizedPnl: number;
-  mktValue: number;
-  name?: string;
-  daysToExpire?: number;
-}
-
-// The full response from our new endpoint
-export interface StockDetailsResponse {
-  staticInfo: StaticInfo;
-  quote: QuoteInfo;
-  positionInfo: PositionInfo | null;
-  optionPositions: PositionInfo[] | null;
-}
 
 interface TradingTarget {
   conid: number;
@@ -107,14 +70,7 @@ export default function StockItem() {
   const { data: stockDetails, isLoading: isDetailsLoading } =
     useQuery<StockDetailsResponse>({
       queryKey: ["stockDetails", conid, selectedAccountId],
-      queryFn: async () => {
-        const response = await api.get(`/market/stock/${conid}/details`, {
-          params: {
-            accountId: selectedAccountId,
-          },
-        });
-        return response.data;
-      },
+      queryFn: () => fetchStockDetails(conid!, selectedAccountId!),
       enabled: !!conid && !!selectedAccountId,
     });
     
@@ -160,18 +116,11 @@ export default function StockItem() {
     error: expirationsError,
   } = useQuery({
     queryKey: ["expirations", ticker],
-    queryFn: async () => {
-      const response = await api.get<string[]>(
-        `market/options/expirations/${ticker}`
-      );
-      return response.data;
-    },
+    queryFn: () => fetchExpirations(ticker!),
     enabled: view === "options" && !!ticker,
-    // The 'onSuccess' callback has been removed.
   });
 
-  // NEW: Use useEffect to handle the side effect of setting the default expiration.
-  // This runs whenever the 'expirations' data from the query changes.
+
   useEffect(() => {
     // If we have expiration dates but none is selected yet, select the first one.
     if (expirations && expirations.length > 0 && !selectedExpiration) {
@@ -186,14 +135,8 @@ export default function StockItem() {
     error: chainError,
   } = useQuery({
     queryKey: ["optionChain", ticker, selectedExpiration],
-    queryFn: async () => {
-      const response = await api.get<FilteredChainResponse>(
-        `market/options/chain/${ticker}?expiration_month=${selectedExpiration}`
-      );
-      return response.data;
-    },
-    // Only run this query when we have a selected expiration
-    enabled: !!selectedExpiration,
+    queryFn: () => fetchOptionChain(ticker!, selectedExpiration!),
+    enabled: !!ticker && !!selectedExpiration,
   });
 
   useEffect(() => {
@@ -208,35 +151,35 @@ export default function StockItem() {
 
   // --- EFFECT 2: Handles fetching historical chart data ---
   // This runs whenever the conid or the selectedPeriod changes.
+  const {
+    data: chartData,
+    isLoading: isLoadingChart,
+    isSuccess, 
+    isError,   
+    error,    
+  } = useQuery({
+    queryKey: ["historicalStockData", conid, selectedPeriod],
+    queryFn: () => fetchHistoricalStockDataBars(conid!, selectedPeriod),
+    staleTime: 1000 * 60 * 5,
+    enabled: !!conid,
+    // No onSuccess or onError callbacks here
+  });
+  
+  // This is the correct pattern for performing side effects in v5
   useEffect(() => {
-    if (!conid) return;
-
-    const fetchChartData = async () => {
-      setIsChartLoading(true);
-      try {
-        const historyResponse = await api.get<ChartBar[]>("/market/history", {
-          params: { conid, period: selectedPeriod },
-        });
-
-        // BUG FIX: Set the chart data in the store with the fetched data
-        startTransition(() => {
-          setInitialChartData(historyResponse.data);
-        });
-      } catch (error) {
-        console.error("Failed to fetch chart history:", error);
-        // Optionally clear data or show an error state
-        startTransition(() => {
-          setInitialChartData([]);
-        });
-      } finally {
-        startTransition(() => setIsChartLoading(false));
-      }
-    };
-
-    fetchChartData();
-    // This effect depends on the selected time period
-  }, [conid, selectedPeriod, setInitialChartData]);
-
+    if (isSuccess) {
+      // When the query succeeds, update your store with the fetched data
+      startTransition(() => {
+        setInitialChartData(chartData);
+      });
+    } else if (isError) {
+      // When the query fails, log the error and clear the store
+      console.error("Failed to fetch chart history:", error);
+      startTransition(() => {
+        setInitialChartData([]);
+      });
+    }
+  }, [isSuccess, isError, chartData, error, setInitialChartData]);
 
   const { isTradingDisabled, disabledReason } = useMemo(() => {
     // Default to disabled until all data is loaded

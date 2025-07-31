@@ -1,4 +1,4 @@
-import { fetchAccountDetails, fetchBalances, LedgerDTO } from "@/api/user";
+import { fetchAccountDetails, fetchBalances } from "@/api/user";
 import {
   Box,
   Tab,
@@ -66,7 +66,7 @@ export const ProfileTabs = () => {
     data: balancesData,
     isLoading: isBalancesLoading,
     error: balancesError,
-  } = useQuery<LedgerDTO | undefined, Error>({ 
+  } = useQuery({ 
     queryKey: ["balances", selectedAccountId], 
     queryFn: () => fetchBalances(selectedAccountId),
     enabled: !!selectedAccountId, 

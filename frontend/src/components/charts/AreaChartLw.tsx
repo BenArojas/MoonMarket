@@ -15,14 +15,10 @@ import { BrushableAreaSeries } from "@/plugins/brushable-area-series/brushable-a
 import { DeltaTooltipPrimitive } from "@/plugins/delta-tooltip/delta-tooltip"; // Assuming ActiveRangeData is exported
 import { TooltipPrimitive } from "@/plugins/tooltip/tooltip";
 import { formatCurrency } from '@/utils/dataProcessing';
+import { ChartDataPoint } from "@/types/chart";
 
-// Define the structure of a single data point for the chart
-// Using WhitespaceData is idiomatic for lightweight-charts
-// It requires 'time' and allows other properties like 'value'
-export type ChartDataPoint = {
-  time: Time;
-  value: number
-}
+
+
 
 // Define the structure for the optional colors prop
 interface ChartColors {
@@ -86,7 +82,7 @@ export const AreaChart: FC<AreaChartProps> = (props) => {
   // Ref to store the chart instance for cleanup/resize
   const chartRef = useRef<IChartApi | null>(null);
    // Ref to store the series instance
-  const seriesRef = useRef<IAreaSeriesApi<Time> | ISeriesApi<'Custom'> | null>(null);
+  const seriesRef = useRef<ISeriesApi<Time> | ISeriesApi<'Custom'> | null>(null);
 
 
   useEffect(() => {
@@ -174,7 +170,7 @@ export const AreaChart: FC<AreaChartProps> = (props) => {
     chart.timeScale().fitContent(); // Fit content initially
 
     // Declare series variable with the union type
-    let currentSeries: IAreaSeriesApi<Time> | ISeriesApi<'Custom'>;
+    let currentSeries: ISeriesApi<Time> | ISeriesApi<'Custom'>;
 
     if (enableAdvancedFeatures) {
       // Determine style based on trend, provide fallback if trend is undefined

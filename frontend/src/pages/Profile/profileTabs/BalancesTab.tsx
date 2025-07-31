@@ -1,4 +1,4 @@
-import { LedgerDTO } from "@/api/user";
+import { LedgerDTO } from "@/types/user";
 import {
   Alert,
   Box,

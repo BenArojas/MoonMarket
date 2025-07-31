@@ -44,7 +44,6 @@ const PerformanceCards = React.memo(() => {
   }, [data, setPercentageChange]); // Rerun this effect if data or the setter changes
 
   const chartConfigs = useMemo(() => {
-    // If there's no data yet, return an empty array to avoid errors.
     if (!data) return [];
 
     return [
