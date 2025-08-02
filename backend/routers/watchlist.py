@@ -3,40 +3,17 @@ from logging import log
 import logging
 from fastapi import APIRouter, Depends, HTTPException
 import httpx
-from pydantic import BaseModel, Field
-from ibkr_service import IBKRService
-from typing import Dict, List, Literal
+from models import HistoricalPoint, HistoricalReq, StockHistorical, WatchlistDetail
+from ibkr import IBKRService
 from deps import get_ibkr_service 
-from constants import CRYPTO_SYMBOLS, PERIOD_BAR 
+from constants import PERIOD_BAR 
 
 router = APIRouter(prefix="/watchlists", tags=["Watchlist"])
 log = logging.getLogger(__name__)
 
 # ---------------------- models ------------------------------
     
-class Instrument(BaseModel):
-    ticker: str
-    conid: int | str
-    name: str | None = None
-    assetClass: str | None = None
 
-class WatchlistDetail(BaseModel):
-    id: str
-    name: str
-    instruments: List[Instrument]
-    
-class HistoricalReq(BaseModel):
-    tickers: List[str] = Field(..., min_items=1)
-    sec_types: Dict[str, str] | None = None 
-    timeRange: Literal['1D', '7D', '1M', '3M', '6M', '1Y']
-
-class HistoricalPoint(BaseModel):
-    date: int     # unix seconds
-    price: float
-
-class StockHistorical(BaseModel):
-    ticker: str
-    historical: List[HistoricalPoint]
 
 # ---------- helper to turn /history row → point ----------
 def _row_to_point(row: dict) -> HistoricalPoint:

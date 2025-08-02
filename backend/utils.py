@@ -117,21 +117,6 @@ def price_delta(snap: list[dict]) -> dict:
     }
 
 
-def parse_option_symbol(ticker: str):
-    """Parse option symbol like 'IBIT Jul31'25 65 Call' into components"""
-    # This is a simplified parser - you might need to adjust based on your format
-    pattern = r'^([A-Z]+)\s+([A-Za-z0-9\']+)\s+(\d+(?:\.\d+)?)\s+(Call|Put)$'
-    match = re.match(pattern, ticker, re.IGNORECASE)
-    
-    if match:
-        underlying, exp_str, strike, right = match.groups()
-        return {
-            'underlying': underlying,
-            'expiry': exp_str,
-            'strike': float(strike),
-            'right': right.upper()
-        }
-    return None
 
 def calculate_days_to_expiry(description: str) -> int | None:
     """
@@ -175,3 +160,48 @@ def format_option_description(description: str) -> str:
     final_format = re.sub(r'([A-Z]{3})(\d{4})', r'\1 \2', normalized_space)
     
     return final_format
+
+def extract_price_from_snapshot( snapshot_data: dict) -> float | None:
+    """
+    Extracts the best available price from snapshot data in a prioritized order.
+    Priority: Last Price (31) -> Mark Price (7635).
+
+    Returns the price as a float if available, otherwise None.
+    """
+    # Attempt to get and convert the last price first.
+    price = safe_float_conversion(snapshot_data.get("31"))
+    if price is not None:
+        return price
+
+    # If the last price is not available, try the mark price.
+    price = safe_float_conversion(snapshot_data.get("7635"))
+    if price is not None:
+        return price
+
+    # If neither price is found, return None.
+    return None
+
+def parse_option_symbol(description: str) -> str:
+        """
+        Parses a long IBKR option description into a clean, readable format.
+        Example In: 'IBIT   JUL2025 65 C [IBIT  250731C00065000 100]'
+        Example Out: 'IBIT JUL2025 $65.00 C'
+        """
+        # This new, simpler regex parses the readable part of the string.
+        # It captures: 1:Underlying, 2:Expiry, 3:Strike, 4:Type(C/P)
+        match = re.search(r"^([A-Z]+)\s+([A-Z]{3}\d{4})\s+([\d\.]+)\s+([CP])", description)
+
+        if match:
+            try:
+                underlying = match.group(1)
+                expiry = match.group(2)  # This is already "JUL2025"
+                strike = float(match.group(3))
+                option_type = match.group(4)
+                
+                return f"{underlying} {expiry} ${strike:.2f} {option_type}"
+            except (ValueError, IndexError):
+                # If parsing fails for any reason, fall back to the original
+                return description
+        
+        # If the regex doesn't match at all, return the original string
+        return description

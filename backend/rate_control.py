@@ -6,7 +6,6 @@ import logging
 from functools import wraps
 from aiolimiter import AsyncLimiter
 from httpx import Response
-from fastapi import HTTPException
 
 log = logging.getLogger(__name__)
 

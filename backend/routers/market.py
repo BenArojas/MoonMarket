@@ -2,14 +2,14 @@ import asyncio
 import datetime
 from logging import log
 import logging
-from typing import  List, Optional
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 import httpx
 from utils import format_option_description, price_delta, safe_float_conversion
-from ibkr_service import IBKRService
+from ibkr import IBKRService
 from models import ChartDataBars, ConidResponse, FilteredChainResponse, OptionContract, PositionInfo, QuoteInfo, SearchResult, SingleContractResponse, StaticInfo, StockDetailsResponse
 from deps import get_ibkr_service 
-from constants import CRYPTO_SYMBOLS, PERIOD_BAR 
+from constants import  PERIOD_BAR 
 log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/market", tags=["Market"])

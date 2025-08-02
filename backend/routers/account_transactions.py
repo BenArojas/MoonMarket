@@ -7,13 +7,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from models import Order
 from deps import get_ibkr_service
-from ibkr_service import IBKRService
+from ibkr import IBKRService
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/transactions", tags=["Account transactions Data"])
 
 
-        
 @router.get(
     "/",
     summary="Get realised transactions and P/L for the account",

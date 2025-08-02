@@ -1,8 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
 import logging
-from ibkr_service import IBKRService
+from models import ScannerParamsResponse, ScannerRequest, ScannerResponse
+from ibkr import IBKRService
 from deps import get_ibkr_service
 
 log = logging.getLogger(__name__)
@@ -10,25 +9,7 @@ log = logging.getLogger(__name__)
 router = APIRouter(prefix="/scanner", tags=["scanner"])
 
 # Pydantic models for request/response validation
-class ScannerFilter(BaseModel):
-    code: str
-    value: float
 
-class ScannerRequest(BaseModel):
-    instrument: str
-    type: str
-    location: str
-    filter: Optional[List[ScannerFilter]] = []
-
-class ScannerResponse(BaseModel):
-    contracts: List[Dict[str, Any]]
-    scan_data_column_name: Optional[str] = None
-
-class ScannerParamsResponse(BaseModel):
-    scan_type_list: List[Dict[str, Any]]
-    instrument_list: List[Dict[str, Any]]
-    filter_list: List[Dict[str, Any]]
-    location_tree: List[Dict[str, Any]]
 
 
 

@@ -8,7 +8,7 @@ import logging, json
 from typing import Any, Set
 from utils import clean_nan_values
 
-from ibkr_service import IBKRService
+from ibkr import IBKRService
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from models import WebSocketRequest
 log = logging.getLogger(__name__)

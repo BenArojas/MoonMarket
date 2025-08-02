@@ -1,6 +1,6 @@
 # deps.py ---------------------------------------------------------------
 from fastapi import Request
-from ibkr_service import IBKRService
+from ibkr import IBKRService
 
 def get_ibkr_service(request: Request) -> IBKRService:
     """

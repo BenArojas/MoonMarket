@@ -11,7 +11,8 @@ logging.basicConfig(
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
-from ibkr_service import AuthStatusDTO, IBKRService
+from ibkr import IBKRService
+from models import AuthStatusDTO
 from starlette.middleware.cors import CORSMiddleware
 from gateway_ws import router as ws_router, broadcast
 from routers.market import router as market_router

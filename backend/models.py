@@ -284,7 +284,54 @@ class FilteredChainResponse(BaseModel):
 class SingleContractResponse(BaseModel):
     strike: float
     data: Dict[str, Optional[OptionContract]]
+    
+# --- Scanner ---
 
+class ScannerFilter(BaseModel):
+    code: str
+    value: float
+
+class ScannerRequest(BaseModel):
+    instrument: str
+    type: str
+    location: str
+    filter: Optional[List[ScannerFilter]] = []
+
+class ScannerResponse(BaseModel):
+    contracts: List[Dict[str, Any]]
+    scan_data_column_name: Optional[str] = None
+
+class ScannerParamsResponse(BaseModel):
+    scan_type_list: List[Dict[str, Any]]
+    instrument_list: List[Dict[str, Any]]
+    filter_list: List[Dict[str, Any]]
+    location_tree: List[Dict[str, Any]]
+    
+# --- Watchlist ---
+
+class Instrument(BaseModel):
+    ticker: str
+    conid: int | str
+    name: str | None = None
+    assetClass: str | None = None
+
+class WatchlistDetail(BaseModel):
+    id: str
+    name: str
+    instruments: List[Instrument]
+    
+class HistoricalReq(BaseModel):
+    tickers: List[str] = Field(..., min_items=1)
+    sec_types: Dict[str, str] | None = None 
+    timeRange: Literal['1D', '7D', '1M', '3M', '6M', '1Y']
+
+class HistoricalPoint(BaseModel):
+    date: int     # unix seconds
+    price: float
+
+class StockHistorical(BaseModel):
+    ticker: str
+    historical: List[HistoricalPoint]
 # =============================================================================
 #  API Action & External Service Models
 # =============================================================================
