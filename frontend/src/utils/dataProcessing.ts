@@ -1,6 +1,7 @@
 import { DonutDatum } from '@/components/charts/DonutChart';
 import { SankeyInputData, SankeyInputLink, SankeyInputNode } from '@/components/charts/SankeyChart';
-import { AllocationDTO, AllocationView, StockData } from '@/stores/stockStore';
+import { AllocationDTO, AllocationView } from '@/types/position';
+import { StockData } from '@/types/stock';
 
 
 export function formatNumber(
