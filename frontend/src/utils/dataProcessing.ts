@@ -1,3 +1,4 @@
+import { DonutDatum } from '@/components/charts/DonutChart';
 import { SankeyInputData, SankeyInputLink, SankeyInputNode } from '@/components/charts/SankeyChart';
 import { AllocationDTO, AllocationView, StockData } from '@/stores/stockStore';
 
@@ -130,7 +131,6 @@ export function processTreemapData(
 }
 
 
-import { DonutDatum } from "@/schemas/allocation";
 
 
 export function processAllocationData(
