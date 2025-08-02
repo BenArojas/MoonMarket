@@ -1,0 +1,10 @@
+# Ignore the node_modules folder
+node_modules
+
+# Ignore the local build output
+dist
+build
+
+# Ignore other common files
+.env
+.DS_Store

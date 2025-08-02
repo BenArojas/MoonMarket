@@ -1,0 +1,12 @@
+.glass {
+  background: rgba(255, 255, 255, 0);
+  box-shadow: 0 8px 32px 0 rgba(255, 255, 255, 0.37);
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.layoutContainer {
+  padding: 1rem;
+  margin: 0 3.5rem;
+}

@@ -1,0 +1,7 @@
+.log
+.venv
+.env
+__pycache__
+server.log
+.log
+auth_secrets.py
