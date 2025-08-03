@@ -47,8 +47,7 @@ function GraphMenu({
         flexDirection: "row",
         justifyContent: "space-between",
         width: "100%",
-        padding: "5px 0",
-        mb: 1,
+        mb: 1
       }}
     >
       <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
@@ -134,7 +133,6 @@ function GraphMenu({
           </List>
         </nav>
       </Box>
-      <SearchBar />
     </Box>
   );
 }

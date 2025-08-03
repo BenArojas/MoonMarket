@@ -10,6 +10,7 @@ import { useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import Greetings from "./Greetings";
 import { LedgerDTO } from "@/types/user";
+import { RightSidebar } from "./RightSidebar";
 
 
 const Layout: React.FC = () => {
@@ -23,8 +24,8 @@ const Layout: React.FC = () => {
   const { data } = useQuery({
     queryKey: ["aiFeatureCheck"],
     queryFn: checkAiFeatures,
-    staleTime: Infinity, // We only need to check this once per session
-    retry: false, // Don't retry on failure
+    staleTime: Infinity, 
+    retry: false, 
   });
 
   const { data: pnlData } = useQuery({
@@ -65,13 +66,11 @@ const Layout: React.FC = () => {
 
   return (
     <PercentageChangeProvider>
-      <Box sx={{ display: "flex" }}>
-        {/* 2. Add the WebSocketManager here. It renders no UI. */}
+      <Box sx={{ display: "flex"}}>
         <WebSocketManager />
-
         {isMobileScreen ? null : <Sidebar />}
         <Box
-          className="layout"
+          component="main" 
           sx={{
             flexGrow: 1,
             display: "flex",
@@ -79,10 +78,13 @@ const Layout: React.FC = () => {
           }}
         >
           <Greetings />
-          <Outlet />
+          <Box component="div" sx={{ flexGrow: 1 }}> 
+            <Outlet />
+          </Box>
         </Box>
+        {isMobileScreen ? null : <RightSidebar />}
       </Box>
-      </PercentageChangeProvider>
+    </PercentageChangeProvider>
   );
 };
 

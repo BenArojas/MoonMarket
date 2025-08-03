@@ -7,31 +7,20 @@ import Timeline from '@/components/tradingView/TimelineTradingView'
 import HotList from '@/components/tradingView/HotListTradingVIew'
 import TechnicalAnalysis from '@/components/tradingView/TechnicalAnalysisTradingView'
 import { useThemeHook } from "@/contexts/ThemeContext";
+import "@/styles/App.css";
+
 
 const Global: React.FC = () => {
     const { mode } = useThemeHook();
     return (
-        <Box sx={{
+        <Box className="custom-scrollbar" sx={{
             display: 'flex',
             flexDirection: 'column',
             gap: 5,
             height: '80vh',
             overflowY: 'auto',
-            '&::-webkit-scrollbar': {
-                width: '20px',
-            },
-            '&::-webkit-scrollbar-track': {
-                backgroundColor: 'transparent',
-            },
-            '&::-webkit-scrollbar-thumb': {
-                backgroundColor: '#d6dee1',
-                borderRadius: '20px',
-                border: '6px solid transparent',
-                backgroundClip: 'content-box',
-            },
-            '&::-webkit-scrollbar-thumb:hover': {
-                backgroundColor: '#a8bbbf',
-            },
+            width: "90%",
+            m: "auto"
         }}>
             <Box sx={{
                 position: 'sticky',

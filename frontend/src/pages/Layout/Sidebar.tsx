@@ -12,7 +12,7 @@ function Sidebar() {
     <Box
       className="glass"
       sx={{
-        width: isMobileScreen ? 45 : 70,
+        width: isMobileScreen ? 45 : 60,
         minHeight: "100vh",
         display: "flex",
         flexDirection: "column",

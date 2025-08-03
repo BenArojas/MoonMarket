@@ -13,11 +13,6 @@ interface RocketSideBarProps{
 function RocketSideBar({ isMobileScreen }: RocketSideBarProps) {
   const { percentageChange } = useContext(PercentageChange);
 
-// const calculateSpaceshipPosition = () => {
-//   const maxPosition = isMobileScreen ? 50 : 90; // Clamp lower for mobile screens
-//   const clampedPercentage = Math.max(0, Math.min(percentageChange, maxPosition));
-//   return `${clampedPercentage}%`;
-// };
 const calculateSpaceshipPosition = () => {
   const minPosition = isMobileScreen ? 25 : 0; // Minimum bottom position
   const maxPosition = isMobileScreen ? 95 : 90; // Maximum bottom position
@@ -33,7 +28,7 @@ const calculateSpaceshipPosition = () => {
   return (
     <Box >
       <ShootingStars />
-      <Box
+      {/* <Box
         className="logo1"
         sx={{
           paddingTop: "30px",
@@ -44,7 +39,7 @@ const calculateSpaceshipPosition = () => {
         <Link draggable={false} to={Paths.protected.app.home} className="logo">
           <img draggable={false} src={mainlogo} style={{ height: isMobileScreen ? "80px" : "120px", width: isMobileScreen ? '50px' : "70px" }} />
         </Link>
-      </Box>
+      </Box> */}
 
       <img
       id="rocket"

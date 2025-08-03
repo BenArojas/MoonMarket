@@ -439,6 +439,10 @@ function connectWebSocket(get: () => StockState) {
   //use env var here
   const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   const wsURL = `${wsProtocol}//${window.location.host}/ws?accountId=${selectedAccountId}`;
+  // for dev
+  // const wsURL = `${wsProtocol}//localhost:8000/ws?accountId=${selectedAccountId}`;
+
+  console.log({ wsURL });
   ws = new WebSocket(wsURL);
 
   ws.onopen = () => {

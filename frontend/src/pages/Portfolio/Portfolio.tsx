@@ -56,9 +56,7 @@ function Portfolio() {
         display: "flex",
         flexDirection: isSmallScreen ? "column" : "row",
         gridTemplateColumns: isSmallScreen ? "1fr" : "1000px auto",
-        paddingY: isMobileScreen ? 2 : isSmallScreen ? 2 : 1,
-        paddingX: isMobileScreen ? 2 : isSmallScreen ? 2 : 5,
-        marginX: isMobileScreen ? 1 : isSmallScreen ? 1 : 5,
+        paddingX: isMobileScreen ? 2 : isSmallScreen ? 2 : 8,
         overflowY: "auto",
         height: isSmallScreen && !isMobileScreen ? "83vh" : "100%",
         gap: isMobileScreen ? 2 : isSmallScreen ? 2 : 4,
@@ -86,7 +84,7 @@ function Portfolio() {
           sx={{ height: "100%" }}
         >
           <ErrorBoundary FallbackComponent={ErrorFallback}>
-            <StackedCardsWrapper/>
+          <PerformanceCards/>
           </ErrorBoundary>
           <HistoricalDataCard />
         </Stack>
@@ -122,7 +120,6 @@ function PortfolioContent({
         flexDirection: "column",
         alignItems: isMobileScreen ? "unset" : "center",
         width: isSmallScreen ? "100%" : isMediumScreen ? "800px" : "1000px",
-        margin: "auto",
       }}
     >
       <GraphMenu
@@ -160,9 +157,5 @@ function PortfolioContent({
   );
 }
 
-
-const StackedCardsWrapper = () => {
-  return <PerformanceCards/>;
-};
 
 export default Portfolio;

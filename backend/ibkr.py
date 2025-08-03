@@ -14,7 +14,7 @@ from api.auth import AuthMixin
 from api.market import MarketDataMixin
 from api.orders import OrdersMixin
 from api.account import AccountMixin
-from websocket.handler import WebSocketHandlerMixin
+from ibkr_websocket.handler import WebSocketHandlerMixin
 
 log = logging.getLogger("ibkr.service")
 
@@ -59,7 +59,7 @@ class IBKRService(
     # This is the core request helper used by ALL API mixins.
     @paced("dynamic")
     async def _req(self, method: str, ep: str, **kw):
-        max_retries = 5
+        max_retries = 3
         initial_retry_delay = 0.5
         backoff_factor = 2
 

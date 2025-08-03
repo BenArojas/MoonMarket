@@ -8,8 +8,6 @@ import { Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Paths } from "@/constants/paths";
 
-
-
 export const PublicRoute: React.FC = () => {
   const { isAuth, isLoading, isError } = useAuth();
   const location = useLocation();
@@ -25,16 +23,16 @@ export const PublicRoute: React.FC = () => {
 
   if (!isError && isAuth === true) {
     // If authenticated, redirect. The fallback now uses the Paths object.
-    const from = location.state?.from?.pathname || Paths.protected.accountSelection; 
+    const from =
+      location.state?.from?.pathname || Paths.protected.accountSelection;
     return <Navigate to={from} replace />;
   }
-
 
   return (
     <div className="flex flex-col items-center justify-center h-screen">
       <Button
-        className="w-64 bg-blue-600 hover:bg-blue-700 text-white mb-4"
-        onClick={() => window.open('https://localhost:5000', '_blank')}
+        className="w-64 bg-teal-700 hover:bg-teal-800 text-white mb-4"
+        onClick={() => window.open("https://localhost:5000", "_blank")}
       >
         <Rocket className="mr-2 h-4 w-4" />
         Login to IBKR
@@ -42,7 +40,9 @@ export const PublicRoute: React.FC = () => {
       <Button
         variant="outline"
         className="w-64"
-        onClick={() => queryClient.invalidateQueries({ queryKey: ["authStatus"] })}
+        onClick={() =>
+          queryClient.invalidateQueries({ queryKey: ["authStatus"] })
+        }
       >
         Check Login Status
       </Button>

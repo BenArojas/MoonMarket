@@ -1,12 +1,12 @@
-import { createTheme, ThemeOptions } from "@mui/material/styles";
-import { teal, red } from '@mui/material/colors';
+import { alpha, createTheme, ThemeOptions } from "@mui/material/styles";
+import { teal, red } from "@mui/material/colors";
 
-declare module '@mui/material/styles' {
+declare module "@mui/material/styles" {
   interface Palette {
-    trinary: Palette['primary'];
+    trinary: Palette["primary"];
   }
   interface PaletteOptions {
-    trinary?: PaletteOptions['primary'];
+    trinary?: PaletteOptions["primary"];
   }
 }
 
@@ -20,12 +20,13 @@ const darkThemeOptions: ThemeOptions = {
       paper: "#1A1A1A",
     },
     primary: {
+      "100": teal[200],
       light: teal[500],
       main: teal[800],
       dark: teal[900],
     },
     secondary: {
-      main: "#E1E5EB", // light grey
+      main: "#E1E5EB",
     },
     trinary: {
       main: "#3f3f46",
@@ -42,25 +43,29 @@ const darkThemeOptions: ThemeOptions = {
   },
   components: {
     MuiCssBaseline: {
-      styleOverrides: `
-        @font-face {
-          font-family: 'Poppins';
-          font-style: normal;
-          font-display: swap;
-          font-weight: 400;
-          src: local('Poppins'), local('Poppins-Regular'), url(https://fonts.gstatic.com/s/poppins/v15/pxiEyp8kv8JHgFVrJJfecg.woff2) format('woff2');
-          unicodeRange: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF;
-        }
-      `,
+      styleOverrides: (theme) => ({
+        body: {
+          backgroundImage: `radial-gradient(circle at bottom right, ${alpha((theme.palette.primary as any)['100'], 0.25)}, ${theme.palette.background.default})`,
+        },
+        "@font-face": {
+          fontFamily: "Poppins, sans-serif",
+          fontStyle: "normal",
+          fontDisplay: "swap",
+          fontWeight: 400,
+          src: "url(https://fonts.gstatic.com/s/poppins/v15/pxiEyp8kv8JHgFVrJJfecg.woff2) format('woff2')",
+          unicodeRange:
+            "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF",
+        },
+      }),
     },
     MuiTextField: {
       defaultProps: {
-        autoComplete: 'off',
+        autoComplete: "off",
       },
     },
     MuiInput: {
       defaultProps: {
-        autoComplete: 'off',
+        autoComplete: "off",
       },
     },
   },
@@ -76,6 +81,7 @@ const lightThemeOptions: ThemeOptions = {
       paper: "#fff",
     },
     primary: {
+      "100": teal[200],
       light: teal[500],
       main: teal[800],
       dark: teal[900],
@@ -98,25 +104,29 @@ const lightThemeOptions: ThemeOptions = {
   },
   components: {
     MuiCssBaseline: {
-      styleOverrides: `
-        @font-face {
-          font-family: 'Poppins';
-          font-style: normal;
-          font-display: swap;
-          font-weight: 400;
-          src: local('Poppins'), local('Poppins-Regular'), url(https://fonts.gstatic.com/s/poppins/v15/pxiEyp8kv8JHgFVrJJfecg.woff2) format('woff2');
-          unicodeRange: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF;
-        }
-      `,
+      styleOverrides: (theme) => ({
+        body: {
+          backgroundImage: `radial-gradient(circle at bottom right, ${alpha((theme.palette.primary as any)['100'], 0.35)}, ${theme.palette.background.default})`,
+        },
+        "@font-face": {
+          fontFamily: "Poppins, sans-serif",
+          fontStyle: "normal",
+          fontDisplay: "swap",
+          fontWeight: 400,
+          src: "url(https://fonts.gstatic.com/s/poppins/v15/pxiEyp8kv8JHgFVrJJfecg.woff2) format('woff2')",
+          unicodeRange:
+            "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF",
+        },
+      }),
     },
     MuiTextField: {
       defaultProps: {
-        autoComplete: 'off',
+        autoComplete: "off",
       },
     },
     MuiInput: {
       defaultProps: {
-        autoComplete: 'off',
+        autoComplete: "off",
       },
     },
   },

@@ -6,23 +6,39 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import MarketStatus from "@/pages/Layout/MarketStatus";
-import Navbar from "@/pages/Layout/Navbar";
 import { useStockStore } from "@/stores/stockStore";
 import { ArrowDown, ArrowUp } from "lucide-react";
-import PortfolioValue from "./AnimatedNumber";
-import { formatCurrency } from '@/utils/dataProcessing';
+import PortfolioValue from "./AnimatedNumber"; // Using your animated number component
+import SearchBar from "@/components/SearchBar";
+import { Link } from "react-router-dom";
+import { Paths } from "@/constants/paths";
+import mainlogo from "/ToTheMoon.png";
 
+// A component to display the main financial stat using your animated component
+const FinancialStat = ({ label, value }: { label: string; value: number }) => (
+  <Box>
+    <PortfolioValue value={value} />
+    <Typography
+      variant="caption"
+      color="text.secondary"
+      component="p"
+      sx={{ mt: -1 }}
+    >
+      {label}
+    </Typography>
+  </Box>
+);
 
 function Greetings() {
   const { coreTotals } = useStockStore();
   const { unrealized, dailyRealized, netLiq, marketValue } = coreTotals;
   const theme = useTheme();
-  const isMobileScreen = useMediaQuery(theme.breakpoints.down("sm"));
+  const isMobileScreen = useMediaQuery(theme.breakpoints.down("md"));
 
-  const colorFor = (v: number) => (v >= 0 ? "primary" : "error");
+  // Helper functions and component for PLChip, as requested
+  const colorFor = (v: number) => (v >= 0 ? "success.main" : "error.main");
   const arrowFor = (v: number) =>
-    v >= 0 ? <ArrowUp size={16} /> : <ArrowDown size={16} />;
+    v >= 0 ? <ArrowUp size={14} /> : <ArrowDown size={14} />;
   const fmt = (v: number) =>
     v.toLocaleString("en-US", {
       minimumFractionDigits: 2,
@@ -31,78 +47,62 @@ function Greetings() {
 
   const PLChip = ({ label, value }: { label: string; value: number }) => (
     <Stack direction="row" spacing={0.5} alignItems="center">
-      <Typography color={colorFor(value)}>{arrowFor(value)}</Typography>
+      <Typography variant="body2" sx={{ color: colorFor(value) }}>
+        {arrowFor(value)}
+      </Typography>
       <Typography
         variant="body2"
-        color={colorFor(value)}
-        sx={{ fontWeight: 600 }}
+        sx={{ color: colorFor(value), fontWeight: 500 }}
       >
         {label}: {fmt(value)}$
       </Typography>
     </Stack>
   );
 
-  const formattedDate = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
-
   return (
-    <Box
-      sx={{
-        width: "90%",
-        marginRight: "auto",
-        marginLeft: "auto",
-        paddingBottom: "5px",
-      }}
-    >
-      <Box
-        sx={{
-          display: isMobileScreen ? "flex" : "grid",
-          gridTemplateColumns: "auto auto",
-          flexDirection: isMobileScreen ? "column" : "row",
-          gap: 1,
-          paddingBottom: isMobileScreen ? 2 : 0,
-        }}
+    <Box sx={{ width: "95%", mx: "auto", py: 3, px: 5 }}>
+      <Stack
+        direction={isMobileScreen ? "column" : "row"}
+        alignItems="center"
+        justifyContent="space-between"
+        spacing={2}
       >
-        <Box
-          className="Greetings"
-          sx={{
-            flex: 1,
-            width: "100%",
-            padding: 2,
-            order: isMobileScreen ? -1 : 0,
-            maxWidth: isMobileScreen ? "100%" : "auto", // Ensure full width on mobile
-          }}
-        >
-          <Stack direction={"column"} spacing={1}>
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Typography variant={"h5"}>Net Liquidation Value:</Typography>
-              <PortfolioValue value={netLiq} />
-            </Stack>
-
-            <Typography variant={"h6"}>{`Market Value: ${formatCurrency(marketValue)}`}</Typography>
-            <Stack direction={"row"} spacing={1}>
-
+        <Stack direction="row" spacing={2} alignItems="center">
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Link
+              draggable={false}
+              to={Paths.protected.app.home}
+              className="logo"
+            >
+              <img
+                draggable={false}
+                src={mainlogo}
+                style={{
+                  height: isMobileScreen ? "80px" : "100px",
+                  width: isMobileScreen ? "50px" : "60px",
+                }}
+              />
+            </Link>
+            <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+              MoonMarket
+            </Typography>
+          </Box>
+          <Stack direction="column" spacing={0.5}>
             <PLChip label="Unrealized" value={unrealized} />
             <PLChip label="Daily Realized" value={dailyRealized} />
-            </Stack>
           </Stack>
-          <MarketStatus date={formattedDate} />
-        </Box>
+        </Stack>
 
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "center", // Ensure navbar is centered
-            width: "100%",
-          }}
-        >
-          <Navbar />
-        </Box>
-      </Box>
-      <Divider />
+        {!isMobileScreen && <SearchBar />}
+
+        <Stack direction="row" spacing={4} alignItems="center">
+          <FinancialStat label="Net Liquidation Value" value={netLiq} />
+          <FinancialStat label="Market Value" value={marketValue} />
+        </Stack>
+
+        {isMobileScreen && <SearchBar />}
+      </Stack>
+      <Divider sx={{ mt: 2 }} />
     </Box>
   );
 }
